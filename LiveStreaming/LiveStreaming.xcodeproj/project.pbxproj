@@ -8,22 +8,22 @@
 
 /* Begin PBXBuildFile section */
 		9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB7E2738C1C200161747 /* AppDelegate.swift */; };
-		9AFFCB812738C1C200161747 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB802738C1C200161747 /* SceneDelegate.swift */; };
 		9AFFCB832738C1C200161747 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB822738C1C200161747 /* ViewController.swift */; };
 		9AFFCB862738C1C200161747 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB842738C1C200161747 /* Main.storyboard */; };
 		9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB872738C1C300161747 /* Assets.xcassets */; };
 		9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */; };
+		9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB922738C2BA00161747 /* OFInputDevice.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		9AFFCB7B2738C1C200161747 /* LiveStreaming.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveStreaming.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9AFFCB7E2738C1C200161747 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		9AFFCB802738C1C200161747 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		9AFFCB822738C1C200161747 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		9AFFCB852738C1C200161747 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9AFFCB872738C1C300161747 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9AFFCB8A2738C1C300161747 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		9AFFCB8C2738C1C300161747 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9AFFCB922738C2BA00161747 /* OFInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFInputDevice.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,8 +56,8 @@
 		9AFFCB7D2738C1C200161747 /* LiveStreaming */ = {
 			isa = PBXGroup;
 			children = (
+				9AFFCB922738C2BA00161747 /* OFInputDevice.swift */,
 				9AFFCB7E2738C1C200161747 /* AppDelegate.swift */,
-				9AFFCB802738C1C200161747 /* SceneDelegate.swift */,
 				9AFFCB822738C1C200161747 /* ViewController.swift */,
 				9AFFCB842738C1C200161747 /* Main.storyboard */,
 				9AFFCB872738C1C300161747 /* Assets.xcassets */,
@@ -139,7 +139,7 @@
 			files = (
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
 				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
-				9AFFCB812738C1C200161747 /* SceneDelegate.swift in Sources */,
+				9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -289,6 +289,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5S6DCB24V8;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -308,6 +309,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5S6DCB24V8;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
