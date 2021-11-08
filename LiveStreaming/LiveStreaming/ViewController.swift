@@ -18,8 +18,9 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         inputDevice = OFInputDevice()
-        inputDevice?.startSession()
         addPreviewLayer()
+        //开启预览
+        inputDevice?.startSession()
     }
     
     /// 添加预览图层
