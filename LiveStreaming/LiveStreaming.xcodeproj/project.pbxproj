@@ -7,15 +7,31 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
+		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
+		9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */; };
+		9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDB2273A46D20045F456 /* SCGLView.swift */; };
+		9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBA273A76350045F456 /* FrameBuffer.m */; };
+		9A16DDBF273A76350045F456 /* Frame.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBB273A76350045F456 /* Frame.m */; };
 		9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB7E2738C1C200161747 /* AppDelegate.swift */; };
 		9AFFCB832738C1C200161747 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB822738C1C200161747 /* ViewController.swift */; };
 		9AFFCB862738C1C200161747 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB842738C1C200161747 /* Main.storyboard */; };
 		9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB872738C1C300161747 /* Assets.xcassets */; };
 		9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */; };
 		9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB922738C2BA00161747 /* OFInputDevice.swift */; };
+		9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB9D27396FF500161747 /* VideoManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
+		9A16DDAE273A132E0045F456 /* shaderf.fsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderf.fsh; sourceTree = "<group>"; };
+		9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_imageEdit_wow.png; sourceTree = SOURCE_ROOT; };
+		9A16DDB2273A46D20045F456 /* SCGLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCGLView.swift; sourceTree = "<group>"; };
+		9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LiveStreaming-Bridging-Header.h"; sourceTree = "<group>"; };
+		9A16DDBA273A76350045F456 /* FrameBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FrameBuffer.m; sourceTree = "<group>"; };
+		9A16DDBB273A76350045F456 /* Frame.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Frame.m; sourceTree = "<group>"; };
+		9A16DDBC273A76350045F456 /* FrameBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameBuffer.h; sourceTree = "<group>"; };
+		9A16DDBD273A76350045F456 /* Frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Frame.h; sourceTree = "<group>"; };
 		9AFFCB7B2738C1C200161747 /* LiveStreaming.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveStreaming.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9AFFCB7E2738C1C200161747 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9AFFCB822738C1C200161747 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -24,6 +40,7 @@
 		9AFFCB8A2738C1C300161747 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		9AFFCB8C2738C1C300161747 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9AFFCB922738C2BA00161747 /* OFInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFInputDevice.swift; sourceTree = "<group>"; };
+		9AFFCB9D27396FF500161747 /* VideoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,6 +54,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		9A16DDAB273A12CB0045F456 /* Shader */ = {
+			isa = PBXGroup;
+			children = (
+				9A16DDAC273A131E0045F456 /* shaderv.vsh */,
+				9A16DDAE273A132E0045F456 /* shaderf.fsh */,
+			);
+			path = Shader;
+			sourceTree = "<group>";
+		};
 		9AFFCB722738C1C200161747 = {
 			isa = PBXGroup;
 			children = (
@@ -56,15 +82,40 @@
 		9AFFCB7D2738C1C200161747 /* LiveStreaming */ = {
 			isa = PBXGroup;
 			children = (
+				9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */,
+				9A16DDAB273A12CB0045F456 /* Shader */,
+				9AFFCBA02739703100161747 /* Frame */,
+				9AFFCB9F2739701E00161747 /* Video */,
 				9AFFCB922738C2BA00161747 /* OFInputDevice.swift */,
 				9AFFCB7E2738C1C200161747 /* AppDelegate.swift */,
 				9AFFCB822738C1C200161747 /* ViewController.swift */,
+				9A16DDB2273A46D20045F456 /* SCGLView.swift */,
 				9AFFCB842738C1C200161747 /* Main.storyboard */,
 				9AFFCB872738C1C300161747 /* Assets.xcassets */,
 				9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */,
 				9AFFCB8C2738C1C300161747 /* Info.plist */,
 			);
 			path = LiveStreaming;
+			sourceTree = "<group>";
+		};
+		9AFFCB9F2739701E00161747 /* Video */ = {
+			isa = PBXGroup;
+			children = (
+				9AFFCB9D27396FF500161747 /* VideoManager.swift */,
+			);
+			path = Video;
+			sourceTree = "<group>";
+		};
+		9AFFCBA02739703100161747 /* Frame */ = {
+			isa = PBXGroup;
+			children = (
+				9A16DDBD273A76350045F456 /* Frame.h */,
+				9A16DDBB273A76350045F456 /* Frame.m */,
+				9A16DDBC273A76350045F456 /* FrameBuffer.h */,
+				9A16DDBA273A76350045F456 /* FrameBuffer.m */,
+				9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */,
+			);
+			path = Frame;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -98,6 +149,7 @@
 				TargetAttributes = {
 					9AFFCB7A2738C1C200161747 = {
 						CreatedOnToolsVersion = 12.5;
+						LastSwiftMigration = 1250;
 					};
 				};
 			};
@@ -124,9 +176,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */,
 				9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */,
 				9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */,
 				9AFFCB862738C1C200161747 /* Main.storyboard in Resources */,
+				9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */,
+				9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,9 +192,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
 				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
+				9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */,
 				9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */,
+				9A16DDBF273A76350045F456 /* Frame.m in Sources */,
+				9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,6 +345,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5S6DCB24V8;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
@@ -296,6 +356,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.OldFace.LiveStreaming;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Frame/LiveStreaming-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -306,6 +368,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 5S6DCB24V8;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
@@ -316,6 +379,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.OldFace.LiveStreaming;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Frame/LiveStreaming-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

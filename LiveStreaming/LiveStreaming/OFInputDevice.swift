@@ -85,6 +85,10 @@ class OFInputDevice: NSObject {
         videoOutput!.setSampleBufferDelegate(self, queue: videoQueue)
         videoOutput!.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         captureSession.addOutput(videoOutput!)
+        // 设置输出视频方向
+        let videoConnection = videoOutput?.connection(with: .video)
+        videoConnection?.automaticallyAdjustsVideoMirroring = false
+        videoConnection?.videoOrientation = .portrait
         
         let audioQueue = DispatchQueue.init(label: "audio output queue in capture session")
         let audioOutput = AVCaptureAudioDataOutput()
@@ -107,7 +111,7 @@ class OFInputDevice: NSObject {
     }
     
     /// 切换摄像头位置
-    /// - returns 是否切换成功
+    /// - returns: 是否切换成功
     ///
     /// 切换摄像头位置，如果切换失败则返回false
     func switchCameraPosition() -> Bool {
@@ -142,6 +146,8 @@ class OFInputDevice: NSObject {
         }
         //前置摄像头镜像
         let videoConnection = videoOutput?.connection(with: .video)
+        videoConnection?.automaticallyAdjustsVideoMirroring = false
+        videoConnection?.videoOrientation = .portrait
         if position == .front {
             videoConnection?.isVideoMirrored = true
         }

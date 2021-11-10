@@ -10,7 +10,7 @@ import AVFoundation
 
 class ViewController: UIViewController {
 
-    @IBOutlet weak var previewView: UIView!
+    @IBOutlet weak var previewView: SCGLView!
     @IBOutlet weak var switchButton: UIButton!
     
     var inputDevice: OFInputDevice?
@@ -18,22 +18,35 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         inputDevice = OFInputDevice()
-        addPreviewLayer()
+        inputDevice?.delegate = self
+//        addPreviewLayer()
         //开启预览
         inputDevice?.startSession()
     }
     
-    /// 添加预览图层
-    func addPreviewLayer() {
-        let layer = AVCaptureVideoPreviewLayer(session: inputDevice!.captureSession)
-        previewView.layer.addSublayer(layer)
-        layer.frame = previewView.bounds
+    override func viewDidAppear(_ animated: Bool) {
+        previewView.start()
     }
+    
     
     @IBAction func switchButtonDidClick(_ sender: Any) {
         print(#function)
         _ = inputDevice?.switchCameraPosition()
     }
+}
+
+extension ViewController: OFInputDeviceDelegate {
+    func onRecvVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+//        DispatchQueue.main.async { [weak self] in
+            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+                return
+            }
+            previewView.inputPixelBuffer(pixelBuffer)
+//        }
+    }
     
+    func onRecvAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+        
+    }
 }
 
