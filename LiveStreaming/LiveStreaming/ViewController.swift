@@ -14,6 +14,10 @@ class ViewController: UIViewController {
     @IBOutlet weak var switchButton: UIButton!
     
     var inputDevice: OFInputDevice?
+    lazy var singleColor: OFSingleColorMetalCompute = {
+        let computer = OFSingleColorMetalCompute()
+        return computer
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,7 +45,15 @@ extension ViewController: OFInputDeviceDelegate {
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
                 return
             }
-            previewView.inputPixelBuffer(pixelBuffer)
+        
+            let frame = VideoFrame()
+            frame.frameWidth = CVPixelBufferGetWidth(pixelBuffer)
+            frame.frameHeight = CVPixelBufferGetHeight(pixelBuffer)
+            frame.pixelBuffer = pixelBuffer
+//            self?.previewView.inputFrame(frame)
+            singleColor.input(frame: frame) { [weak self] frameOut in
+                self?.previewView.inputFrame(frameOut)
+            }
 //        }
     }
     

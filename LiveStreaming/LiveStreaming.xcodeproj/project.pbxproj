@@ -13,6 +13,19 @@
 		9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDB2273A46D20045F456 /* SCGLView.swift */; };
 		9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBA273A76350045F456 /* FrameBuffer.m */; };
 		9A16DDBF273A76350045F456 /* Frame.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBB273A76350045F456 /* Frame.m */; };
+		9A44789E275E143B0021226B /* AuxiliaryTool.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789D275E143B0021226B /* AuxiliaryTool.metal */; };
+		9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA1275DED6900568A6B /* SCLinkedList.swift */; };
+		9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA2275DED6900568A6B /* SCQueue.swift */; };
+		9A552AAC275DED6900568A6B /* SCGraphEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA4275DED6900568A6B /* SCGraphEdge.swift */; };
+		9A552AAD275DED6900568A6B /* SCGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA5275DED6900568A6B /* SCGraph.swift */; };
+		9A552AAE275DED6900568A6B /* SCGraphVertex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA6275DED6900568A6B /* SCGraphVertex.swift */; };
+		9A552AAF275DED6900568A6B /* SCListGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA7275DED6900568A6B /* SCListGraph.swift */; };
+		9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA8275DED6900568A6B /* SCBufferQueue.swift */; };
+		9A552AB1275DED6900568A6B /* SCStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA9275DED6900568A6B /* SCStack.swift */; };
+		9A552AB5275DEFC200568A6B /* OFDefalutMetal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB4275DEFC200568A6B /* OFDefalutMetal.swift */; };
+		9A552AB7275DF73E00568A6B /* OFSingleColorMetalCompute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB6275DF73E00568A6B /* OFSingleColorMetalCompute.swift */; };
+		9A552AB9275DF79F00568A6B /* OFAuxiliaryTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */; };
+		9A552ABB275DFF7B00568A6B /* OFPixelBufferTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */; };
 		9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB7E2738C1C200161747 /* AppDelegate.swift */; };
 		9AFFCB832738C1C200161747 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB822738C1C200161747 /* ViewController.swift */; };
 		9AFFCB862738C1C200161747 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB842738C1C200161747 /* Main.storyboard */; };
@@ -25,13 +38,26 @@
 /* Begin PBXFileReference section */
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
 		9A16DDAE273A132E0045F456 /* shaderf.fsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderf.fsh; sourceTree = "<group>"; };
-		9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_imageEdit_wow.png; sourceTree = SOURCE_ROOT; };
+		9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_imageEdit_wow.png; path = LiveStreaming/Resource/icon_imageEdit_wow.png; sourceTree = SOURCE_ROOT; };
 		9A16DDB2273A46D20045F456 /* SCGLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCGLView.swift; sourceTree = "<group>"; };
 		9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LiveStreaming-Bridging-Header.h"; sourceTree = "<group>"; };
 		9A16DDBA273A76350045F456 /* FrameBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FrameBuffer.m; sourceTree = "<group>"; };
 		9A16DDBB273A76350045F456 /* Frame.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Frame.m; sourceTree = "<group>"; };
 		9A16DDBC273A76350045F456 /* FrameBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameBuffer.h; sourceTree = "<group>"; };
 		9A16DDBD273A76350045F456 /* Frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Frame.h; sourceTree = "<group>"; };
+		9A44789D275E143B0021226B /* AuxiliaryTool.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = AuxiliaryTool.metal; sourceTree = "<group>"; };
+		9A552AA1275DED6900568A6B /* SCLinkedList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCLinkedList.swift; sourceTree = "<group>"; };
+		9A552AA2275DED6900568A6B /* SCQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCQueue.swift; sourceTree = "<group>"; };
+		9A552AA4275DED6900568A6B /* SCGraphEdge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraphEdge.swift; sourceTree = "<group>"; };
+		9A552AA5275DED6900568A6B /* SCGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraph.swift; sourceTree = "<group>"; };
+		9A552AA6275DED6900568A6B /* SCGraphVertex.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraphVertex.swift; sourceTree = "<group>"; };
+		9A552AA7275DED6900568A6B /* SCListGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCListGraph.swift; sourceTree = "<group>"; };
+		9A552AA8275DED6900568A6B /* SCBufferQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCBufferQueue.swift; sourceTree = "<group>"; };
+		9A552AA9275DED6900568A6B /* SCStack.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCStack.swift; sourceTree = "<group>"; };
+		9A552AB4275DEFC200568A6B /* OFDefalutMetal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFDefalutMetal.swift; sourceTree = "<group>"; };
+		9A552AB6275DF73E00568A6B /* OFSingleColorMetalCompute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSingleColorMetalCompute.swift; sourceTree = "<group>"; };
+		9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFAuxiliaryTools.swift; sourceTree = "<group>"; };
+		9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFPixelBufferTool.swift; sourceTree = "<group>"; };
 		9AFFCB7B2738C1C200161747 /* LiveStreaming.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveStreaming.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9AFFCB7E2738C1C200161747 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9AFFCB822738C1C200161747 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -63,6 +89,49 @@
 			path = Shader;
 			sourceTree = "<group>";
 		};
+		9A552AA0275DED6900568A6B /* structure */ = {
+			isa = PBXGroup;
+			children = (
+				9A552AA3275DED6900568A6B /* Graph */,
+				9A552AA1275DED6900568A6B /* SCLinkedList.swift */,
+				9A552AA2275DED6900568A6B /* SCQueue.swift */,
+				9A552AA8275DED6900568A6B /* SCBufferQueue.swift */,
+				9A552AA9275DED6900568A6B /* SCStack.swift */,
+			);
+			path = structure;
+			sourceTree = "<group>";
+		};
+		9A552AA3275DED6900568A6B /* Graph */ = {
+			isa = PBXGroup;
+			children = (
+				9A552AA4275DED6900568A6B /* SCGraphEdge.swift */,
+				9A552AA5275DED6900568A6B /* SCGraph.swift */,
+				9A552AA6275DED6900568A6B /* SCGraphVertex.swift */,
+				9A552AA7275DED6900568A6B /* SCListGraph.swift */,
+			);
+			path = Graph;
+			sourceTree = "<group>";
+		};
+		9A552AB2275DED7700568A6B /* Resource */ = {
+			isa = PBXGroup;
+			children = (
+				9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */,
+			);
+			path = Resource;
+			sourceTree = "<group>";
+		};
+		9A552AB3275DEFA800568A6B /* Metal */ = {
+			isa = PBXGroup;
+			children = (
+				9A552AB4275DEFC200568A6B /* OFDefalutMetal.swift */,
+				9A552AB6275DF73E00568A6B /* OFSingleColorMetalCompute.swift */,
+				9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */,
+				9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */,
+				9A44789D275E143B0021226B /* AuxiliaryTool.metal */,
+			);
+			path = Metal;
+			sourceTree = "<group>";
+		};
 		9AFFCB722738C1C200161747 = {
 			isa = PBXGroup;
 			children = (
@@ -82,7 +151,9 @@
 		9AFFCB7D2738C1C200161747 /* LiveStreaming */ = {
 			isa = PBXGroup;
 			children = (
-				9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */,
+				9A552AB3275DEFA800568A6B /* Metal */,
+				9A552AB2275DED7700568A6B /* Resource */,
+				9A552AA0275DED6900568A6B /* structure */,
 				9A16DDAB273A12CB0045F456 /* Shader */,
 				9AFFCBA02739703100161747 /* Frame */,
 				9AFFCB9F2739701E00161747 /* Video */,
@@ -193,11 +264,24 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
+				9A552AB7275DF73E00568A6B /* OFSingleColorMetalCompute.swift in Sources */,
+				9A552AAD275DED6900568A6B /* SCGraph.swift in Sources */,
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
+				9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */,
 				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
+				9A552AAE275DED6900568A6B /* SCGraphVertex.swift in Sources */,
+				9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */,
+				9A552AAF275DED6900568A6B /* SCListGraph.swift in Sources */,
 				9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */,
+				9A552AB1275DED6900568A6B /* SCStack.swift in Sources */,
+				9A552AB9275DF79F00568A6B /* OFAuxiliaryTools.swift in Sources */,
+				9A552ABB275DFF7B00568A6B /* OFPixelBufferTool.swift in Sources */,
 				9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */,
+				9A44789E275E143B0021226B /* AuxiliaryTool.metal in Sources */,
 				9A16DDBF273A76350045F456 /* Frame.m in Sources */,
+				9A552AB5275DEFC200568A6B /* OFDefalutMetal.swift in Sources */,
+				9A552AAC275DED6900568A6B /* SCGraphEdge.swift in Sources */,
+				9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */,
 				9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

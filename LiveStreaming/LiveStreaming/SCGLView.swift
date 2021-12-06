@@ -9,7 +9,7 @@ import UIKit
 import GLKit
 
 protocol SCGLViewProtocol: NSObjectProtocol {
-    func inputPixelBuffer(_ pixelBuffer: CVPixelBuffer);
+    func inputFrame(_ frame: VideoFrame);
     func start()
     func stop()
     func clearColor()
@@ -191,10 +191,6 @@ class SCGLView: UIView {
         glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
     }
     
-    private func BUFFER_OFFSET(_ i: Int) -> UnsafeRawPointer? {
-        return UnsafeRawPointer(bitPattern: i)
-    }
-    
     private func createTexture(_ pixelBuffer: CVPixelBuffer) {
         cleanUpTextures()
         let width = CVPixelBufferGetWidth(pixelBuffer)
@@ -216,12 +212,10 @@ class SCGLView: UIView {
 }
 
 extension SCGLView: SCGLViewProtocol {
-    func inputPixelBuffer(_ pixelBuffer: CVPixelBuffer) {
+    func inputFrame(_ frame: VideoFrame) {
         guard isStarted else {
             return
         }
-        let frame = VideoFrame()
-        frame.pixelBuffer = pixelBuffer
         frameBuffer.inputFrame(frame)
     }
     
