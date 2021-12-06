@@ -23,19 +23,8 @@
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="u3l-K1-6F1">
                                 <rect key="frame" x="0.0" y="812" width="414" height="50"/>
-                                <subviews>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="p0a-tA-Gvh">
-                                        <rect key="frame" x="20" y="10" width="47" height="30"/>
-                                        <state key="normal" title="Switch"/>
-                                        <connections>
-                                            <action selector="switchButtonDidClick:" destination="BYZ-38-t0r" eventType="touchUpInside" id="xKm-gP-tJq"/>
-                                        </connections>
-                                    </button>
-                                </subviews>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <constraints>
-                                    <constraint firstItem="p0a-tA-Gvh" firstAttribute="centerY" secondItem="u3l-K1-6F1" secondAttribute="centerY" id="3T5-Xi-pUn"/>
-                                    <constraint firstItem="p0a-tA-Gvh" firstAttribute="leading" secondItem="u3l-K1-6F1" secondAttribute="leading" constant="20" id="8Em-9V-zaN"/>
                                     <constraint firstAttribute="height" constant="50" id="umb-7a-Ffi"/>
                                 </constraints>
                             </view>
@@ -53,8 +42,8 @@
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="functionsView" destination="u3l-K1-6F1" id="nqC-XT-5eR"/>
                         <outlet property="previewView" destination="dHi-E7-fDM" id="ovB-lV-ElJ"/>
-                        <outlet property="switchButton" destination="p0a-tA-Gvh" id="BkP-nT-FbY"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>

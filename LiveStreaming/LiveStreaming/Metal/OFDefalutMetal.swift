@@ -46,7 +46,7 @@ class OFDefalutMetal: NSObject {
         textureWidth = width
         textureHeight = height
         let size = [UInt(textureWidth), UInt(textureHeight)]
-        sizeBuffer = device?.makeBuffer(bytes: size, length: 2 * MemoryLayout<UInt>.size, options: .cpuCacheModeWriteCombined)
+        sizeBuffer = device?.makeBuffer(bytes: size, length: 2 * MemoryLayout<UInt>.size, options: MTLResourceOptions(rawValue: 0))
         let threadsPerGroup = MTLSizeMake(16, 16, 1)
         let numThreadGroups = MTLSizeMake(Int(ceilf(Float(textureWidth) / Float(threadsPerGroup.width))), Int(ceilf(Float(textureHeight) / Float(threadsPerGroup.height))), 1)
         self.threadsPerGroup = threadsPerGroup

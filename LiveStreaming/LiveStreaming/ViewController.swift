@@ -11,19 +11,22 @@ import AVFoundation
 class ViewController: UIViewController {
 
     @IBOutlet weak var previewView: SCGLView!
-    @IBOutlet weak var switchButton: UIButton!
-    
+    // 功能按钮的父视图
+    @IBOutlet weak var functionsView: UIView!
+    // 输入源
     var inputDevice: OFInputDevice?
-    lazy var singleColor: OFSingleColorMetalCompute = {
-        let computer = OFSingleColorMetalCompute()
-        return computer
-    }()
+    // 功能按钮
+    var buttonsView: OFButtonsView!
+    
+    let auxiliaryTools = OFAuxiliaryTools()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        initUI()
+        initLayout()
+        
         inputDevice = OFInputDevice()
         inputDevice?.delegate = self
-//        addPreviewLayer()
         //开启预览
         inputDevice?.startSession()
     }
@@ -32,8 +35,42 @@ class ViewController: UIViewController {
         previewView.start()
     }
     
+    private func initUI() {
+        let items = auxiliaryTools.items.map { $0.rawValue }
+        buttonsView = OFButtonsView(withItems: items)
+        buttonsView.delegate = self
+        functionsView.addSubview(buttonsView)
+    }
     
-    @IBAction func switchButtonDidClick(_ sender: Any) {
+    private func initLayout() {
+        buttonsView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            buttonsView.topAnchor.constraint(equalTo: functionsView.topAnchor),
+            buttonsView.bottomAnchor.constraint(equalTo: functionsView.bottomAnchor),
+            buttonsView.leadingAnchor.constraint(equalTo: functionsView.leadingAnchor),
+            buttonsView.trailingAnchor.constraint(equalTo: functionsView.trailingAnchor),
+        ])
+    }
+}
+
+extension ViewController: OFButtonsViewDelegate {
+    func buttonDidSelect(_ view: OFButtonsView, index: Int) {
+        if index >= auxiliaryTools.items.count {
+            return
+        }
+        let type = auxiliaryTools.items[index]
+        switch type {
+        case .SwitchCamera:
+            switchCamera()
+        case .SingleColor:
+            auxiliaryTools.switchSingleColor()
+//        default:
+//            break
+        }
+    }
+    
+    /// 切换前后摄像头
+    func switchCamera() {
         print(#function)
         _ = inputDevice?.switchCameraPosition()
     }
@@ -50,10 +87,9 @@ extension ViewController: OFInputDeviceDelegate {
             frame.frameWidth = CVPixelBufferGetWidth(pixelBuffer)
             frame.frameHeight = CVPixelBufferGetHeight(pixelBuffer)
             frame.pixelBuffer = pixelBuffer
-//            self?.previewView.inputFrame(frame)
-            singleColor.input(frame: frame) { [weak self] frameOut in
-                self?.previewView.inputFrame(frameOut)
-            }
+            auxiliaryTools.inputFrame(frame)
+            previewView.inputFrame(frame)
+
 //        }
     }
     

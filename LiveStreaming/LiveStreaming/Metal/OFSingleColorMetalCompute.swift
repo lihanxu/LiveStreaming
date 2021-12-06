@@ -8,9 +8,22 @@
 import Foundation
 
 class OFSingleColorMetalCompute: NSObject {
+    enum SingleColorType: Int {
+        case none = 0
+        case red
+        case green
+        case blue
+        case gray
+    }
     let defalutMetal = OFDefalutMetal.standardDefalutMetal
     let pixelBufferPool = OFPixelBufferTool.sharedInstance
     var pipelineState: MTLComputePipelineState?
+    var colorType: SingleColorType = .none {
+        didSet {
+            colorTypeBuffer = defalutMetal.device?.makeBuffer(bytes: [colorType.rawValue], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
+        }
+    }
+    var colorTypeBuffer: MTLBuffer?
 
     override init() {
         super.init()
@@ -25,6 +38,7 @@ class OFSingleColorMetalCompute: NSObject {
         } catch {
             print(("(Assistive tools) error: create compute pipeline failed!"))
         }
+        colorTypeBuffer = defalutMetal.device?.makeBuffer(bytes: [colorType.rawValue], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
     }
     
     func createTextureFromPixelBuffer(pixelBuffer: CVPixelBuffer) -> MTLTexture? {
@@ -42,7 +56,7 @@ class OFSingleColorMetalCompute: NSObject {
         return outputTexture
     }
     
-    func input(frame: VideoFrame, completed: (VideoFrame) -> Void) {
+    func input(frame: VideoFrame) {
         defalutMetal.updateTexture(width: frame.frameWidth, height: frame.frameHeight)
         pixelBufferPool.update(width: UInt32(frame.frameWidth), height: UInt32(frame.frameHeight), pixelFormat: kCVPixelFormatType_32BGRA)
         
@@ -54,7 +68,6 @@ class OFSingleColorMetalCompute: NSObject {
         }
 
         guard let destPixelBuffer = pixelBufferPool.createPixelBuffer() else {
-            completed(frame)
             return
         }
         let outputTexture = createTextureFromPixelBuffer(pixelBuffer: destPixelBuffer)
@@ -66,7 +79,7 @@ class OFSingleColorMetalCompute: NSObject {
         computeEncoder?.setTexture(sourceTexture, index: 0)
         computeEncoder?.setTexture(outputTexture, index: 1)
         computeEncoder?.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 0)
-        computeEncoder?.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 1)
+        computeEncoder?.setBuffer(colorTypeBuffer, offset: 0, index: 1)
 
         computeEncoder?.dispatchThreadgroups(defalutMetal.numTreadGroups!, threadsPerThreadgroup: defalutMetal.threadsPerGroup!)
         computeEncoder?.endEncoding()
@@ -74,11 +87,7 @@ class OFSingleColorMetalCompute: NSObject {
         commandBuffer?.commit()
         commandBuffer?.waitUntilCompleted()
         
-        let frameOut = VideoFrame()
-        frameOut.frameWidth = CVPixelBufferGetWidth(destPixelBuffer)
-        frameOut.frameHeight = CVPixelBufferGetHeight(destPixelBuffer)
-        frameOut.pixelBuffer = destPixelBuffer
-        frameOut.texture = outputTexture
-        completed(frameOut)
+        frame.pixelBuffer = destPixelBuffer
+        frame.texture = outputTexture
     }
 }
