@@ -64,8 +64,8 @@ extension ViewController: OFButtonsViewDelegate {
             switchCamera()
         case .SingleColor:
             auxiliaryTools.switchSingleColor()
-//        default:
-//            break
+        case .EdgeDetection:
+            auxiliaryTools.switchPeak()
         }
     }
     

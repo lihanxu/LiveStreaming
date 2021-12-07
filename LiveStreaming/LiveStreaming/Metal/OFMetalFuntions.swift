@@ -11,5 +11,6 @@ class OFMetalFuntions: NSObject {
     enum Funstions: String, CaseIterable {
         case SwitchCamera = "Switch Camera"
         case SingleColor = "Single Color"
+        case EdgeDetection = "Edge Detection"
     }
 }

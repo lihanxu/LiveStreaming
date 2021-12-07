@@ -1,5 +1,5 @@
 //
-//  OFSingleColorMetalCompute.swift
+//  OFPeakComputer.swift
 //  LiveStreaming
 //
 //  Created by anker on 2021/12/6.
@@ -7,23 +7,16 @@
 
 import Foundation
 
-class OFSingleColorMetalCompute: NSObject {
-    enum SingleColorType: Int {
-        case none = 0
-        case red
-        case green
-        case blue
-        case gray
-    }
+class OFPeakComputer: NSObject {
     let defalutMetal = OFDefalutMetal.standardDefalutMetal
     let pixelBufferPool = OFPixelBufferTool.sharedInstance
     var pipelineState: MTLComputePipelineState?
-    var colorType: SingleColorType = .none {
+    var state = false {
         didSet {
-            colorTypeBuffer = defalutMetal.device?.makeBuffer(bytes: [colorType.rawValue], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
+            stateBuffer = defalutMetal.device?.makeBuffer(bytes: [state ? 1 : 0], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
         }
     }
-    var colorTypeBuffer: MTLBuffer?
+    var stateBuffer: MTLBuffer?
 
     override init() {
         super.init()
@@ -32,13 +25,13 @@ class OFSingleColorMetalCompute: NSObject {
     
     private func setupMetal() {
         let library = defalutMetal.device?.makeDefaultLibrary()
-        let program = library?.makeFunction(name: "assistTools")
+        let program = library?.makeFunction(name: "peak")
         do {
             try pipelineState = defalutMetal.device?.makeComputePipelineState(function: program!)
         } catch {
             print(("(Assistive tools) error: create compute pipeline failed!"))
         }
-        colorTypeBuffer = defalutMetal.device?.makeBuffer(bytes: [colorType.rawValue], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
+        stateBuffer = defalutMetal.device?.makeBuffer(bytes: [state ? 1 : 0], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
     }
     
     func createTextureFromPixelBuffer(pixelBuffer: CVPixelBuffer) -> MTLTexture? {
@@ -79,7 +72,7 @@ class OFSingleColorMetalCompute: NSObject {
         computeEncoder?.setTexture(sourceTexture, index: 0)
         computeEncoder?.setTexture(outputTexture, index: 1)
         computeEncoder?.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 0)
-        computeEncoder?.setBuffer(colorTypeBuffer, offset: 0, index: 1)
+        computeEncoder?.setBuffer(stateBuffer, offset: 0, index: 1)
 
         computeEncoder?.dispatchThreadgroups(defalutMetal.numTreadGroups!, threadsPerThreadgroup: defalutMetal.threadsPerGroup!)
         computeEncoder?.endEncoding()
