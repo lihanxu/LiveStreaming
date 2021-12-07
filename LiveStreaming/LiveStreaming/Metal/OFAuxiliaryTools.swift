@@ -20,9 +20,15 @@ class OFAuxiliaryTools: NSObject {
         return computer
     }()
     
+    private lazy var gaussianBlur: OFGaussianBlurComputer = {
+        let computer = OFGaussianBlurComputer()
+        return computer
+    }()
+    
     func inputFrame(_ frame: VideoFrame) {
         singleColor.input(frame: frame)
         peak.input(frame: frame)
+        gaussianBlur.input(frame: frame)
     }
     
     /// 切换 Single Color 类型
@@ -33,5 +39,9 @@ class OFAuxiliaryTools: NSObject {
     
     func switchPeak() {
         peak.state = !peak.state
+    }
+    
+    func switchGaussianBlur() {
+        gaussianBlur.enabled = !gaussianBlur.enabled
     }
 }

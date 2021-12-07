@@ -14,19 +14,14 @@ kernel void assistTools(texture2d<float, access::read> videoTexture [[texture(0)
                         constant int *type [[ buffer(1) ]],
                         const uint2 threadPosInGrid [[thread_position_in_grid]])
 {
-//    if (threadPosInGrid.x >= size[0] || threadPosInGrid.y >= size[1]) {
-//        return;
-//    }
-//    
     float4 assistColor = videoTexture.read(threadPosInGrid);
-    if (type[0] == 0) {
-    } else if (type[0] == 1) {
+    if (type[0] == 1) { // red 分量
         assistColor = float4(assistColor.r, 0.0, 0.0, assistColor.a);
-    } else if (type[0] == 2) {
+    } else if (type[0] == 2) { // green 分量
         assistColor = float4(0.0, assistColor.g, 0.0, assistColor.a);
-    } else if (type[0] == 3) {
+    } else if (type[0] == 3) { // blue 分量
         assistColor = float4(0.0, 0.0, assistColor.b, assistColor.a);
-    } else if (type[0] == 4) {
+    } else if (type[0] == 4) { // rec.709 gray
         float value = 0.2126 * assistColor.r + 0.7152 * assistColor.g + 0.0772 * assistColor.b;
         assistColor = float4(value, value, value, assistColor.a);
     }
@@ -91,6 +86,23 @@ kernel void peak(texture2d<float, access::read> videoTexture [[texture(0)]],
         
         if (yAdd > peakSensitivity) {
             outputColor = peakColor;
+        }
+    }
+    destTexture.write(outputColor, threadPosInGrid);
+}
+
+kernel void gaussianBlur(texture2d<float, access::read> videoTexture [[texture(0)]],
+                 texture2d<float, access::write> destTexture [[texture(1)]],
+                 constant uint *size [[ buffer(0) ]],
+                 constant float *mask [[ buffer(1) ]],
+                 const uint2 threadPosInGrid [[thread_position_in_grid]])
+{
+    float4 outputColor = float4(0.0, 0.0, 0.0, 0.0);
+    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+    for (int y = -5; y <= 5; y++) {
+        for (int x = -5; x <= 5; x++) {
+            color = videoTexture.read(uint2(threadPosInGrid.x + x, threadPosInGrid.y + y));
+            outputColor = outputColor + mask[(y+5)*11 + x+5] * color;
         }
     }
     destTexture.write(outputColor, threadPosInGrid);

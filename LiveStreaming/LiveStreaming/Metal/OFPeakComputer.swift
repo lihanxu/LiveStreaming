@@ -50,6 +50,9 @@ class OFPeakComputer: NSObject {
     }
     
     func input(frame: VideoFrame) {
+        if state == false {
+            return
+        }
         defalutMetal.updateTexture(width: frame.frameWidth, height: frame.frameHeight)
         pixelBufferPool.update(width: UInt32(frame.frameWidth), height: UInt32(frame.frameHeight), pixelFormat: kCVPixelFormatType_32BGRA)
         

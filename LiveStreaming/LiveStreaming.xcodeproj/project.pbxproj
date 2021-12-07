@@ -17,6 +17,7 @@
 		9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789F275E382A0021226B /* OFButtonsView.swift */; };
 		9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A2275E3B670021226B /* OFMetalFuntions.swift */; };
 		9A4478A6275E62130021226B /* OFPeakComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A5275E62130021226B /* OFPeakComputer.swift */; };
+		9A4478A8275EFBBB0021226B /* OFGaussianBlurComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A7275EFBBB0021226B /* OFGaussianBlurComputer.swift */; };
 		9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA1275DED6900568A6B /* SCLinkedList.swift */; };
 		9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA2275DED6900568A6B /* SCQueue.swift */; };
 		9A552AAC275DED6900568A6B /* SCGraphEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA4275DED6900568A6B /* SCGraphEdge.swift */; };
@@ -52,6 +53,7 @@
 		9A44789F275E382A0021226B /* OFButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFButtonsView.swift; sourceTree = "<group>"; };
 		9A4478A2275E3B670021226B /* OFMetalFuntions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFMetalFuntions.swift; sourceTree = "<group>"; };
 		9A4478A5275E62130021226B /* OFPeakComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFPeakComputer.swift; sourceTree = "<group>"; };
+		9A4478A7275EFBBB0021226B /* OFGaussianBlurComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFGaussianBlurComputer.swift; sourceTree = "<group>"; };
 		9A552AA1275DED6900568A6B /* SCLinkedList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCLinkedList.swift; sourceTree = "<group>"; };
 		9A552AA2275DED6900568A6B /* SCQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCQueue.swift; sourceTree = "<group>"; };
 		9A552AA4275DED6900568A6B /* SCGraphEdge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraphEdge.swift; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 				9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */,
 				9A552AB6275DF73E00568A6B /* OFSingleColorMetalComputer.swift */,
 				9A4478A5275E62130021226B /* OFPeakComputer.swift */,
+				9A4478A7275EFBBB0021226B /* OFGaussianBlurComputer.swift */,
 			);
 			path = Metal;
 			sourceTree = "<group>";
@@ -299,6 +302,7 @@
 				9A552AAE275DED6900568A6B /* SCGraphVertex.swift in Sources */,
 				9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */,
 				9A552AAF275DED6900568A6B /* SCListGraph.swift in Sources */,
+				9A4478A8275EFBBB0021226B /* OFGaussianBlurComputer.swift in Sources */,
 				9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */,
 				9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */,
 				9A552AB1275DED6900568A6B /* SCStack.swift in Sources */,

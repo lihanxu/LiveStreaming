@@ -94,6 +94,10 @@ class OFInputDevice: NSObject {
         let audioOutput = AVCaptureAudioDataOutput()
         audioOutput.setSampleBufferDelegate(self, queue: audioQueue)
         captureSession.addOutput(audioOutput)
+        
+        if captureSession.canSetSessionPreset(.iFrame960x540) {
+            captureSession.sessionPreset = .iFrame960x540
+        }
     }
     
     func startSession() {

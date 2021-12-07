@@ -66,6 +66,8 @@ extension ViewController: OFButtonsViewDelegate {
             auxiliaryTools.switchSingleColor()
         case .EdgeDetection:
             auxiliaryTools.switchPeak()
+        case .GaussianBlur:
+            auxiliaryTools.switchGaussianBlur()
         }
     }
     
