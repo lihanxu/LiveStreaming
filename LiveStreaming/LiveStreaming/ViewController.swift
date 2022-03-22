@@ -13,8 +13,10 @@ class ViewController: UIViewController {
     @IBOutlet weak var previewView: SCGLView!
     // 功能按钮的父视图
     @IBOutlet weak var functionsView: UIView!
+    // 音频管理
+    var audioMng: AudioManager?
     // 输入源
-    var inputDevice: OFInputDevice?
+    var inputDevice: OFiPhoneInputDevice?
     // 功能按钮
     var buttonsView: OFButtonsView!
     
@@ -25,7 +27,12 @@ class ViewController: UIViewController {
         initUI()
         initLayout()
         
-        inputDevice = OFInputDevice()
+        // 初始胡音频管理器
+        audioMng = AudioManager()
+        // 开始播放声音
+        audioMng?.startPlayAudio()
+        // 初始化设备
+        inputDevice = OFiPhoneInputDevice()
         inputDevice?.delegate = self
         //开启预览
         inputDevice?.startSession()
@@ -64,10 +71,10 @@ extension ViewController: OFButtonsViewDelegate {
             switchCamera()
         case .SingleColor:
             auxiliaryTools.switchSingleColor()
-        case .EdgeDetection:
-            auxiliaryTools.switchPeak()
         case .GaussianBlur:
             auxiliaryTools.switchGaussianBlur()
+        case .EdgeDetection:
+            auxiliaryTools.switchPeak()
         }
     }
     
@@ -79,7 +86,7 @@ extension ViewController: OFButtonsViewDelegate {
 }
 
 extension ViewController: OFInputDeviceDelegate {
-    func onRecvVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+    func device(_ device: OFInputDevice, onReceiveVideo sampleBuffer: CMSampleBuffer) {
 //        DispatchQueue.main.async { [weak self] in
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
                 return
@@ -95,8 +102,8 @@ extension ViewController: OFInputDeviceDelegate {
 //        }
     }
     
-    func onRecvAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
-        
+    func device(_ device: OFInputDevice, onReceiveAudio sampleBuffer: CMSampleBuffer) {
+        audioMng?.inputAudio(sampleBuffer: sampleBuffer, from: device)
     }
 }
 

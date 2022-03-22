@@ -21,8 +21,8 @@ class OFGaussianBlurComputer: NSObject {
             gaussianBuffer = defalutMetal.device?.makeBuffer(bytes: filter, length: (radius * 2 + 1) * (radius * 2 + 1) * MemoryLayout<Float>.size, options: MTLResourceOptions(rawValue: 0))
         }
     }
-    private let radius = 5
-    var sigma: Float = 50.0 {
+    private let radius = 1
+    var sigma: Float = 2.0 {
         didSet {
             filter = gaussianBlurFilter(sigma)
         }

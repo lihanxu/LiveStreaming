@@ -27,8 +27,8 @@ class OFAuxiliaryTools: NSObject {
     
     func inputFrame(_ frame: VideoFrame) {
         singleColor.input(frame: frame)
-        peak.input(frame: frame)
         gaussianBlur.input(frame: frame)
+        peak.input(frame: frame)
     }
     
     /// 切换 Single Color 类型

@@ -82,7 +82,7 @@ kernel void peak(texture2d<float, access::read> videoTexture [[texture(0)]],
         y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
         yAdd = yAdd + (-1.0 * y);
         
-        float peakSensitivity = 0.1;
+        float peakSensitivity = 0.05;
         
         if (yAdd > peakSensitivity) {
             outputColor = peakColor;
@@ -99,10 +99,11 @@ kernel void gaussianBlur(texture2d<float, access::read> videoTexture [[texture(0
 {
     float4 outputColor = float4(0.0, 0.0, 0.0, 0.0);
     float4 color = float4(0.0, 0.0, 0.0, 0.0);
-    for (int y = -5; y <= 5; y++) {
-        for (int x = -5; x <= 5; x++) {
+    int r = 1;
+    for (int y = -r; y <= r; y++) {
+        for (int x = -r; x <= r; x++) {
             color = videoTexture.read(uint2(threadPosInGrid.x + x, threadPosInGrid.y + y));
-            outputColor = outputColor + mask[(y+5)*11 + x+5] * color;
+            outputColor = outputColor + mask[(y+r)*(r*2+1) + x+r] * color;
         }
     }
     destTexture.write(outputColor, threadPosInGrid);

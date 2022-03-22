@@ -30,6 +30,9 @@
 		9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB6275DF73E00568A6B /* OFSingleColorMetalComputer.swift */; };
 		9A552AB9275DF79F00568A6B /* OFAuxiliaryTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */; };
 		9A552ABB275DFF7B00568A6B /* OFPixelBufferTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */; };
+		9AC47C1E27E41CFE00A588A3 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */; };
+		9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */; };
+		9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */; };
 		9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB7E2738C1C200161747 /* AppDelegate.swift */; };
 		9AFFCB832738C1C200161747 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB822738C1C200161747 /* ViewController.swift */; };
 		9AFFCB862738C1C200161747 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB842738C1C200161747 /* Main.storyboard */; };
@@ -66,6 +69,9 @@
 		9A552AB6275DF73E00568A6B /* OFSingleColorMetalComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSingleColorMetalComputer.swift; sourceTree = "<group>"; };
 		9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFAuxiliaryTools.swift; sourceTree = "<group>"; };
 		9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFPixelBufferTool.swift; sourceTree = "<group>"; };
+		9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
+		9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
+		9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFiPhoneInputDevice.swift; sourceTree = "<group>"; };
 		9AFFCB7B2738C1C200161747 /* LiveStreaming.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveStreaming.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9AFFCB7E2738C1C200161747 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9AFFCB822738C1C200161747 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -158,6 +164,15 @@
 			path = Metal;
 			sourceTree = "<group>";
 		};
+		9AC47C1C27E41CE400A588A3 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */,
+				9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		9AFFCB722738C1C200161747 = {
 			isa = PBXGroup;
 			children = (
@@ -184,7 +199,9 @@
 				9A16DDAB273A12CB0045F456 /* Shader */,
 				9AFFCBA02739703100161747 /* Frame */,
 				9AFFCB9F2739701E00161747 /* Video */,
+				9AC47C1C27E41CE400A588A3 /* Audio */,
 				9AFFCB922738C2BA00161747 /* OFInputDevice.swift */,
+				9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */,
 				9AFFCB7E2738C1C200161747 /* AppDelegate.swift */,
 				9AFFCB822738C1C200161747 /* ViewController.swift */,
 				9A44789F275E382A0021226B /* OFButtonsView.swift */,
@@ -296,12 +313,14 @@
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,
 				9A4478A6275E62130021226B /* OFPeakComputer.swift in Sources */,
 				9A552AAD275DED6900568A6B /* SCGraph.swift in Sources */,
+				9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */,
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
 				9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */,
 				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
 				9A552AAE275DED6900568A6B /* SCGraphVertex.swift in Sources */,
 				9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */,
 				9A552AAF275DED6900568A6B /* SCListGraph.swift in Sources */,
+				9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */,
 				9A4478A8275EFBBB0021226B /* OFGaussianBlurComputer.swift in Sources */,
 				9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */,
 				9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */,
@@ -309,6 +328,7 @@
 				9A552AB9275DF79F00568A6B /* OFAuxiliaryTools.swift in Sources */,
 				9A552ABB275DFF7B00568A6B /* OFPixelBufferTool.swift in Sources */,
 				9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */,
+				9AC47C1E27E41CFE00A588A3 /* AudioManager.swift in Sources */,
 				9A44789E275E143B0021226B /* AuxiliaryTool.metal in Sources */,
 				9A16DDBF273A76350045F456 /* Frame.m in Sources */,
 				9A552AB5275DEFC200568A6B /* OFDefalutMetal.swift in Sources */,
