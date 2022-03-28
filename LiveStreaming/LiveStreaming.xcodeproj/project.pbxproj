@@ -13,6 +13,10 @@
 		9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDB2273A46D20045F456 /* SCGLView.swift */; };
 		9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBA273A76350045F456 /* FrameBuffer.m */; };
 		9A16DDBF273A76350045F456 /* Frame.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBB273A76350045F456 /* Frame.m */; };
+		9A1E73C527F197F90012CCC5 /* AudioMagician.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1E73C427F197F90012CCC5 /* AudioMagician.swift */; };
+		9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C627F198920012CCC5 /* fascinated.mp3 */; };
+		9A1E73CA27F198920012CCC5 /* fascinated.aac in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C727F198920012CCC5 /* fascinated.aac */; };
+		9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C827F198920012CCC5 /* fascinated.pcm */; };
 		9A44789E275E143B0021226B /* AuxiliaryTool.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789D275E143B0021226B /* AuxiliaryTool.metal */; };
 		9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789F275E382A0021226B /* OFButtonsView.swift */; };
 		9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A2275E3B670021226B /* OFMetalFuntions.swift */; };
@@ -52,6 +56,10 @@
 		9A16DDBB273A76350045F456 /* Frame.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Frame.m; sourceTree = "<group>"; };
 		9A16DDBC273A76350045F456 /* FrameBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameBuffer.h; sourceTree = "<group>"; };
 		9A16DDBD273A76350045F456 /* Frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Frame.h; sourceTree = "<group>"; };
+		9A1E73C427F197F90012CCC5 /* AudioMagician.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioMagician.swift; sourceTree = "<group>"; };
+		9A1E73C627F198920012CCC5 /* fascinated.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = fascinated.mp3; sourceTree = "<group>"; };
+		9A1E73C727F198920012CCC5 /* fascinated.aac */ = {isa = PBXFileReference; lastKnownFileType = file; path = fascinated.aac; sourceTree = "<group>"; };
+		9A1E73C827F198920012CCC5 /* fascinated.pcm */ = {isa = PBXFileReference; lastKnownFileType = file; path = fascinated.pcm; sourceTree = "<group>"; };
 		9A44789D275E143B0021226B /* AuxiliaryTool.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = AuxiliaryTool.metal; sourceTree = "<group>"; };
 		9A44789F275E382A0021226B /* OFButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFButtonsView.swift; sourceTree = "<group>"; };
 		9A4478A2275E3B670021226B /* OFMetalFuntions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFMetalFuntions.swift; sourceTree = "<group>"; };
@@ -144,6 +152,9 @@
 		9A552AB2275DED7700568A6B /* Resource */ = {
 			isa = PBXGroup;
 			children = (
+				9A1E73C727F198920012CCC5 /* fascinated.aac */,
+				9A1E73C627F198920012CCC5 /* fascinated.mp3 */,
+				9A1E73C827F198920012CCC5 /* fascinated.pcm */,
 				9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */,
 			);
 			path = Resource;
@@ -169,6 +180,7 @@
 			children = (
 				9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */,
 				9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */,
+				9A1E73C427F197F90012CCC5 /* AudioMagician.swift */,
 			);
 			path = Audio;
 			sourceTree = "<group>";
@@ -292,8 +304,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */,
 				9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */,
+				9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */,
 				9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */,
+				9A1E73CA27F198920012CCC5 /* fascinated.aac in Resources */,
 				9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */,
 				9AFFCB862738C1C200161747 /* Main.storyboard in Resources */,
 				9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */,
@@ -313,6 +328,7 @@
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,
 				9A4478A6275E62130021226B /* OFPeakComputer.swift in Sources */,
 				9A552AAD275DED6900568A6B /* SCGraph.swift in Sources */,
+				9A1E73C527F197F90012CCC5 /* AudioMagician.swift in Sources */,
 				9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */,
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
 				9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */,

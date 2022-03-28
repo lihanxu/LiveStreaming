@@ -48,6 +48,8 @@ class OFiPhoneInputDevice: OFInputDevice {
         5. 添加输出到捕获会话
      */
     private func setupSession() {
+        // 如果使用蓝牙耳机，则需要设置为false
+        captureSession.automaticallyConfiguresApplicationAudioSession = false
         // 获取视频设备
         guard let videoDevice = AVCaptureDevice.default(for: .video) else { return }
         do {
