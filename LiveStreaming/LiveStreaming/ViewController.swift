@@ -15,6 +15,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var functionsView: UIView!
     // 音频管理
     var audioMng: AudioManager?
+    // 视频编码器
+    var videoEncoder: VideoEncoder?
     // 输入源
     var inputDevice: OFiPhoneInputDevice?
     // 功能按钮
@@ -92,12 +94,20 @@ extension ViewController: OFInputDeviceDelegate {
                 return
             }
         
+            let width = CVPixelBufferGetWidth(pixelBuffer)
+            let height = CVPixelBufferGetHeight(pixelBuffer)
+
             let frame = VideoFrame()
-            frame.frameWidth = CVPixelBufferGetWidth(pixelBuffer)
-            frame.frameHeight = CVPixelBufferGetHeight(pixelBuffer)
+            frame.frameWidth = width
+            frame.frameHeight = height
             frame.pixelBuffer = pixelBuffer
             auxiliaryTools.inputFrame(frame)
             previewView.inputFrame(frame)
+        
+            if videoEncoder == nil {
+                videoEncoder = VideoEncoder(width: frame.frameWidth, height: frame.frameHeight, bitRate: Float(width * height * 2 * 32), frameRate: 25)
+            }
+            videoEncoder?.input(sampleBuffer: sampleBuffer)
 
 //        }
     }
