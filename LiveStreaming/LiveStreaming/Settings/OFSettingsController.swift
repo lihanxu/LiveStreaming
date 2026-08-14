@@ -35,6 +35,8 @@ class OFSettingsController {
             return makeLUTPage()
         case .beauty:
             return makeBeautyPage()
+        case .colorAdjust:
+            return makeColorAdjustPage()
         }
     }
     
@@ -63,6 +65,10 @@ class OFSettingsController {
             return .reload
         case .beauty:
             return .push(.beauty)
+        case .colorAdjust:
+            return .push(.colorAdjust)
+        case .colorParam:
+            return .reload
         case .beautyMaster:
             beauty.isEnabled.toggle()
             tools.setBeautyEnabled(beauty.isEnabled)
@@ -92,6 +98,7 @@ class OFSettingsController {
             OFSettingItem(id: .gaussianBlur, title: "高斯模糊", valueText: tools.isGaussianBlurEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .edgeDetection, title: "描边", valueText: tools.isPeakEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .beauty, title: "美颜", valueText: beauty.summaryText, interaction: .drillIn(.beauty)),
+            OFSettingItem(id: .colorAdjust, title: "调色", valueText: tools.colorAdjustSummary, interaction: .drillIn(.colorAdjust)),
         ]
         return OFSettingsPage(id: .root, title: "设置", items: items)
     }
@@ -119,6 +126,25 @@ class OFSettingsController {
             OFSettingItem(id: .beautyWhitening, title: "美白", valueText: beauty.whitening.displayName, interaction: .cycle),
         ]
         return OFSettingsPage(id: .beauty, title: "美颜", items: items)
+    }
+    
+    /// 调色二级页：列表滑杆，拖动即写入处理图
+    /// - Returns: 滑杆页
+    private func makeColorAdjustPage() -> OFSettingsPage {
+        return OFSettingsPage(id: .colorAdjust, title: "调色", sliders: tools.colorAdjustSliderRows())
+    }
+    
+    /// 拖动调色滑杆
+    /// - Parameters:
+    ///   - key: 参数 ID
+    ///   - value: 滑杆当前值
+    func updateColorAdjust(key: OFColorAdjustKey, value: Float) {
+        tools.updateColorAdjust(key: key, value: value)
+    }
+    
+    /// 调色全部复位
+    func resetColorAdjust() {
+        tools.resetColorAdjust()
     }
     
     /// 当前镜头位置文案

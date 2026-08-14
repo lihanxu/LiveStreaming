@@ -25,6 +25,8 @@ enum OFProcessNodeID: String, Hashable {
     case faceLandmarker
     /// 预览/编码出口（无处理器，由 ViewController 继续处理）
     case sink
+    /// 全局调色（曝光、对比、色温等）
+    case colorAdjust
 }
 
 /// 可插入处理图的滤镜节点。

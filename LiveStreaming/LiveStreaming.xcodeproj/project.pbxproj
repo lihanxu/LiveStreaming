@@ -20,6 +20,8 @@
 		60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40003275E000100000043 /* OFSettingsSheetView.swift */; };
 		60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */; };
 		60A50012275E000100000072 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 60A50002275E000100000062 /* face_landmarker.task */; };
+		60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60001275E000100000101 /* OFColorAdjustParams.swift */; };
+		60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60002275E000100000102 /* OFColorAdjustComputer.swift */; };
 		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
 		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
 		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
@@ -76,6 +78,8 @@
 		60A40003275E000100000043 /* OFSettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsSheetView.swift; sourceTree = "<group>"; };
 		60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceLandmarkerComputer.swift; sourceTree = "<group>"; };
 		60A50002275E000100000062 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
+		60A60001275E000100000101 /* OFColorAdjustParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustParams.swift; sourceTree = "<group>"; };
+		60A60002275E000100000102 /* OFColorAdjustComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustComputer.swift; sourceTree = "<group>"; };
 		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
 		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
@@ -178,6 +182,15 @@
 				60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */,
 			);
 			path = Face;
+			sourceTree = "<group>";
+		};
+		60A60020275E000100000120 /* ColorAdjust */ = {
+			isa = PBXGroup;
+			children = (
+				60A60001275E000100000101 /* OFColorAdjustParams.swift */,
+				60A60002275E000100000102 /* OFColorAdjustComputer.swift */,
+			);
+			path = ColorAdjust;
 			sourceTree = "<group>";
 		};
 		60A50021275E000100000082 /* FaceLandmarker */ = {
@@ -317,6 +330,7 @@
 				60A10020275E000100000020 /* Process */,
 				60A40020275E000100000061 /* Settings */,
 				60A50020275E000100000081 /* Face */,
+				60A60020275E000100000120 /* ColorAdjust */,
 				60A10021275E000100000021 /* LUT */,
 				9A552AB3275DEFA800568A6B /* Metal */,
 				9A552AB2275DED7700568A6B /* Resource */,
@@ -495,6 +509,8 @@
 				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,
 				60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */,
 				60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */,
+				60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */,
+				60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */,
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
 				9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */,
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,
@@ -673,14 +689,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 5S6DCB24V8;
+				DEVELOPMENT_TEAM = HZZY6X575W;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.OldFace.LiveStreaming;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hansen.LiveStreaming;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Frame/LiveStreaming-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -697,14 +713,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 5S6DCB24V8;
+				DEVELOPMENT_TEAM = HZZY6X575W;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.OldFace.LiveStreaming;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hansen.LiveStreaming;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Frame/LiveStreaming-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

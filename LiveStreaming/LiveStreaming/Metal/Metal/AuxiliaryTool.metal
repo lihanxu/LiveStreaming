@@ -187,3 +187,134 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
     
     destTexture.write(float4(c, colorAtPixel.a), threadPosInGrid);
 }
+
+// 与 OFColorAdjustParams.gpuPacked 顺序一致；14 个 float 紧密排布
+struct ColorAdjustParams {
+    float exposure;
+    float highlights;
+    float shadows;
+    float contrast;
+    float brightness;
+    float blacks;
+    float saturation;
+    float vibrance;
+    float temperature;
+    float tint;
+    float sharpen;
+    float clarity;
+    float fade;
+    float vignette;
+};
+
+/// Rec.709 亮度，高光/阴影/饱和都以它分区
+static float rec709Luma(float3 rgb) {
+    return 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+}
+
+/// 影调与色彩：曝光、高光、阴影、对比、亮度、黑点、饱和、自然饱和、色温、色调、褪色
+kernel void colorAdjustTone(texture2d<float, access::read> videoTexture [[texture(0)]],
+                            texture2d<float, access::write> destTexture [[texture(1)]],
+                            constant uint *size [[ buffer(0) ]],
+                            constant ColorAdjustParams &p [[ buffer(1) ]],
+                            const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= size[0] || gid.y >= size[1]) {
+        return;
+    }
+    float4 src = videoTexture.read(gid);
+    float3 rgb = src.rgb;
+    
+    // 1. 曝光（约 ±2EV）与亮度偏移
+    rgb *= pow(2.0, p.exposure / 25.0);
+    rgb += (p.brightness / 50.0) * 0.25;
+    
+    // 2. 绕中灰对比
+    float contrast = 1.0 + (p.contrast / 50.0) * 0.8;
+    rgb = (rgb - 0.5) * contrast + 0.5;
+    
+    // 3. 按 luma 分区做高光 / 阴影 / 黑点
+    float luma = rec709Luma(rgb);
+    float hiMask = smoothstep(0.45, 0.95, luma);
+    float shMask = 1.0 - smoothstep(0.05, 0.55, luma);
+    rgb += hiMask * (p.highlights / 50.0) * 0.35;
+    rgb += shMask * (p.shadows / 50.0) * 0.35;
+    
+    float blackLift = p.blacks / 50.0;
+    rgb = rgb + blackLift * 0.12 * (1.0 - luma);
+    
+    // 4. 饱和度；自然饱和度对低饱和像素加权更大
+    luma = rec709Luma(rgb);
+    float3 gray = float3(luma);
+    rgb = mix(gray, rgb, 1.0 + p.saturation / 50.0);
+    
+    luma = rec709Luma(rgb);
+    gray = float3(luma);
+    float sat = clamp(distance(rgb, gray) * 2.0, 0.0, 1.0);
+    float vib = 1.0 + (p.vibrance / 50.0) * (1.0 - sat);
+    rgb = mix(gray, rgb, vib);
+    
+    // 5. 色温动 R/B，色调动绿↔品红
+    float temp = p.temperature / 50.0 * 0.12;
+    rgb.r += temp;
+    rgb.b -= temp;
+    float tint = p.tint / 50.0 * 0.10;
+    rgb.g += tint;
+    rgb.r -= tint * 0.5;
+    rgb.b -= tint * 0.5;
+    
+    // 6. 褪色：抬中灰、压对比
+    float fade = p.fade / 100.0;
+    rgb = mix(rgb, float3(0.5), fade * 0.35);
+    rgb = rgb * (1.0 - fade * 0.12) + fade * 0.10;
+    
+    destTexture.write(float4(clamp(rgb, 0.0, 1.0), src.a), gid);
+}
+
+/// 锐化 / 清晰度（反锐化掩模）+ 径向暗角
+kernel void colorAdjustDetail(texture2d<float, access::read> videoTexture [[texture(0)]],
+                              texture2d<float, access::write> destTexture [[texture(1)]],
+                              constant uint *size [[ buffer(0) ]],
+                              constant ColorAdjustParams &p [[ buffer(1) ]],
+                              const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= size[0] || gid.y >= size[1]) {
+        return;
+    }
+    int2 pos = int2(gid);
+    int2 maxPos = int2(size[0] - 1, size[1] - 1);
+    float4 center4 = videoTexture.read(gid);
+    float3 center = center4.rgb;
+    
+    // 1. 3×3 / 5×5 盒模糊，做反锐化掩模
+    float3 blur3 = float3(0.0);
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            uint2 s = uint2(clamp(pos + int2(x, y), int2(0), maxPos));
+            blur3 += videoTexture.read(s).rgb;
+        }
+    }
+    blur3 /= 9.0;
+    
+    float3 blur5 = float3(0.0);
+    for (int y = -2; y <= 2; y++) {
+        for (int x = -2; x <= 2; x++) {
+            uint2 s = uint2(clamp(pos + int2(x, y), int2(0), maxPos));
+            blur5 += videoTexture.read(s).rgb;
+        }
+    }
+    blur5 /= 25.0;
+    
+    // 2. 锐化用细核，清晰度用粗核
+    float3 rgb = center;
+    rgb += (center - blur3) * (p.sharpen / 100.0) * 1.6;
+    rgb += (center - blur5) * (p.clarity / 50.0) * 0.9;
+    
+    // 3. 径向暗角，中心不受影响
+    float2 uv = float2(gid) / float2(size[0], size[1]);
+    float2 d = uv - float2(0.5);
+    float r = length(d) / 0.75;
+    float vig = smoothstep(0.35, 1.0, r) * (p.vignette / 100.0);
+    rgb *= (1.0 - vig * 0.85);
+    
+    destTexture.write(float4(clamp(rgb, 0.0, 1.0), center4.a), gid);
+}

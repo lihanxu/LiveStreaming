@@ -5,7 +5,7 @@
 //  Created by anker on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
-//  默认链路：Source → FaceLandmarker → LUT → SingleColor → GaussianBlur → Peak → Sink
+//  默认链路：Source → FaceLandmarker → ColorAdjust → LUT → SingleColor → GaussianBlur → Peak → Sink
 //
 
 import Foundation
@@ -43,6 +43,11 @@ class OFAuxiliaryTools: NSObject {
         return OFFaceLandmarkerComputer()
     }()
     
+    /// 全局调色节点（曝光、对比、色温等）
+    private lazy var colorAdjust: OFColorAdjustComputer = {
+        return OFColorAdjustComputer()
+    }()
+    
     /// 美颜总开关（磨皮尚未接到 GPU）
     private var beautyEnabled = false
     /// 是否在预览上画人脸网格
@@ -58,6 +63,7 @@ class OFAuxiliaryTools: NSObject {
     private func setupProcessGraph() {
         processGraph.addNode(.source)
         processGraph.addNode(.faceLandmarker, processor: faceLandmarker)
+        processGraph.addNode(.colorAdjust, processor: colorAdjust)
         processGraph.addNode(.lut, processor: lut)
         processGraph.addNode(.singleColor, processor: singleColor)
         processGraph.addNode(.gaussianBlur, processor: gaussianBlur)
@@ -65,7 +71,8 @@ class OFAuxiliaryTools: NSObject {
         processGraph.addNode(.sink)
         
         processGraph.addEdge(from: .source, to: .faceLandmarker)
-        processGraph.addEdge(from: .faceLandmarker, to: .lut)
+        processGraph.addEdge(from: .faceLandmarker, to: .colorAdjust)
+        processGraph.addEdge(from: .colorAdjust, to: .lut)
         processGraph.addEdge(from: .lut, to: .singleColor)
         processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
         processGraph.addEdge(from: .gaussianBlur, to: .peak)
@@ -181,5 +188,31 @@ class OFAuxiliaryTools: NSObject {
     private func updateFaceLandmarkerFlags() {
         faceLandmarker.overlayEnabled = faceMeshOverlayEnabled
         faceLandmarker.inferenceEnabled = beautyEnabled || faceMeshOverlayEnabled
+    }
+    
+    /// 根页调色格子摘要
+    var colorAdjustSummary: String {
+        return colorAdjust.currentParams.summaryText
+    }
+    
+    /// 调色二级页滑杆数据
+    /// - Returns: 当前全部滑杆行
+    func colorAdjustSliderRows() -> [OFColorSliderRow] {
+        return colorAdjust.currentParams.sliderRows()
+    }
+    
+    /// 设置页拖动某一项
+    /// - Parameters:
+    ///   - key: 滑杆 ID
+    ///   - value: 新值
+    func updateColorAdjust(key: OFColorAdjustKey, value: Float) {
+        var params = colorAdjust.currentParams
+        params.setValue(value, for: key)
+        colorAdjust.updateParams(params)
+    }
+    
+    /// 全部滑杆归零并跳过 GPU
+    func resetColorAdjust() {
+        colorAdjust.resetParams()
     }
 }

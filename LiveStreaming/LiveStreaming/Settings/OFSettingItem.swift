@@ -15,6 +15,8 @@ enum OFSettingsPageID: Equatable {
     case lut
     /// 美颜参数；人脸网格已接入 Face Landmarker
     case beauty
+    /// 调色滑杆页
+    case colorAdjust
 }
 
 /// 一项设置的稳定 ID，后续扩展只加 case，不要靠下标。
@@ -41,6 +43,10 @@ enum OFSettingID: Equatable {
     case beautySmooth
     /// 美白档位（占位）
     case beautyWhitening
+    /// 主页上的调色入口
+    case colorAdjust
+    /// 调色滑杆
+    case colorParam(OFColorAdjustKey)
 }
 
 /// 点击格子后的行为。
@@ -71,8 +77,39 @@ struct OFSettingsPage {
     let id: OFSettingsPageID
     /// 卡片顶部标题
     let title: String
-    /// 按行优先排列的格子；不足 4 的倍数时末尾留空
+    /// 四宫格格子；滑杆页可为空
     let items: [OFSettingItem]
+    /// 调色页滑杆；空表示网格布局
+    let sliders: [OFColorSliderRow]
+    
+    /// 网格页
+    /// - Parameters:
+    ///   - id: 页 ID
+    ///   - title: 标题
+    ///   - items: 格子
+    init(id: OFSettingsPageID, title: String, items: [OFSettingItem]) {
+        self.id = id
+        self.title = title
+        self.items = items
+        self.sliders = []
+    }
+    
+    /// 滑杆页
+    /// - Parameters:
+    ///   - id: 页 ID
+    ///   - title: 标题
+    ///   - sliders: 滑杆行
+    init(id: OFSettingsPageID, title: String, sliders: [OFColorSliderRow]) {
+        self.id = id
+        self.title = title
+        self.items = []
+        self.sliders = sliders
+    }
+    
+    /// 是否用滑杆列表而不是四宫格
+    var usesSliders: Bool {
+        return !sliders.isEmpty
+    }
 }
 
 /// 处理一次点击后，UI 该刷新还是推入子页。
