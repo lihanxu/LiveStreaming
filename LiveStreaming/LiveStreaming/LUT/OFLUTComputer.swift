@@ -85,6 +85,23 @@ class OFLUTComputer: NSObject, OFProcessNode {
         return currentPreset
     }
     
+    /// 直接选中某个预设（设置二级页用）
+    /// - Parameter index: `OFLUTPreset.all` 下标，越界则忽略
+    func applyPreset(at index: Int) {
+        guard OFLUTPreset.all.indices.contains(index) else {
+            return
+        }
+        presetIndex = index
+        loadCurrentLUT()
+        didLogProcessInfo = false
+        DDLogInfo("apply LUT \(currentPreset.displayName), enabled:\(isEnabled)")
+    }
+    
+    /// 当前预设下标，供设置页高亮「已选」
+    var currentPresetIndex: Int {
+        return presetIndex
+    }
+    
     /// 按当前预设加载或清空 lutTexture
     private func loadCurrentLUT() {
         lutTexture = nil

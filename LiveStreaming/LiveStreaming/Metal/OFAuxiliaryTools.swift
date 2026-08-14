@@ -65,6 +65,40 @@ class OFAuxiliaryTools: NSObject {
         processGraph.process(frame)
     }
     
+    /// 设置页 LUT 当前值：关闭显示「关」，否则显示预设名
+    var lutValueText: String {
+        if lut.currentPreset.fileName == nil {
+            return "关"
+        }
+        return lut.currentPreset.displayName
+    }
+    
+    /// 当前 LUT 预设下标
+    var currentLUTIndex: Int {
+        return lut.currentPresetIndex
+    }
+    
+    /// 设置页单色当前值
+    var singleColorValueText: String {
+        return singleColor.colorType.displayName
+    }
+    
+    /// 高斯模糊是否打开
+    var isGaussianBlurEnabled: Bool {
+        return gaussianBlur.enabled
+    }
+    
+    /// Peak 描边是否打开
+    var isPeakEnabled: Bool {
+        return peak.state
+    }
+    
+    /// 选中指定 LUT 预设
+    /// - Parameter index: `OFLUTPreset.all` 下标
+    func applyLUT(at index: Int) {
+        lut.applyPreset(at: index)
+    }
+    
     /// 按钮文案；LUT 显示当前预设名
     /// - Parameter type: 功能类型
     /// - Returns: 展示字符串

@@ -15,6 +15,9 @@
 		60A20012275E000100000012 /* SRGB normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10012275E000100000012 /* SRGB normal.png */; };
 		60A20013275E000100000013 /* ACESAP0 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10013275E000100000013 /* ACESAP0 normal.png */; };
 		60A30002275E000100000032 /* OFLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A30001275E000100000031 /* OFLogger.swift */; };
+		60A40011275E000100000051 /* OFSettingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40001275E000100000041 /* OFSettingItem.swift */; };
+		60A40012275E000100000052 /* OFSettingsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40002275E000100000042 /* OFSettingsController.swift */; };
+		60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40003275E000100000043 /* OFSettingsSheetView.swift */; };
 		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
 		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
 		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
@@ -66,6 +69,9 @@
 		60A10012275E000100000012 /* SRGB normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SRGB normal.png"; sourceTree = "<group>"; };
 		60A10013275E000100000013 /* ACESAP0 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ACESAP0 normal.png"; sourceTree = "<group>"; };
 		60A30001275E000100000031 /* OFLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLogger.swift; sourceTree = "<group>"; };
+		60A40001275E000100000041 /* OFSettingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingItem.swift; sourceTree = "<group>"; };
+		60A40002275E000100000042 /* OFSettingsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsController.swift; sourceTree = "<group>"; };
+		60A40003275E000100000043 /* OFSettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsSheetView.swift; sourceTree = "<group>"; };
 		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
 		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
@@ -150,6 +156,16 @@
 				60A10002275E000100000002 /* OFProcessGraph.swift */,
 			);
 			path = Process;
+			sourceTree = "<group>";
+		};
+		60A40020275E000100000061 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				60A40001275E000100000041 /* OFSettingItem.swift */,
+				60A40002275E000100000042 /* OFSettingsController.swift */,
+				60A40003275E000100000043 /* OFSettingsSheetView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		60A10021275E000100000021 /* LUT */ = {
@@ -278,6 +294,7 @@
 			children = (
 				9A4478A1275E38910021226B /* Extension */,
 				60A10020275E000100000020 /* Process */,
+				60A40020275E000100000061 /* Settings */,
 				60A10021275E000100000021 /* LUT */,
 				9A552AB3275DEFA800568A6B /* Metal */,
 				9A552AB2275DED7700568A6B /* Resource */,
@@ -451,6 +468,9 @@
 				60A20003275E000100000003 /* OFLUTLoader.swift in Sources */,
 				60A20004275E000100000004 /* OFLUTComputer.swift in Sources */,
 				60A30002275E000100000032 /* OFLogger.swift in Sources */,
+				60A40011275E000100000051 /* OFSettingItem.swift in Sources */,
+				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,
+				60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */,
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
 				9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */,
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,

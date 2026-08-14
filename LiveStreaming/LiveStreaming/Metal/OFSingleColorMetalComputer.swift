@@ -24,6 +24,22 @@ class OFSingleColorMetalComputer: NSObject, OFProcessNode {
         case blue
         /// Rec.709 亮度当灰度
         case gray
+        
+        /// 设置页展示文案
+        var displayName: String {
+            switch self {
+            case .none:
+                return "关"
+            case .red:
+                return "红"
+            case .green:
+                return "绿"
+            case .blue:
+                return "蓝"
+            case .gray:
+                return "灰"
+            }
+        }
     }
     
     /// 共享 Metal 设备 / 队列 / sizeBuffer

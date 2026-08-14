@@ -23,6 +23,10 @@ class OFiPhoneInputDevice: OFInputDevice {
     var currentVideoInput: AVCaptureDeviceInput?
     /// 视频数据输出，像素格式 32BGRA
     var videoOutput: AVCaptureVideoDataOutput?
+    /// 当前视频镜头位置，设置页用来显示前置/后置
+    var currentCameraPosition: AVCaptureDevice.Position {
+        return currentVideoInput?.device.position ?? .unspecified
+    }
 
     /// 枚举镜头并搭建会话
     override init() {
