@@ -40,9 +40,7 @@ class AudioPlayer: NSObject {
             return nil
         }
         pcmBuffer.frameLength = AVAudioFrameCount(numSamples)
-        if let mutableAudioBufferList = pcmBuffer.mutableAudioBufferList {
-            CMSampleBufferCopyPCMDataIntoAudioBufferList(sampleBuffer, at: 0, frameCount: Int32(numSamples), into: mutableAudioBufferList)
-        }
+        CMSampleBufferCopyPCMDataIntoAudioBufferList(sampleBuffer, at: 0, frameCount: Int32(numSamples), into: pcmBuffer.mutableAudioBufferList)
         return pcmBuffer
     }
     
