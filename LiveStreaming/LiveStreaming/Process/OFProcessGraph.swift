@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 class OFProcessGraph {
     private let graph = SCListGraph<OFProcessNodeID>()
@@ -30,7 +31,7 @@ class OFProcessGraph {
             cachedOrder = graph.topologicalOrder()
         }
         guard let order = cachedOrder else {
-            print("process graph has a cycle")
+            DDLogError("process graph has a cycle")
             return
         }
         for id in order {

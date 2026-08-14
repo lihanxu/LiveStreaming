@@ -7,6 +7,7 @@
 
 import UIKit
 import GLKit
+import CocoaLumberjack
 
 protocol SCGLViewProtocol: NSObjectProtocol {
     func inputFrame(_ frame: VideoFrame);
@@ -108,14 +109,14 @@ class SCGLView: UIView {
     
         glGetRenderbufferParameteriv(GLenum(GL_RENDERBUFFER), GLenum(GL_RENDERBUFFER_WIDTH), &_backingWidth)
         glGetRenderbufferParameteriv(GLenum(GL_RENDERBUFFER), GLenum(GL_RENDERBUFFER_HEIGHT), &_backingHeight)
-        print("gl Get Render buffer:\(_backingWidth) * \(_backingHeight)")
+        DDLogInfo("gl render buffer: \(_backingWidth) * \(_backingHeight)")
     
         glGenFramebuffers(1, &frameBufferHandle)
         glBindFramebuffer(GLenum(GL_FRAMEBUFFER), frameBufferHandle)
         glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_RENDERBUFFER), colorBufferHandle)
     
         if (glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
-            print("Failed to make complete framebuffer object %x", glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))
+            DDLogError("Failed to make complete framebuffer object \(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))")
         }
         glBindRenderbuffer(GLenum(GL_RENDERBUFFER), 0)
         glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
@@ -131,7 +132,7 @@ class SCGLView: UIView {
         if videoTextureCache == nil {
             let err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, context!, nil, &videoTextureCache)
             if (err != kCVReturnSuccess) {
-                print("Error at CVOpenGLESTextureCacheCreate %d", err)
+                DDLogError("CVOpenGLESTextureCacheCreate failed: \(err)")
             }
         }
     }
@@ -201,7 +202,7 @@ class SCGLView: UIView {
                                                                GLenum(GL_RGBA), GLenum(GL_UNSIGNED_BYTE), 0,
                                                                     &rgbaTexture)
         if err != kCVReturnSuccess {
-            print("Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err)
+            DDLogError("CVOpenGLESTextureCacheCreateTextureFromImage failed: \(err)")
         }
         glBindTexture(CVOpenGLESTextureGetTarget(rgbaTexture!), CVOpenGLESTextureGetName(rgbaTexture!))
         glTexParameteri(GLenum(GL_TEXTURE_2D), GLenum(GL_TEXTURE_MIN_FILTER), GL_LINEAR)
@@ -274,11 +275,11 @@ extension SCGLView  {
         program = glCreateProgram()
 
         if compileShader(with: &vertShader, type: GLenum(GL_VERTEX_SHADER), file: verFile) == false {
-            print("Failed to compile vertex shader")
+            DDLogError("Failed to compile vertex shader")
             return false
         }
         if compileShader(with: &fragShader, type: GLenum(GL_FRAGMENT_SHADER), file: fragFile) == false {
-            print("Failed to compile fragment shader")
+            DDLogError("Failed to compile fragment shader")
             return false
         }
 
@@ -287,7 +288,7 @@ extension SCGLView  {
         glAttachShader(self.program, fragShader)
 
         if linkProgram() == false {
-            print("Failed to link program: %d", program)
+            DDLogError("Failed to link program: \(program)")
             glDeleteShader(vertShader)
             glDeleteShader(fragShader)
             glDeleteProgram(program)
@@ -317,7 +318,7 @@ extension SCGLView  {
         if logLength > 0 {
             var log = [GLchar]()
             glGetShaderInfoLog(shader, logLength, &logLength, &log)
-            print("Shader compile log:\n%s", log)
+            DDLogDebug("Shader compile log: \(String(cString: log))")
         }
         #endif
         
@@ -325,7 +326,7 @@ extension SCGLView  {
         glGetShaderiv(shader, GLenum(GL_COMPILE_STATUS), &status)
         if status == GL_FALSE {
             glDeleteShader(shader)
-            print("glGetShaderiv: %d", status)
+            DDLogError("glGetShaderiv compile status: \(status)")
             return false
         }
 
@@ -341,17 +342,17 @@ extension SCGLView  {
         if (logLength > 0) {
             var log = [GLchar]()
             glGetProgramInfoLog(program, logLength, &logLength, &log)
-            print("Program link log:\n%s", log)
+            DDLogDebug("Program link log: \(String(cString: log))")
         }
         #endif
         //获取链接状态
         var linkStatus: GLint = 0
         glGetProgramiv(program, GLenum(GL_LINK_STATUS), &linkStatus)
         if linkStatus == 0 {
-            print("link program failed: %d", linkStatus)
+            DDLogError("link program failed: \(linkStatus)")
             return false
         }
-        print("link program success")
+        DDLogInfo("link program success")
         return true
     }
 }

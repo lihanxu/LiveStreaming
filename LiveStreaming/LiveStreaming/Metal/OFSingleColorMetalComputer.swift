@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 class OFSingleColorMetalComputer: NSObject, OFProcessNode {
     var isEnabled: Bool {
@@ -44,7 +45,7 @@ class OFSingleColorMetalComputer: NSObject, OFProcessNode {
         do {
             try pipelineState = defalutMetal.device?.makeComputePipelineState(function: program!)
         } catch {
-            print(("(Assistive tools) error: create compute pipeline failed!"))
+            DDLogError("create single color pipeline failed: \(error)")
         }
         colorTypeBuffer = defalutMetal.device?.makeBuffer(bytes: [colorType.rawValue], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
     }
@@ -57,7 +58,7 @@ class OFSingleColorMetalComputer: NSObject, OFProcessNode {
         var texture: CVMetalTexture?
         let status = CVMetalTextureCacheCreateTextureFromImage(nil, defalutMetal.videoTextureCache!, pixelBuffer, nil, pixelFormat, width, height, 0, &texture)
         if status != kCVReturnSuccess {
-            print("error: creat Target Texture failed")
+            DDLogError("create single color target texture failed")
             return nil
         }
         let outputTexture = CVMetalTextureGetTexture(texture!)

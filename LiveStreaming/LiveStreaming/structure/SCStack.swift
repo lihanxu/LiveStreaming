@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 class SCStack<T> {
     typealias Element = T
@@ -29,7 +30,7 @@ class SCStack<T> {
     func push(element: Element) {
         semaphore?.wait()
         list.append(element)
-        print(#function, size())
+        DDLogVerbose("SCStack \(#function) size:\(size())")
         semaphore?.signal()
     }
     
@@ -37,7 +38,7 @@ class SCStack<T> {
     func pop() -> Element? {
         semaphore?.wait()
         let ele = list.popLast()
-        print(#function, size())
+        DDLogVerbose("SCStack \(#function) size:\(size())")
         semaphore?.signal()
         return ele
     }
@@ -46,7 +47,7 @@ class SCStack<T> {
     func peak() -> Element? {
         semaphore?.wait()
         let ele = list.last
-        print(#function, size())
+        DDLogVerbose("SCStack \(#function) size:\(size())")
         semaphore?.signal()
         return ele
     }
@@ -55,7 +56,7 @@ class SCStack<T> {
     func clear() {
         semaphore?.wait()
         list.removeAll()
-        print(#function, size())
+        DDLogVerbose("SCStack \(#function) size:\(size())")
         semaphore?.signal()
     }
 }

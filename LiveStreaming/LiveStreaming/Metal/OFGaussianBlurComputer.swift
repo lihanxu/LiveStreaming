@@ -7,6 +7,7 @@
 
 import Foundation
 import MetalPerformanceShaders
+import CocoaLumberjack
 
 //G(u,v) = 1 / (2 * pi * sigma * sigma) * e^{-(u^2 + v^2)/(2 \sigma^2)}
 
@@ -49,7 +50,7 @@ class OFGaussianBlurComputer: NSObject, OFProcessNode {
         do {
             try pipelineState = defalutMetal.device?.makeComputePipelineState(function: program!)
         } catch {
-            print(("(Assistive tools) error: create compute pipeline failed!"))
+            DDLogError("create gaussian blur pipeline failed: \(error)")
         }
         filter = gaussianBlurFilter(sigma)
     }
@@ -79,7 +80,7 @@ class OFGaussianBlurComputer: NSObject, OFProcessNode {
         var texture: CVMetalTexture?
         let status = CVMetalTextureCacheCreateTextureFromImage(nil, defalutMetal.videoTextureCache!, pixelBuffer, nil, pixelFormat, width, height, 0, &texture)
         if status != kCVReturnSuccess {
-            print("error: creat Target Texture failed")
+            DDLogError("create gaussian blur target texture failed")
             return nil
         }
         let outputTexture = CVMetalTextureGetTexture(texture!)

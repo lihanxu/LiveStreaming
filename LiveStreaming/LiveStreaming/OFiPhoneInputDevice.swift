@@ -7,7 +7,7 @@
 
 import Foundation
 import AVFoundation
-import os.log
+import CocoaLumberjack
 
 class OFiPhoneInputDevice: OFInputDevice {
     // 捕获会话
@@ -60,7 +60,7 @@ class OFiPhoneInputDevice: OFInputDevice {
                 currentVideoInput = videoInput
             }
         } catch {
-            os_log("video input faield!", type:.error)
+            DDLogError("video input failed: \(error)")
         }
         
         // 获取音频设备
@@ -72,7 +72,7 @@ class OFiPhoneInputDevice: OFInputDevice {
                 captureSession.addInput(audioInput)
             }
         } catch {
-            os_log("audio input faield!", type:.error)
+            DDLogError("audio input failed: \(error)")
         }
         
         // 添加视频输出
@@ -143,7 +143,7 @@ class OFiPhoneInputDevice: OFInputDevice {
             captureSession.addInput(input)
             currentVideoInput = input
         } else {
-            os_log("can not add new input!!!", type: .error)
+            DDLogError("can not add new camera input")
         }
         //前置摄像头镜像
         let videoConnection = videoOutput?.connection(with: .video)
@@ -168,6 +168,6 @@ extension OFiPhoneInputDevice: AVCaptureVideoDataOutputSampleBufferDelegate, AVC
     }
 
     func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        print(#function)
+        DDLogWarn("capture dropped a sample buffer")
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 class SCQueue<T> {
     typealias Element = T
@@ -29,7 +30,7 @@ class SCQueue<T> {
     /// 添加一个元素到队尾
     func enqueue(element: Element) {
         semaphore?.wait()
-        print(#function, size())
+        DDLogVerbose("enqueue size:\(size())")
         list.append(element)
         semaphore?.signal()
     }
@@ -37,7 +38,7 @@ class SCQueue<T> {
     /// 获取队头元素，并删除该元素
     func dequeue() -> Element? {
         semaphore?.wait()
-        print(#function, size())
+        DDLogVerbose("dequeue size:\(size())")
         guard isEmpty() == false else {
             semaphore?.signal()
             return nil
@@ -50,7 +51,7 @@ class SCQueue<T> {
     /// 获取队头元素，该元素不会被删除
     func peak() -> Element? {
         semaphore?.wait()
-        print(#function, size())
+        DDLogVerbose("peak size:\(size())")
         guard isEmpty() == false else {
             semaphore?.signal()
             return nil

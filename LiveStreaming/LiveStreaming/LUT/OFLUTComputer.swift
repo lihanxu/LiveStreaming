@@ -7,6 +7,7 @@
 
 import Foundation
 import Metal
+import CocoaLumberjack
 
 struct OFLUTPreset {
     let displayName: String
@@ -26,6 +27,7 @@ class OFLUTComputer: NSObject, OFProcessNode {
     private var pipelineState: MTLComputePipelineState?
     private var lutTexture: MTLTexture?
     private var presetIndex = 0
+    private var didLogProcessInfo = false
     
     var currentPreset: OFLUTPreset {
         return OFLUTPreset.all[presetIndex]
@@ -43,13 +45,14 @@ class OFLUTComputer: NSObject, OFProcessNode {
     private func setupMetal() {
         let library = defalutMetal.device?.makeDefaultLibrary()
         guard let program = library?.makeFunction(name: "ColorLUT") else {
-            print("ColorLUT kernel not found")
+            DDLogError("ColorLUT kernel not found")
             return
         }
         do {
             pipelineState = try defalutMetal.device?.makeComputePipelineState(function: program)
+            DDLogInfo("ColorLUT pipeline ready")
         } catch {
-            print("create ColorLUT pipeline failed: \(error)")
+            DDLogError("create ColorLUT pipeline failed: \(error)")
         }
     }
     
@@ -57,39 +60,49 @@ class OFLUTComputer: NSObject, OFProcessNode {
     func switchToNext() -> OFLUTPreset {
         presetIndex = (presetIndex + 1) % OFLUTPreset.all.count
         loadCurrentLUT()
+        didLogProcessInfo = false
+        DDLogInfo("switch LUT to \(currentPreset.displayName), enabled:\(isEnabled)")
         return currentPreset
     }
     
     private func loadCurrentLUT() {
         lutTexture = nil
         guard let fileName = currentPreset.fileName, let device = defalutMetal.device else {
+            DDLogInfo("LUT disabled")
             return
         }
         lutTexture = OFLUTLoader.loadTexture(named: fileName, device: device)
+        if let lutTexture = lutTexture {
+            DDLogInfo("LUT texture loaded: \(fileName) \(lutTexture.width)x\(lutTexture.height) format:\(lutTexture.pixelFormat.rawValue)")
+        } else {
+            DDLogError("LUT texture load failed: \(fileName)")
+        }
     }
     
-    private func createTextureFromPixelBuffer(pixelBuffer: CVPixelBuffer) -> MTLTexture? {
+    private func createTextureFromPixelBuffer(pixelBuffer: CVPixelBuffer) -> (CVMetalTexture, MTLTexture)? {
+        guard let textureCache = defalutMetal.videoTextureCache else {
+            DDLogError("metal texture cache is nil")
+            return nil
+        }
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
-        let pixelFormat = MTLPixelFormat.bgra8Unorm
-        
-        var texture: CVMetalTexture?
+        var cvTexture: CVMetalTexture?
         let status = CVMetalTextureCacheCreateTextureFromImage(
             nil,
-            defalutMetal.videoTextureCache!,
+            textureCache,
             pixelBuffer,
             nil,
-            pixelFormat,
+            .bgra8Unorm,
             width,
             height,
             0,
-            &texture
+            &cvTexture
         )
-        if status != kCVReturnSuccess {
-            print("error: creat LUT texture failed")
+        guard status == kCVReturnSuccess, let cvTexture = cvTexture, let texture = CVMetalTextureGetTexture(cvTexture) else {
+            DDLogError("create LUT metal texture failed, status: \(status) size:\(width)x\(height)")
             return nil
         }
-        return CVMetalTextureGetTexture(texture!)
+        return (cvTexture, texture)
     }
     
     func process(_ frame: VideoFrame) {
@@ -99,34 +112,60 @@ class OFLUTComputer: NSObject, OFProcessNode {
         defalutMetal.updateTexture(width: frame.frameWidth, height: frame.frameHeight)
         pixelBufferPool.update(width: UInt32(frame.frameWidth), height: UInt32(frame.frameHeight), pixelFormat: kCVPixelFormatType_32BGRA)
         
-        var sourceTexture: MTLTexture? = nil
-        if frame.texture == nil {
-            sourceTexture = createTextureFromPixelBuffer(pixelBuffer: frame.pixelBuffer)
+        let sourcePair: (CVMetalTexture, MTLTexture)?
+        if let existing = frame.texture {
+            sourcePair = nil
+            if !didLogProcessInfo {
+                DDLogInfo("LUT source uses existing metal texture \(existing.width)x\(existing.height)")
+            }
         } else {
-            sourceTexture = frame.texture
+            sourcePair = createTextureFromPixelBuffer(pixelBuffer: frame.pixelBuffer)
+        }
+        let sourceTexture = sourcePair?.1 ?? frame.texture
+        guard let sourceTexture = sourceTexture else {
+            DDLogError("LUT source texture is nil, skip")
+            return
         }
         
         guard let destPixelBuffer = pixelBufferPool.createPixelBuffer() else {
+            DDLogError("LUT dest pixel buffer create failed")
             return
         }
-        let outputTexture = createTextureFromPixelBuffer(pixelBuffer: destPixelBuffer)
+        guard let destPair = createTextureFromPixelBuffer(pixelBuffer: destPixelBuffer) else {
+            return
+        }
         
-        let commandBuffer = defalutMetal.commandQueue?.makeCommandBuffer()
-        let computeEncoder = commandBuffer?.makeComputeCommandEncoder()
+        guard let commandBuffer = defalutMetal.commandQueue?.makeCommandBuffer(),
+              let computeEncoder = commandBuffer.makeComputeCommandEncoder(),
+              let threadgroups = defalutMetal.numTreadGroups,
+              let threadsPerGroup = defalutMetal.threadsPerGroup else {
+            DDLogError("LUT metal command encoder create failed")
+            return
+        }
         
-        computeEncoder?.setComputePipelineState(pipelineState)
-        computeEncoder?.setTexture(sourceTexture, index: 0)
-        computeEncoder?.setTexture(lutTexture, index: 1)
-        computeEncoder?.setTexture(outputTexture, index: 2)
-        computeEncoder?.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 0)
+        if !didLogProcessInfo {
+            DDLogInfo("LUT process frame:\(frame.frameWidth)x\(frame.frameHeight) lut:\(lutTexture.width)x\(lutTexture.height) groups:\(threadgroups.width)x\(threadgroups.height)")
+            didLogProcessInfo = true
+        }
         
-        computeEncoder?.dispatchThreadgroups(defalutMetal.numTreadGroups!, threadsPerThreadgroup: defalutMetal.threadsPerGroup!)
-        computeEncoder?.endEncoding()
+        computeEncoder.setComputePipelineState(pipelineState)
+        computeEncoder.setTexture(sourceTexture, index: 0)
+        computeEncoder.setTexture(lutTexture, index: 1)
+        computeEncoder.setTexture(destPair.1, index: 2)
+        computeEncoder.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 0)
+        computeEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+        computeEncoder.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
         
-        commandBuffer?.commit()
-        commandBuffer?.waitUntilCompleted()
+        if commandBuffer.status != .completed {
+            DDLogError("LUT compute status:\(commandBuffer.status.rawValue) error:\(String(describing: commandBuffer.error))")
+            return
+        }
         
         frame.pixelBuffer = destPixelBuffer
-        frame.texture = outputTexture
+        frame.texture = destPair.1
+        _ = sourcePair
+        _ = destPair
     }
 }

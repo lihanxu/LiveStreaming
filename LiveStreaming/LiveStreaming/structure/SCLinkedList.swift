@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 enum SCLinkedListError: Error {
     case outOfRange                     //越界
@@ -68,7 +69,7 @@ class SCLinkedList<T: Equatable> {
                     throw SCLinkedListError.outOfRange
                 }
             } catch {
-                print("SCLinkedList:rangeCheckForAdd(:Int) error: SCLinkedListError.outOfRange")
+                DDLogError("SCLinkedList rangeCheckForAdd out of range")
             }
     }
     
@@ -80,7 +81,7 @@ class SCLinkedList<T: Equatable> {
         do {
             try rangeCheck(index: at)
         } catch {
-            print("SCLinkedList:rangeCheck(:Int) error: \(error)")
+            DDLogError("SCLinkedList rangeCheck error: \(error)")
         }
         var node = first
         for _ in 0..<at {
@@ -92,7 +93,7 @@ class SCLinkedList<T: Equatable> {
     func printList() {
         var node = first
         for _ in 0..<listSize {
-            print(node?.element ?? "")
+            DDLogDebug("\(node?.element ?? "" as Any)")
             node = node?.next
         }
     }
@@ -157,7 +158,7 @@ extension SCLinkedList: SCList {
         do {
             try rangeCheck(index: index)
         } catch {
-            print("SCLinkedList:rangeCheck(:Int) error: \(error)")
+            DDLogError("SCLinkedList rangeCheck error: \(error)")
         }
         if index == 0 {
             first = first?.next

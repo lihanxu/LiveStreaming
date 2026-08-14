@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		60A20001275E000100000001 /* OFProcessNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10001275E000100000001 /* OFProcessNode.swift */; };
+		60A20002275E000100000002 /* OFProcessGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10002275E000100000002 /* OFProcessGraph.swift */; };
+		60A20003275E000100000003 /* OFLUTLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10003275E000100000003 /* OFLUTLoader.swift */; };
+		60A20004275E000100000004 /* OFLUTComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10004275E000100000004 /* OFLUTComputer.swift */; };
+		60A20011275E000100000011 /* Rec709 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10011275E000100000011 /* Rec709 normal.png */; };
+		60A20012275E000100000012 /* SRGB normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10012275E000100000012 /* SRGB normal.png */; };
+		60A20013275E000100000013 /* ACESAP0 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10013275E000100000013 /* ACESAP0 normal.png */; };
+		60A30002275E000100000032 /* OFLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A30001275E000100000031 /* OFLogger.swift */; };
 		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
 		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
 		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
@@ -45,17 +53,21 @@
 		9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */; };
 		9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB922738C2BA00161747 /* OFInputDevice.swift */; };
 		9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB9D27396FF500161747 /* VideoManager.swift */; };
-		60A20001275E000100000001 /* OFProcessNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10001275E000100000001 /* OFProcessNode.swift */; };
-		60A20002275E000100000002 /* OFProcessGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10002275E000100000002 /* OFProcessGraph.swift */; };
-		60A20003275E000100000003 /* OFLUTLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10003275E000100000003 /* OFLUTLoader.swift */; };
-		60A20004275E000100000004 /* OFLUTComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10004275E000100000004 /* OFLUTComputer.swift */; };
-		60A20011275E000100000011 /* Rec709 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10011275E000100000011 /* Rec709 normal.png */; };
-		60A20012275E000100000012 /* SRGB normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10012275E000100000012 /* SRGB normal.png */; };
-		60A20013275E000100000013 /* ACESAP0 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10013275E000100000013 /* ACESAP0 normal.png */; };
+		F813CA7E8907BC3D6F5EF40B /* Pods_LiveStreaming.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LiveStreaming.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		60A10001275E000100000001 /* OFProcessNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessNode.swift; sourceTree = "<group>"; };
+		60A10002275E000100000002 /* OFProcessGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessGraph.swift; sourceTree = "<group>"; };
+		60A10003275E000100000003 /* OFLUTLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTLoader.swift; sourceTree = "<group>"; };
+		60A10004275E000100000004 /* OFLUTComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTComputer.swift; sourceTree = "<group>"; };
+		60A10011275E000100000011 /* Rec709 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Rec709 normal.png"; sourceTree = "<group>"; };
+		60A10012275E000100000012 /* SRGB normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SRGB normal.png"; sourceTree = "<group>"; };
+		60A10013275E000100000013 /* ACESAP0 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ACESAP0 normal.png"; sourceTree = "<group>"; };
+		60A30001275E000100000031 /* OFLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLogger.swift; sourceTree = "<group>"; };
 		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
+		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
 		9A16DDAE273A132E0045F456 /* shaderf.fsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderf.fsh; sourceTree = "<group>"; };
 		9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_imageEdit_wow.png; path = LiveStreaming/Resource/icon_imageEdit_wow.png; sourceTree = SOURCE_ROOT; };
@@ -98,13 +110,7 @@
 		9AFFCB8C2738C1C300161747 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9AFFCB922738C2BA00161747 /* OFInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFInputDevice.swift; sourceTree = "<group>"; };
 		9AFFCB9D27396FF500161747 /* VideoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoManager.swift; sourceTree = "<group>"; };
-		60A10001275E000100000001 /* OFProcessNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessNode.swift; sourceTree = "<group>"; };
-		60A10002275E000100000002 /* OFProcessGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessGraph.swift; sourceTree = "<group>"; };
-		60A10003275E000100000003 /* OFLUTLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTLoader.swift; sourceTree = "<group>"; };
-		60A10004275E000100000004 /* OFLUTComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTComputer.swift; sourceTree = "<group>"; };
-		60A10011275E000100000011 /* Rec709 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Rec709 normal.png"; sourceTree = "<group>"; };
-		60A10012275E000100000012 /* SRGB normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SRGB normal.png"; sourceTree = "<group>"; };
-		60A10013275E000100000013 /* ACESAP0 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ACESAP0 normal.png"; sourceTree = "<group>"; };
+		B47F3D4F6AB97F37508D3C16 /* Pods-LiveStreaming.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.debug.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,12 +118,59 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F813CA7E8907BC3D6F5EF40B /* Pods_LiveStreaming.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		27FD53ABC433C3C528C13814 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		5D1C01C7CADA711E7617CB54 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B47F3D4F6AB97F37508D3C16 /* Pods-LiveStreaming.debug.xcconfig */,
+				67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		60A10020275E000100000020 /* Process */ = {
+			isa = PBXGroup;
+			children = (
+				60A10001275E000100000001 /* OFProcessNode.swift */,
+				60A10002275E000100000002 /* OFProcessGraph.swift */,
+			);
+			path = Process;
+			sourceTree = "<group>";
+		};
+		60A10021275E000100000021 /* LUT */ = {
+			isa = PBXGroup;
+			children = (
+				60A10003275E000100000003 /* OFLUTLoader.swift */,
+				60A10004275E000100000004 /* OFLUTComputer.swift */,
+			);
+			path = LUT;
+			sourceTree = "<group>";
+		};
+		60A10022275E000100000022 /* LUT */ = {
+			isa = PBXGroup;
+			children = (
+				60A10011275E000100000011 /* Rec709 normal.png */,
+				60A10012275E000100000012 /* SRGB normal.png */,
+				60A10013275E000100000013 /* ACESAP0 normal.png */,
+			);
+			path = LUT;
+			sourceTree = "<group>";
+		};
 		9A16DDAB273A12CB0045F456 /* Shader */ = {
 			isa = PBXGroup;
 			children = (
@@ -165,34 +218,6 @@
 			path = Graph;
 			sourceTree = "<group>";
 		};
-		60A10020275E000100000020 /* Process */ = {
-			isa = PBXGroup;
-			children = (
-				60A10001275E000100000001 /* OFProcessNode.swift */,
-				60A10002275E000100000002 /* OFProcessGraph.swift */,
-			);
-			path = Process;
-			sourceTree = "<group>";
-		};
-		60A10021275E000100000021 /* LUT */ = {
-			isa = PBXGroup;
-			children = (
-				60A10003275E000100000003 /* OFLUTLoader.swift */,
-				60A10004275E000100000004 /* OFLUTComputer.swift */,
-			);
-			path = LUT;
-			sourceTree = "<group>";
-		};
-		60A10022275E000100000022 /* LUT */ = {
-			isa = PBXGroup;
-			children = (
-				60A10011275E000100000011 /* Rec709 normal.png */,
-				60A10012275E000100000012 /* SRGB normal.png */,
-				60A10013275E000100000013 /* ACESAP0 normal.png */,
-			);
-			path = LUT;
-			sourceTree = "<group>";
-		};
 		9A552AB2275DED7700568A6B /* Resource */ = {
 			isa = PBXGroup;
 			children = (
@@ -235,6 +260,8 @@
 			children = (
 				9AFFCB7D2738C1C200161747 /* LiveStreaming */,
 				9AFFCB7C2738C1C200161747 /* Products */,
+				5D1C01C7CADA711E7617CB54 /* Pods */,
+				27FD53ABC433C3C528C13814 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -262,6 +289,7 @@
 				9AFFCB922738C2BA00161747 /* OFInputDevice.swift */,
 				9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */,
 				9AFFCB7E2738C1C200161747 /* AppDelegate.swift */,
+				60A30001275E000100000031 /* OFLogger.swift */,
 				9AFFCB822738C1C200161747 /* ViewController.swift */,
 				9A44789F275E382A0021226B /* OFButtonsView.swift */,
 				9A16DDB2273A46D20045F456 /* SCGLView.swift */,
@@ -301,9 +329,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9AFFCB8F2738C1C300161747 /* Build configuration list for PBXNativeTarget "LiveStreaming" */;
 			buildPhases = (
+				6AC54506480BBDF5D5FCF841 /* [CP] Check Pods Manifest.lock */,
 				9AFFCB772738C1C200161747 /* Sources */,
 				9AFFCB782738C1C200161747 /* Frameworks */,
 				9AFFCB792738C1C200161747 /* Resources */,
+				F6F727846303B850F6C982CF /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -369,6 +399,48 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		6AC54506480BBDF5D5FCF841 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-LiveStreaming-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		F6F727846303B850F6C982CF /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		9AFFCB772738C1C200161747 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -378,6 +450,7 @@
 				60A20002275E000100000002 /* OFProcessGraph.swift in Sources */,
 				60A20003275E000100000003 /* OFLUTLoader.swift in Sources */,
 				60A20004275E000100000004 /* OFLUTComputer.swift in Sources */,
+				60A30002275E000100000032 /* OFLogger.swift in Sources */,
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
 				9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */,
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,
@@ -550,6 +623,7 @@
 		};
 		9AFFCB902738C1C300161747 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B47F3D4F6AB97F37508D3C16 /* Pods-LiveStreaming.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -573,6 +647,7 @@
 		};
 		9AFFCB912738C1C300161747 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

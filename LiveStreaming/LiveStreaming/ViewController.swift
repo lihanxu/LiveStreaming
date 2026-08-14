@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import CocoaLumberjack
 
 class ViewController: UIViewController {
 
@@ -85,7 +86,7 @@ extension ViewController: OFButtonsViewDelegate {
     
     /// 切换前后摄像头
     func switchCamera() {
-        print(#function)
+        DDLogInfo("switchCamera")
         _ = inputDevice?.switchCameraPosition()
     }
 }

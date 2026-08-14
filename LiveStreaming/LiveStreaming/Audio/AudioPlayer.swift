@@ -7,53 +7,40 @@
 
 import Foundation
 import AVFoundation
+import CocoaLumberjack
 
 class AudioPlayer: NSObject {
-    private var audioEngine:AVAudioEngine?
+    private var audioEngine: AVAudioEngine?
     private var audioPlayerNode: AVAudioPlayerNode?
-    private var audioConverter: AVAudioConverter?
-    private let outputFormat: AVAudioFormat = {
-        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: false)
-        return format!
-    } ()
     
-    func initAudioEngine(_ audioFormat: AVAudioFormat?) {
-        //初始化音频引擎组件
-        audioEngine = AVAudioEngine()
-        //初始化播放节点
-        audioPlayerNode = AVAudioPlayerNode()
-        //初始化转换器
-        audioConverter = AVAudioConverter(from: audioFormat!, to: outputFormat)
-        
-        // 添加播放节点至音频引擎中
-        audioEngine?.attach(audioPlayerNode!)
-        audioEngine?.connect(audioPlayerNode!, to: audioEngine!.outputNode, format: outputFormat)
-        audioEngine?.prepare()
+    func initAudioEngine(_ audioFormat: AVAudioFormat) {
+        let engine = AVAudioEngine()
+        let playerNode = AVAudioPlayerNode()
+        engine.attach(playerNode)
+        engine.connect(playerNode, to: engine.mainMixerNode, format: audioFormat)
+        engine.connect(engine.mainMixerNode, to: engine.outputNode, format: nil)
+        engine.prepare()
         do {
-            try audioEngine?.start()
+            try engine.start()
         } catch {
-            
+            DDLogError("Audio engine start failed: \(error)")
         }
+        audioEngine = engine
+        audioPlayerNode = playerNode
     }
     
-    // CMSampleBuffer 转 AVAudioPCMBuffer
     func scheduleBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
-        // 获取 sampleBuffer 格式描述
-        guard let sDescr: CMFormatDescription = CMSampleBufferGetFormatDescription(sampleBuffer) else { return nil}
-        // 获取 sampleBuffer 采样数
-        let numSamples: CMItemCount = CMSampleBufferGetNumSamples(sampleBuffer)
-        // 获取 sampleBuffer 的音频格式
-        let avFmt: AVAudioFormat = AVAudioFormat(cmAudioFormatDescription: sDescr)
-        // 如果引擎没有初始化，则初始化引擎
+        guard let sDescr = CMSampleBufferGetFormatDescription(sampleBuffer) else { return nil }
+        let numSamples = CMSampleBufferGetNumSamples(sampleBuffer)
+        let avFmt = AVAudioFormat(cmAudioFormatDescription: sDescr)
         if audioEngine == nil {
             initAudioEngine(avFmt)
         }
-        // 创建 AVAudioPCMBuffer
-        let pcmBuffer: AVAudioPCMBuffer? = AVAudioPCMBuffer(pcmFormat: avFmt, frameCapacity: AVAudioFrameCount(UInt(numSamples)))
-        pcmBuffer?.frameLength = AVAudioFrameCount(numSamples)
-
-        // 将 sampleBuffer 中的音频数据拷贝到 pcmBuffer 中
-        if let mutableAudioBufferList = pcmBuffer?.mutableAudioBufferList {
+        guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: avFmt, frameCapacity: AVAudioFrameCount(numSamples)) else {
+            return nil
+        }
+        pcmBuffer.frameLength = AVAudioFrameCount(numSamples)
+        if let mutableAudioBufferList = pcmBuffer.mutableAudioBufferList {
             CMSampleBufferCopyPCMDataIntoAudioBufferList(sampleBuffer, at: 0, frameCount: Int32(numSamples), into: mutableAudioBufferList)
         }
         return pcmBuffer
@@ -61,15 +48,10 @@ class AudioPlayer: NSObject {
     
     func inputAudio(sampleBuffer: CMSampleBuffer, from device: OFInputDevice) {
         guard let buffer = scheduleBuffer(sampleBuffer) else { return }
-        let pcmBuffer: AVAudioPCMBuffer? = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(1024*2))
-
-        do {
-            try audioConverter?.convert(to: pcmBuffer!, from: buffer)
-        } catch {
-            print("error audioConverter !!!!")
+        audioPlayerNode?.scheduleBuffer(buffer, completionHandler: nil)
+        if audioPlayerNode?.isPlaying == false {
+            audioPlayerNode?.play()
         }
-        audioPlayerNode?.scheduleBuffer(pcmBuffer!, completionHandler: nil)
-        audioPlayerNode?.play()
     }
     
     func isPlaying() -> Bool {
@@ -80,19 +62,16 @@ class AudioPlayer: NSObject {
         guard let audioEngine = audioEngine else {
             return
         }
-
         audioEngine.prepare()
         do {
             try audioEngine.start()
         } catch {
-            print("Audio Magiciacn play sound failed!!!")
+            DDLogError("Audio engine play failed: \(error)")
         }
     }
     
     func stop() {
-        if let audioPlayerNode = audioPlayerNode {
-            audioPlayerNode.stop()
-        }
+        audioPlayerNode?.stop()
         if let audioEngine = audioEngine {
             audioEngine.stop()
             audioEngine.reset()

@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import CocoaLumberjack
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,6 +16,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        OFLogger.setup()
+        
         do {
             // options: .allowBluetoothA2DP
             let audioSession = AVAudioSession.sharedInstance()
@@ -26,7 +29,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             
             try audioSession.setActive(true)
         } catch  {
-            print("AVAudioSession setCategory failed!!!")
+            DDLogError("AVAudioSession setCategory failed!!! \(error)")
         }
         
         return true

@@ -7,6 +7,7 @@
 
 import UIKit
 import VideoToolbox
+import CocoaLumberjack
 
 class VideoEncoder: NSObject {
     
@@ -87,14 +88,11 @@ class VideoEncoder: NSObject {
     
     fileprivate func processEncoded(sampleBuffer: CMSampleBuffer) {
         guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: true) else { return }
-        print("attachments: \(attachments)")
         
         var status: OSStatus
         let rawDic: CFDictionary = Unmanaged.fromOpaque(CFArrayGetValueAtIndex(attachments, 0)).takeUnretainedValue()
         let keyFrame: Bool = !CFDictionaryContainsKey(rawDic, Unmanaged.passUnretained(kCMSampleAttachmentKey_NotSync).toOpaque())
         if keyFrame {
-            print("IDR frame")
-
             let formatDes = CMSampleBufferGetFormatDescription(sampleBuffer)
             var sps: UnsafePointer<UInt8>?
             var spsSize: Int = 0
@@ -102,19 +100,16 @@ class VideoEncoder: NSObject {
             var nalHearderLenght: Int32 = 0
             status = CMVideoFormatDescriptionGetH264ParameterSetAtIndex(formatDes!, parameterSetIndex: 0, parameterSetPointerOut: &sps, parameterSetSizeOut: &spsSize, parameterSetCountOut: &spsCount, nalUnitHeaderLengthOut: &nalHearderLenght)
             if status == noErr {
-                print("sps: \(String(describing: sps)), spsSize: \(spsSize), spsCount:\(spsCount), NAL header lenght: \(nalHearderLenght)")
-                
                 var pps: UnsafePointer<UInt8>?
                 var ppsSize: Int = 0
                 var ppsCount: Int = 0
                 
                 status = CMVideoFormatDescriptionGetH264ParameterSetAtIndex(formatDes!, parameterSetIndex: 1, parameterSetPointerOut: &pps, parameterSetSizeOut: &ppsSize, parameterSetCountOut: &ppsCount, nalUnitHeaderLengthOut: &nalHearderLenght)
                 if status == noErr {
-                    print("pps: \(String(describing: sps)), ppsSize: \(spsSize), ppsCount:\(spsCount), NAL header lenght: \(nalHearderLenght)")
+                    let spsData: NSData = NSData(bytes: sps, length: spsSize)
+                    let ppsData: NSData = NSData(bytes: pps, length: ppsSize)
+                    handle(sps: spsData, pps: ppsData)
                 }
-                let spsData: NSData = NSData(bytes: sps, length: spsSize)
-                let ppsData: NSData = NSData(bytes: pps, length: ppsSize)
-                handle(sps: spsData, pps: ppsData)
             }
         }
         
@@ -172,22 +167,22 @@ class VideoEncoder: NSObject {
 
 func VideoEncoder_EncoderOutputCallback(outputCallbackRefCon: UnsafeMutableRawPointer?, sourceFrameRefCon: UnsafeMutableRawPointer?, status: OSStatus, infoFlags: VTEncodeInfoFlags, sampleBuffer: CMSampleBuffer?) -> Void {
     guard status == noErr else {
-        print("error: \(status)")
+        DDLogError("video encode error: \(status)")
         return
     }
 
     if infoFlags == .frameDropped {
-        print("frame dropped")
+        DDLogWarn("video encode frame dropped")
         return
     }
     
     guard let sampleBuffer = sampleBuffer else {
-        print("sampleBuffer = nil")
+        DDLogError("video encode sampleBuffer is nil")
         return
     }
     
     if CMSampleBufferDataIsReady(sampleBuffer) == false {
-        print("sampleBuffer data is not ready")
+        DDLogError("video encode sampleBuffer data is not ready")
         return
     }
     

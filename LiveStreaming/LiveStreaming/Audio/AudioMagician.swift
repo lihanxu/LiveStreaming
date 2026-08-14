@@ -7,6 +7,7 @@
 
 import UIKit
 import AVFoundation
+import CocoaLumberjack
 
 class AudioMagician: NSObject {
     private var audioFile: AVAudioFile?
@@ -58,7 +59,7 @@ class AudioMagician: NSObject {
             otherPlayerNode.scheduleBuffer(buffer, at: nil, options: .loops)
             audioPlayerNode.play()
         } catch {
-            print("Audio Magiciacn play sound failed!!!")
+            DDLogError("Audio Magician play sound failed: \(error)")
         }
     }
     

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 class OFPeakComputer: NSObject, OFProcessNode {
     var isEnabled: Bool {
@@ -37,7 +38,7 @@ class OFPeakComputer: NSObject, OFProcessNode {
         do {
             try pipelineState = defalutMetal.device?.makeComputePipelineState(function: program!)
         } catch {
-            print(("(Assistive tools) error: create compute pipeline failed!"))
+            DDLogError("create peak pipeline failed: \(error)")
         }
         stateBuffer = defalutMetal.device?.makeBuffer(bytes: [state ? 1 : 0], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
     }
@@ -50,7 +51,7 @@ class OFPeakComputer: NSObject, OFProcessNode {
         var texture: CVMetalTexture?
         let status = CVMetalTextureCacheCreateTextureFromImage(nil, defalutMetal.videoTextureCache!, pixelBuffer, nil, pixelFormat, width, height, 0, &texture)
         if status != kCVReturnSuccess {
-            print("error: creat Target Texture failed")
+            DDLogError("create peak target texture failed")
             return nil
         }
         let outputTexture = CVMetalTextureGetTexture(texture!)

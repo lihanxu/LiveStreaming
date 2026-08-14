@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CocoaLumberjack
 
 class OFPixelBufferTool: NSObject {
     static let sharedInstance = OFPixelBufferTool()
@@ -35,7 +36,7 @@ class OFPixelBufferTool: NSObject {
     
     /// 通过宽高等信息创建一个缓冲池
     func createPixelBufferPool(width: UInt32, height: UInt32, pixelFormat: OSType) {
-        print("creat pixel buffer pool")
+        DDLogInfo("create pixel buffer pool \(width)x\(height) format:\(pixelFormat)")
         self.width = width
         self.height = height
         self.pixelFormat = pixelFormat
@@ -43,6 +44,7 @@ class OFPixelBufferTool: NSObject {
             kCVPixelBufferPixelFormatTypeKey: pixelFormat,
             kCVPixelBufferWidthKey: width,
             kCVPixelBufferHeightKey: height,
+            kCVPixelBufferMetalCompatibilityKey: true,
             kCVPixelFormatOpenGLESCompatibility: true,
             kCVPixelBufferIOSurfacePropertiesKey: [:]
         ]
