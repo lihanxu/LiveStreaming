@@ -2,7 +2,7 @@
 //  OFSettingsSheetView.swift
 //  LiveStreaming
 //
-//  底部毛玻璃设置卡片：4 列网格，单击改值，复杂项 push 二级页。
+//  底部毛玻璃设置面板：根页和二级页共用，贴底铺满全宽。
 //  适配 iOS 11：FlowLayout + UIBlurEffect.dark，不用 SF Symbol / compositional layout。
 //
 
@@ -14,12 +14,6 @@ class OFSettingsSheetView: UIView {
     private let columns = 4
     /// 单个格子高度
     private let cellHeight: CGFloat = 76
-    /// 调色滑杆行高
-    private let sliderCellHeight: CGFloat = 56
-    /// 滑杆页最多同时露出的行数，超出可滚动
-    private let maxVisibleSliderRows = 6
-    /// 卡片相对屏幕左右边距
-    private let cardInset: CGFloat = 12
     /// 顶栏高度（标题 / 返回）
     private let headerHeight: CGFloat = 48
     
@@ -28,11 +22,11 @@ class OFSettingsSheetView: UIView {
     /// 导航栈，末尾为当前页
     private var pageStack: [OFSettingsPageID] = [.root]
     
-    /// 点击空白关闭
+    /// 卡片外的透明点击区，用来关闭；不加暗色，避免挡住预览
     private let dimmingView = UIButton(type: .custom)
-    /// 圆角卡片容器
+    /// 贴底全宽面板
     private let cardView = UIView()
-    /// 深色毛玻璃
+    /// 深色毛玻璃；alpha 压低，避免糊死预览
     private let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     /// 顶栏
     private let headerView = UIView()
@@ -40,8 +34,10 @@ class OFSettingsSheetView: UIView {
     private let backButton = UIButton(type: .system)
     /// 当前页标题
     private let titleLabel = UILabel()
-    /// 调色页复位全部滑杆
+    /// 调色页右侧复位
     private let resetButton = UIButton(type: .system)
+    /// 调色内容，放在同一张卡片里
+    private let colorEditor = OFColorAdjustEditorView()
     /// 参数网格
     private var collectionView: UICollectionView!
     /// 底部横条，提示可下拉关闭
@@ -63,19 +59,37 @@ class OFSettingsSheetView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    /// 蒙层 + 卡片 + 网格
+    /// 调色页时空白区域把触摸交给预览，避免全屏视图挡住画面
+    /// - Parameters:
+    ///   - point: 本视图坐标
+    ///   - event: 触摸事件
+    /// - Returns: 实际接收者；空白处为 nil
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if isHidden {
+            return nil
+        }
+        if !colorEditor.isHidden {
+            let cardLocal = convert(point, to: cardView)
+            return cardView.hitTest(cardLocal, with: event)
+        }
+        return super.hitTest(point, with: event)
+    }
+    
+    /// 透明点击区 + 卡片 + 网格
     private func setupViews() {
         backgroundColor = .clear
         isHidden = true
         
-        dimmingView.backgroundColor = UIColor(white: 0, alpha: 0.32)
+        dimmingView.backgroundColor = .clear
         dimmingView.addTarget(self, action: #selector(handleDimmingTap), for: .touchUpInside)
         addSubview(dimmingView)
         
         cardView.backgroundColor = .clear
-        cardView.layer.cornerRadius = 28
+        cardView.layer.cornerRadius = 20
+        cardView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         cardView.clipsToBounds = true
         addSubview(cardView)
+        blurView.alpha = 0.55
         cardView.addSubview(blurView)
         
         backButton.setTitle("返回", for: .normal)
@@ -110,8 +124,11 @@ class OFSettingsSheetView: UIView {
         collectionView.isScrollEnabled = false
         collectionView.delaysContentTouches = false
         collectionView.register(OFSettingsGridCell.self, forCellWithReuseIdentifier: OFSettingsGridCell.reuseID)
-        collectionView.register(OFColorSliderCell.self, forCellWithReuseIdentifier: OFColorSliderCell.reuseID)
         cardView.addSubview(collectionView)
+        
+        colorEditor.delegate = self
+        colorEditor.isHidden = true
+        cardView.addSubview(colorEditor)
         
         homeIndicator.backgroundColor = UIColor(white: 1, alpha: 0.85)
         homeIndicator.layer.cornerRadius = 2.5
@@ -126,6 +143,7 @@ class OFSettingsSheetView: UIView {
         resetButton.translatesAutoresizingMaskIntoConstraints = false
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         homeIndicator.translatesAutoresizingMaskIntoConstraints = false
+        colorEditor.translatesAutoresizingMaskIntoConstraints = false
         
         let cardHeight = cardHeightConstraint(forRowCount: 2)
         cardHeightConstraint = cardHeight
@@ -138,8 +156,8 @@ class OFSettingsSheetView: UIView {
             dimmingView.leadingAnchor.constraint(equalTo: leadingAnchor),
             dimmingView.trailingAnchor.constraint(equalTo: trailingAnchor),
             
-            cardView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: cardInset),
-            cardView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -cardInset),
+            cardView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            cardView.trailingAnchor.constraint(equalTo: trailingAnchor),
             cardBottom,
             cardHeight,
             
@@ -167,6 +185,11 @@ class OFSettingsSheetView: UIView {
             collectionView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
             
+            colorEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            colorEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            colorEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            colorEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
+            
             homeIndicator.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
             homeIndicator.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -10),
             homeIndicator.widthAnchor.constraint(equalToConstant: 36),
@@ -183,19 +206,19 @@ class OFSettingsSheetView: UIView {
         reloadCurrentPage()
         isHidden = false
         layoutIfNeeded()
-        dimmingView.alpha = 0
-        cardBottomConstraint?.constant = -8
+        cardBottomConstraint?.constant = 0
         UIView.animate(withDuration: 0.28, delay: 0, options: [.curveEaseOut], animations: {
-            self.dimmingView.alpha = 1
             self.layoutIfNeeded()
         })
     }
     
     /// 收起卡片
     func dismiss() {
+        if pageStack.last == .colorAdjust {
+            controller.confirmColorAdjustEditing()
+        }
         cardBottomConstraint?.constant = 420
         UIView.animate(withDuration: 0.24, delay: 0, options: [.curveEaseIn], animations: {
-            self.dimmingView.alpha = 0
             self.layoutIfNeeded()
         }, completion: { _ in
             self.isHidden = true
@@ -203,7 +226,7 @@ class OFSettingsSheetView: UIView {
         })
     }
     
-    /// 点击蒙层关闭
+    /// 点击卡片外关闭
     @objc private func handleDimmingTap() {
         dismiss()
     }
@@ -214,10 +237,13 @@ class OFSettingsSheetView: UIView {
         reloadCurrentPage()
     }
     
-    /// 二级页返回上一级
+    /// 二级页返回上一级；调色页保留当前参数，与 LUT 一样即时生效
     @objc private func handleBack() {
         guard pageStack.count > 1 else {
             return
+        }
+        if pageStack.last == .colorAdjust {
+            controller.confirmColorAdjustEditing()
         }
         pageStack.removeLast()
         reloadCurrentPage()
@@ -229,12 +255,12 @@ class OFSettingsSheetView: UIView {
         let translation = gesture.translation(in: self)
         switch gesture.state {
         case .changed:
-            cardBottomConstraint?.constant = max(-8, -8 + translation.y)
+            cardBottomConstraint?.constant = max(0, translation.y)
         case .ended, .cancelled:
             if translation.y > 80 {
                 dismiss()
             } else {
-                cardBottomConstraint?.constant = -8
+                cardBottomConstraint?.constant = 0
                 UIView.animate(withDuration: 0.2) {
                     self.layoutIfNeeded()
                 }
@@ -244,23 +270,28 @@ class OFSettingsSheetView: UIView {
         }
     }
     
-    /// 按导航栈顶刷新标题、返回按钮、网格或滑杆高度
+    /// 按导航栈顶刷新：根页和二级页都用同一张卡片
     private func reloadCurrentPage() {
         let page = controller.page(for: pageStack.last ?? .root)
+        let isColor = page.id == .colorAdjust
         titleLabel.text = page.title
         backButton.isHidden = pageStack.count <= 1
-        resetButton.isHidden = page.id != .colorAdjust
-        collectionView.isScrollEnabled = page.usesSliders
-        if page.usesSliders {
-            let visibleRows = min(page.sliders.count, maxVisibleSliderRows)
-            cardHeightConstraint?.constant = cardHeightValue(forSliderRows: visibleRows)
+        resetButton.isHidden = !isColor
+        collectionView.isScrollEnabled = false
+        collectionView.isHidden = isColor
+        colorEditor.isHidden = !isColor
+        cardView.isHidden = false
+        dimmingView.isUserInteractionEnabled = true
+        if isColor {
+            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: colorEditor.contentHeight())
+            colorEditor.reload(rows: page.sliders)
         } else {
             let rows = max(1, Int(ceil(Double(page.items.count) / Double(columns))))
             cardHeightConstraint?.constant = cardHeightValue(forRowCount: rows)
+            collectionView.collectionViewLayout.invalidateLayout()
+            collectionView.reloadData()
         }
         layoutIfNeeded()
-        collectionView.collectionViewLayout.invalidateLayout()
-        collectionView.reloadData()
     }
     
     /// 计算卡片高度约束
@@ -278,12 +309,12 @@ class OFSettingsSheetView: UIView {
         return 8 + headerHeight + CGFloat(rowCount) * cellHeight + 12 + 5 + 10 + bottomSafe
     }
     
-    /// 顶栏 + 可见滑杆行 + 底部指示条
-    /// - Parameter sliderRows: 露出的滑杆行数
+    /// 顶栏 + 调色内容 + 底部指示条
+    /// - Parameter editorHeight: 调色内容高度
     /// - Returns: 卡片总高度
-    private func cardHeightValue(forSliderRows sliderRows: Int) -> CGFloat {
+    private func cardHeightValue(forColorEditor editorHeight: CGFloat) -> CGFloat {
         let bottomSafe: CGFloat = 18
-        return 8 + headerHeight + CGFloat(sliderRows) * sliderCellHeight + 12 + 5 + 10 + bottomSafe
+        return 8 + headerHeight + editorHeight + 12 + 5 + 10 + bottomSafe
     }
     
     /// 当前页快照
@@ -294,28 +325,15 @@ class OFSettingsSheetView: UIView {
 }
 
 extension OFSettingsSheetView: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    /// 格子数或滑杆行数
+    /// 格子数
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        let page = currentPage()
-        if page.usesSliders {
-            return page.sliders.count
-        }
-        return page.items.count
+        return currentPage().items.count
     }
     
-    /// 绑定网格格子或调色滑杆
+    /// 绑定标题和当前值
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let page = currentPage()
-        if page.usesSliders {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: OFColorSliderCell.reuseID, for: indexPath) as! OFColorSliderCell
-            let row = page.sliders[indexPath.item]
-            cell.bind(row: row) { [weak self] key, value in
-                self?.controller.updateColorAdjust(key: key, value: value)
-            }
-            return cell
-        }
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: OFSettingsGridCell.reuseID, for: indexPath) as! OFSettingsGridCell
-        let items = page.items
+        let items = currentPage().items
         let item = items[indexPath.item]
         let isLastColumn = (indexPath.item % columns) == columns - 1
         let rowCount = Int(ceil(Double(items.count) / Double(columns)))
@@ -324,31 +342,43 @@ extension OFSettingsSheetView: UICollectionViewDataSource, UICollectionViewDeleg
         return cell
     }
     
-    /// 网格等分 4 列；滑杆占满一行
+    /// 等分 4 列
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        if currentPage().usesSliders {
-            return CGSize(width: collectionView.bounds.width, height: sliderCellHeight)
-        }
         let width = floor(collectionView.bounds.width / CGFloat(columns))
         return CGSize(width: width, height: cellHeight)
     }
     
-    /// 单击：开关 / 循环 / 进入二级页；滑杆页不响应点按
+    /// 单击：开关 / 循环 / 进入二级页
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        let page = currentPage()
-        guard !page.usesSliders else {
+        let items = currentPage().items
+        guard indexPath.item < items.count else {
             return
         }
-        let item = page.items[indexPath.item]
+        let item = items[indexPath.item]
         let result = controller.performTap(item.id)
         switch result {
         case .reload:
             reloadCurrentPage()
         case .push(let pageID):
             pageStack.append(pageID)
+            if pageID == .colorAdjust {
+                controller.beginColorAdjustEditing()
+            }
             reloadCurrentPage()
         }
+    }
+}
+
+extension OFSettingsSheetView: OFColorAdjustEditorViewDelegate {
+    /// 拖动当前项
+    func colorAdjustEditor(_ editor: OFColorAdjustEditorView, didChange key: OFColorAdjustKey, value: Float) {
+        controller.updateColorAdjust(key: key, value: value)
+    }
+    
+    /// 按住对比看原片
+    func colorAdjustEditor(_ editor: OFColorAdjustEditorView, compareHolding: Bool) {
+        controller.setColorAdjustCompareHolding(compareHolding)
     }
 }
 
@@ -430,88 +460,3 @@ class OFSettingsGridCell: UICollectionViewCell {
     }
 }
 
-/// 调色页一行：标题、数值、滑杆。拖动时只回调，不刷新整个列表。
-class OFColorSliderCell: UICollectionViewCell {
-    /// 复用标识
-    static let reuseID = "OFColorSliderCell"
-    
-    /// 参数名
-    private let titleLabel = UILabel()
-    /// 当前整数值
-    private let valueLabel = UILabel()
-    /// 强度滑杆
-    private let slider = UISlider()
-    /// 当前绑定的参数
-    private var key: OFColorAdjustKey?
-    /// 拖动回调；复用前会覆盖
-    private var onChange: ((OFColorAdjustKey, Float) -> Void)?
-    
-    /// 创建标题、数值和滑杆
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        titleLabel.textColor = .white
-        titleLabel.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-        valueLabel.textColor = UIColor(white: 1, alpha: 0.7)
-        valueLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
-        valueLabel.textAlignment = .right
-        slider.minimumTrackTintColor = UIColor(white: 1, alpha: 0.9)
-        slider.maximumTrackTintColor = UIColor(white: 1, alpha: 0.22)
-        slider.addTarget(self, action: #selector(handleSlider), for: .valueChanged)
-        
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(valueLabel)
-        contentView.addSubview(slider)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        slider.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
-            
-            valueLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            valueLabel.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 8),
-            
-            slider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 14),
-            slider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -14),
-            slider.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
-            slider.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
-        ])
-    }
-    
-    /// 不支持 Storyboard
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    /// 绑定一行滑杆；回调在拖动过程中连续触发
-    /// - Parameters:
-    ///   - row: 展示数据
-    ///   - onChange: 新值写回处理图
-    func bind(row: OFColorSliderRow, onChange: @escaping (OFColorAdjustKey, Float) -> Void) {
-        key = row.key
-        self.onChange = onChange
-        titleLabel.text = row.title
-        slider.minimumValue = row.minimum
-        slider.maximumValue = row.maximum
-        slider.value = row.value
-        valueLabel.text = formattedValue(row.value)
-    }
-    
-    /// 拖动滑杆：更新数字并通知控制器
-    @objc private func handleSlider() {
-        let value = slider.value
-        valueLabel.text = formattedValue(value)
-        guard let key = key else {
-            return
-        }
-        onChange?(key, value)
-    }
-    
-    /// 显示为整数，避免拖动时抖动
-    /// - Parameter value: 滑杆值
-    /// - Returns: 整数字符串
-    private func formattedValue(_ value: Float) -> String {
-        return String(Int(round(value)))
-    }
-}

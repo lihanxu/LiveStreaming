@@ -22,6 +22,7 @@
 		60A50012275E000100000072 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 60A50002275E000100000062 /* face_landmarker.task */; };
 		60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60001275E000100000101 /* OFColorAdjustParams.swift */; };
 		60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60002275E000100000102 /* OFColorAdjustComputer.swift */; };
+		60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60003275E000100000103 /* OFColorAdjustEditorView.swift */; };
 		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
 		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
 		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
@@ -80,6 +81,7 @@
 		60A50002275E000100000062 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
 		60A60001275E000100000101 /* OFColorAdjustParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustParams.swift; sourceTree = "<group>"; };
 		60A60002275E000100000102 /* OFColorAdjustComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustComputer.swift; sourceTree = "<group>"; };
+		60A60003275E000100000103 /* OFColorAdjustEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustEditorView.swift; sourceTree = "<group>"; };
 		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
 		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
@@ -189,6 +191,7 @@
 			children = (
 				60A60001275E000100000101 /* OFColorAdjustParams.swift */,
 				60A60002275E000100000102 /* OFColorAdjustComputer.swift */,
+				60A60003275E000100000103 /* OFColorAdjustEditorView.swift */,
 			);
 			path = ColorAdjust;
 			sourceTree = "<group>";
@@ -511,6 +514,7 @@
 				60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */,
 				60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */,
 				60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */,
+				60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */,
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
 				9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */,
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,

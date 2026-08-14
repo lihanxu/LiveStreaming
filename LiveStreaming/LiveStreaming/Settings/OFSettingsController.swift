@@ -18,6 +18,8 @@ class OFSettingsController {
     weak var inputDevice: OFiPhoneInputDevice?
     /// 美颜占位状态
     let beauty = OFBeautySettings()
+    /// 进入调色页时的参数快照；点 X 时还原
+    private var colorAdjustBackup: OFColorAdjustParams?
     
     /// - Parameter tools: 已搭好处理图的门面
     init(tools: OFAuxiliaryTools) {
@@ -140,6 +142,33 @@ class OFSettingsController {
     ///   - value: 滑杆当前值
     func updateColorAdjust(key: OFColorAdjustKey, value: Float) {
         tools.updateColorAdjust(key: key, value: value)
+    }
+    
+    /// 打开调色页前记下当前值，方便取消
+    func beginColorAdjustEditing() {
+        colorAdjustBackup = tools.colorAdjustParams
+        tools.setColorAdjustBypassed(false)
+    }
+    
+    /// 点 X：还原进入前的参数
+    func cancelColorAdjustEditing() {
+        if let backup = colorAdjustBackup {
+            tools.replaceColorAdjustParams(backup)
+        }
+        tools.setColorAdjustBypassed(false)
+        colorAdjustBackup = nil
+    }
+    
+    /// 点勾：保留当前参数
+    func confirmColorAdjustEditing() {
+        tools.setColorAdjustBypassed(false)
+        colorAdjustBackup = nil
+    }
+    
+    /// 按住对比看原片
+    /// - Parameter holding: 是否按住
+    func setColorAdjustCompareHolding(_ holding: Bool) {
+        tools.setColorAdjustBypassed(holding)
     }
     
     /// 调色全部复位

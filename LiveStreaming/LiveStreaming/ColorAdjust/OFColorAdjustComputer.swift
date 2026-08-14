@@ -25,13 +25,16 @@ class OFColorAdjustComputer: NSObject, OFProcessNode {
     private var params = OFColorAdjustParams()
     /// 保护 params / GPU buffer，设置页与采集线程可能同时访问
     private let paramsLock = NSLock()
+    /// 按住对比时为 true，节点跳过但参数保留
+    private var bypassed = false
     
-    /// 有任意非零滑杆才执行
+    /// 有任意非零滑杆才执行；对比按住时跳过
     var isEnabled: Bool {
         paramsLock.lock()
         let identity = params.isIdentity
+        let skip = bypassed
         paramsLock.unlock()
-        return !identity && tonePipeline != nil
+        return !skip && !identity && tonePipeline != nil
     }
     
     /// 创建节点并编译两个 kernel
@@ -63,6 +66,14 @@ class OFColorAdjustComputer: NSObject, OFProcessNode {
         paramsLock.lock()
         params = OFColorAdjustParams()
         syncParamsBuffer()
+        paramsLock.unlock()
+    }
+    
+    /// 对比原片：不改参数，只决定这一帧是否跑 kernel
+    /// - Parameter bypassed: true 时透传
+    func setBypassed(_ bypassed: Bool) {
+        paramsLock.lock()
+        self.bypassed = bypassed
         paramsLock.unlock()
     }
     

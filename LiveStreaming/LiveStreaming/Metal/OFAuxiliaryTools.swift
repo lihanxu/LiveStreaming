@@ -215,4 +215,21 @@ class OFAuxiliaryTools: NSObject {
     func resetColorAdjust() {
         colorAdjust.resetParams()
     }
+    
+    /// 用一份完整参数覆盖（取消编辑时还原）
+    /// - Parameter params: 进入调色页前的快照
+    func replaceColorAdjustParams(_ params: OFColorAdjustParams) {
+        colorAdjust.updateParams(params)
+    }
+    
+    /// 当前调色参数副本
+    var colorAdjustParams: OFColorAdjustParams {
+        return colorAdjust.currentParams
+    }
+    
+    /// 按住对比按钮时旁路调色
+    /// - Parameter bypassed: true 看原片
+    func setColorAdjustBypassed(_ bypassed: Bool) {
+        colorAdjust.setBypassed(bypassed)
+    }
 }
