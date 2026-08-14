@@ -9,29 +9,61 @@ import Foundation
 
 class OFAuxiliaryTools: NSObject {
     let items = OFMetalFuntions.Funstions.allCases
-
+    private let processGraph = OFProcessGraph()
+    
+    private lazy var lut: OFLUTComputer = {
+        return OFLUTComputer()
+    }()
+    
     private lazy var singleColor: OFSingleColorMetalComputer = {
-        let computer = OFSingleColorMetalComputer()
-        return computer
+        return OFSingleColorMetalComputer()
     }()
     
     private lazy var peak: OFPeakComputer = {
-        let computer = OFPeakComputer()
-        return computer
+        return OFPeakComputer()
     }()
     
     private lazy var gaussianBlur: OFGaussianBlurComputer = {
-        let computer = OFGaussianBlurComputer()
-        return computer
+        return OFGaussianBlurComputer()
     }()
     
-    func inputFrame(_ frame: VideoFrame) {
-        singleColor.input(frame: frame)
-        gaussianBlur.input(frame: frame)
-        peak.input(frame: frame)
+    override init() {
+        super.init()
+        setupProcessGraph()
     }
     
-    /// 切换 Single Color 类型
+    private func setupProcessGraph() {
+        processGraph.addNode(.source)
+        processGraph.addNode(.lut, processor: lut)
+        processGraph.addNode(.singleColor, processor: singleColor)
+        processGraph.addNode(.gaussianBlur, processor: gaussianBlur)
+        processGraph.addNode(.peak, processor: peak)
+        processGraph.addNode(.sink)
+        
+        processGraph.addEdge(from: .source, to: .lut)
+        processGraph.addEdge(from: .lut, to: .singleColor)
+        processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
+        processGraph.addEdge(from: .gaussianBlur, to: .peak)
+        processGraph.addEdge(from: .peak, to: .sink)
+    }
+    
+    func inputFrame(_ frame: VideoFrame) {
+        processGraph.process(frame)
+    }
+    
+    func displayTitle(for type: OFMetalFuntions.Funstions) -> String {
+        switch type {
+        case .LUT:
+            return lut.currentPreset.displayName
+        default:
+            return type.rawValue
+        }
+    }
+    
+    func switchLUT() -> String {
+        return lut.switchToNext().displayName
+    }
+    
     func switchSingleColor() {
         let type = singleColor.colorType.rawValue
         singleColor.colorType = OFSingleColorMetalComputer.SingleColorType(rawValue: type + 1) ?? .none

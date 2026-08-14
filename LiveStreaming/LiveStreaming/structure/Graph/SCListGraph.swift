@@ -104,4 +104,51 @@ extension SCListGraph: SCGraph  {
             edges.remove(edge)
         }
     }
+    
+    public func vertexValues() -> [T] {
+        return Array(vertices.keys)
+    }
+    
+    public func outgoingNeighbors(of v: T) -> [T] {
+        guard let vertex = vertices[v] else {
+            return []
+        }
+        return vertex.outEdges.map { $0.to.data }
+    }
+    
+    public func inDegree(of v: T) -> Int {
+        return vertices[v]?.inEdges.count ?? 0
+    }
+    
+    public func topologicalOrder() -> [T]? {
+        var remainingInDegree: [T: Int] = [:]
+        let queue = SCQueue<T>()
+        for value in vertices.keys {
+            let degree = inDegree(of: value)
+            remainingInDegree[value] = degree
+            if degree == 0 {
+                queue.enqueue(element: value)
+            }
+        }
+        
+        var order: [T] = []
+        while let current = queue.dequeue() {
+            order.append(current)
+            for neighbor in outgoingNeighbors(of: current) {
+                guard let degree = remainingInDegree[neighbor] else {
+                    continue
+                }
+                let nextDegree = degree - 1
+                remainingInDegree[neighbor] = nextDegree
+                if nextDegree == 0 {
+                    queue.enqueue(element: neighbor)
+                }
+            }
+        }
+        
+        if order.count != vertices.count {
+            return nil
+        }
+        return order
+    }
 }

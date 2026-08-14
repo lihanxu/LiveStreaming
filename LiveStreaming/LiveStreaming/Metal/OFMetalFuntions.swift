@@ -10,6 +10,7 @@ import Foundation
 class OFMetalFuntions: NSObject {
     enum Funstions: String, CaseIterable {
         case SwitchCamera = "Switch Camera"
+        case LUT = "LUT"
         case SingleColor = "Single Color"
         case GaussianBlur = "Gaussian Blur"
         case EdgeDetection = "Edge Detection"

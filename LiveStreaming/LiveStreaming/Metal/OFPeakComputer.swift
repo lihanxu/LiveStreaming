@@ -7,7 +7,15 @@
 
 import Foundation
 
-class OFPeakComputer: NSObject {
+class OFPeakComputer: NSObject, OFProcessNode {
+    var isEnabled: Bool {
+        return state
+    }
+    
+    func process(_ frame: VideoFrame) {
+        input(frame: frame)
+    }
+    
     let defalutMetal = OFDefalutMetal.standardDefalutMetal
     let pixelBufferPool = OFPixelBufferTool.sharedInstance
     var pipelineState: MTLComputePipelineState?

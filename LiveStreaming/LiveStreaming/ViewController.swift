@@ -45,7 +45,7 @@ class ViewController: UIViewController {
     }
     
     private func initUI() {
-        let items = auxiliaryTools.items.map { $0.rawValue }
+        let items = auxiliaryTools.items.map { auxiliaryTools.displayTitle(for: $0) }
         buttonsView = OFButtonsView(withItems: items)
         buttonsView.delegate = self
         functionsView.addSubview(buttonsView)
@@ -71,6 +71,9 @@ extension ViewController: OFButtonsViewDelegate {
         switch type {
         case .SwitchCamera:
             switchCamera()
+        case .LUT:
+            let title = auxiliaryTools.switchLUT()
+            buttonsView.updateItem(at: index, text: title)
         case .SingleColor:
             auxiliaryTools.switchSingleColor()
         case .GaussianBlur:

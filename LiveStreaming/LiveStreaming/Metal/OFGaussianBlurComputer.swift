@@ -10,7 +10,15 @@ import MetalPerformanceShaders
 
 //G(u,v) = 1 / (2 * pi * sigma * sigma) * e^{-(u^2 + v^2)/(2 \sigma^2)}
 
-class OFGaussianBlurComputer: NSObject {
+class OFGaussianBlurComputer: NSObject, OFProcessNode {
+    var isEnabled: Bool {
+        return enabled
+    }
+    
+    func process(_ frame: VideoFrame) {
+        input(frame: frame)
+    }
+    
     let defalutMetal = OFDefalutMetal.standardDefalutMetal
     let pixelBufferPool = OFPixelBufferTool.sharedInstance
     var pipelineState: MTLComputePipelineState?

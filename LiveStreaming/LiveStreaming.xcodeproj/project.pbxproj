@@ -45,6 +45,13 @@
 		9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */; };
 		9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB922738C2BA00161747 /* OFInputDevice.swift */; };
 		9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB9D27396FF500161747 /* VideoManager.swift */; };
+		60A20001275E000100000001 /* OFProcessNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10001275E000100000001 /* OFProcessNode.swift */; };
+		60A20002275E000100000002 /* OFProcessGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10002275E000100000002 /* OFProcessGraph.swift */; };
+		60A20003275E000100000003 /* OFLUTLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10003275E000100000003 /* OFLUTLoader.swift */; };
+		60A20004275E000100000004 /* OFLUTComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10004275E000100000004 /* OFLUTComputer.swift */; };
+		60A20011275E000100000011 /* Rec709 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10011275E000100000011 /* Rec709 normal.png */; };
+		60A20012275E000100000012 /* SRGB normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10012275E000100000012 /* SRGB normal.png */; };
+		60A20013275E000100000013 /* ACESAP0 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10013275E000100000013 /* ACESAP0 normal.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +98,13 @@
 		9AFFCB8C2738C1C300161747 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9AFFCB922738C2BA00161747 /* OFInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFInputDevice.swift; sourceTree = "<group>"; };
 		9AFFCB9D27396FF500161747 /* VideoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoManager.swift; sourceTree = "<group>"; };
+		60A10001275E000100000001 /* OFProcessNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessNode.swift; sourceTree = "<group>"; };
+		60A10002275E000100000002 /* OFProcessGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessGraph.swift; sourceTree = "<group>"; };
+		60A10003275E000100000003 /* OFLUTLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTLoader.swift; sourceTree = "<group>"; };
+		60A10004275E000100000004 /* OFLUTComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTComputer.swift; sourceTree = "<group>"; };
+		60A10011275E000100000011 /* Rec709 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Rec709 normal.png"; sourceTree = "<group>"; };
+		60A10012275E000100000012 /* SRGB normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SRGB normal.png"; sourceTree = "<group>"; };
+		60A10013275E000100000013 /* ACESAP0 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ACESAP0 normal.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,9 +165,38 @@
 			path = Graph;
 			sourceTree = "<group>";
 		};
+		60A10020275E000100000020 /* Process */ = {
+			isa = PBXGroup;
+			children = (
+				60A10001275E000100000001 /* OFProcessNode.swift */,
+				60A10002275E000100000002 /* OFProcessGraph.swift */,
+			);
+			path = Process;
+			sourceTree = "<group>";
+		};
+		60A10021275E000100000021 /* LUT */ = {
+			isa = PBXGroup;
+			children = (
+				60A10003275E000100000003 /* OFLUTLoader.swift */,
+				60A10004275E000100000004 /* OFLUTComputer.swift */,
+			);
+			path = LUT;
+			sourceTree = "<group>";
+		};
+		60A10022275E000100000022 /* LUT */ = {
+			isa = PBXGroup;
+			children = (
+				60A10011275E000100000011 /* Rec709 normal.png */,
+				60A10012275E000100000012 /* SRGB normal.png */,
+				60A10013275E000100000013 /* ACESAP0 normal.png */,
+			);
+			path = LUT;
+			sourceTree = "<group>";
+		};
 		9A552AB2275DED7700568A6B /* Resource */ = {
 			isa = PBXGroup;
 			children = (
+				60A10022275E000100000022 /* LUT */,
 				9A1E73C727F198920012CCC5 /* fascinated.aac */,
 				9A1E73C627F198920012CCC5 /* fascinated.mp3 */,
 				9A1E73C827F198920012CCC5 /* fascinated.pcm */,
@@ -207,6 +250,8 @@
 			isa = PBXGroup;
 			children = (
 				9A4478A1275E38910021226B /* Extension */,
+				60A10020275E000100000020 /* Process */,
+				60A10021275E000100000021 /* LUT */,
 				9A552AB3275DEFA800568A6B /* Metal */,
 				9A552AB2275DED7700568A6B /* Resource */,
 				9A552AA0275DED6900568A6B /* structure */,
@@ -307,6 +352,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60A20011275E000100000011 /* Rec709 normal.png in Resources */,
+				60A20012275E000100000012 /* SRGB normal.png in Resources */,
+				60A20013275E000100000013 /* ACESAP0 normal.png in Resources */,
 				9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */,
 				9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */,
 				9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */,
@@ -326,6 +374,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60A20001275E000100000001 /* OFProcessNode.swift in Sources */,
+				60A20002275E000100000002 /* OFProcessGraph.swift in Sources */,
+				60A20003275E000100000003 /* OFLUTLoader.swift in Sources */,
+				60A20004275E000100000004 /* OFLUTComputer.swift in Sources */,
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
 				9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */,
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,

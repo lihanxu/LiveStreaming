@@ -7,7 +7,15 @@
 
 import Foundation
 
-class OFSingleColorMetalComputer: NSObject {
+class OFSingleColorMetalComputer: NSObject, OFProcessNode {
+    var isEnabled: Bool {
+        return colorType != .none
+    }
+    
+    func process(_ frame: VideoFrame) {
+        input(frame: frame)
+    }
+    
     enum SingleColorType: Int {
         case none = 0
         case red

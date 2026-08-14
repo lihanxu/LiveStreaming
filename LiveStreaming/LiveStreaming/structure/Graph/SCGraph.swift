@@ -23,4 +23,12 @@ public protocol SCGraph {
     func removeVertex(_ v: V)
     /// 删除一条边
     func removeEdge(from: V, to: V)
+    /// 所有顶点
+    func vertexValues() -> [V]
+    /// 出边邻居
+    func outgoingNeighbors(of v: V) -> [V]
+    /// 入度
+    func inDegree(of v: V) -> Int
+    /// Kahn 拓扑序，存在环时返回 nil
+    func topologicalOrder() -> [V]?
 }

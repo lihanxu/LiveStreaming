@@ -120,6 +120,14 @@ class OFButtonsView: UIView {
     func selectItem(atIndex index: Int) {
         collectionView.selectItem(at: IndexPath(row: index, section: 0), animated: true, scrollPosition: .centeredHorizontally)
     }
+    
+    func updateItem(at index: Int, text: String) {
+        guard items.indices.contains(index) else {
+            return
+        }
+        items[index] = text
+        collectionView.reloadItems(at: [IndexPath(row: index, section: 0)])
+    }
 }
 
 extension OFButtonsView: UICollectionViewDelegate {
