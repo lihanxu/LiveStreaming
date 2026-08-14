@@ -8,11 +8,16 @@
 import Foundation
 import CocoaLumberjack
 
+/// 栈。当前处理图未使用，预留给其它算法。
 class SCStack<T> {
+    /// 栈元素类型
     typealias Element = T
+    /// 底层数组，末尾为栈顶
     private var list = Array<Element>()
+    /// 可选互斥
     let semaphore: DispatchSemaphore?
     
+    /// - Parameter withSemaphore: true 时 push/pop 加锁
     init(withSemaphore: Bool = false) {
         semaphore = withSemaphore ? DispatchSemaphore(value: 1) : nil
     }

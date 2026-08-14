@@ -10,6 +10,7 @@
 
 @implementation Frame
 
+/// 释放 malloc 的 data
 - (void)dealloc
 {
     if (self.data != NULL) {
@@ -18,6 +19,7 @@
     }
 }
 
+/// 分配并 memcpy 一份 data
 - (instancetype)initWithData:(uint *)data length:(UInt32)length pts:(UInt64)pts
 {
     self = [super init];
@@ -30,6 +32,7 @@
     return self;
 }
 
+/// NSCopying：当前实现直接返回 self，不深拷贝
 - (nonnull id)copyWithZone:(nullable NSZone *)zone {
     return self;
 }
@@ -39,6 +42,7 @@
 
 @implementation AudioFrame
 
+/// 默认类型为音频
 - (instancetype)init
 {
     self = [super init];
@@ -48,6 +52,7 @@
     return self;
 }
 
+/// 带 data 初始化，并标成音频
 - (instancetype)initWithData:(uint *)data length:(UInt32)length pts:(UInt64)pts
 {
     self = [super initWithData:data length:length pts:pts];
@@ -62,6 +67,7 @@
 
 @implementation VideoFrame
 
+/// 释放 data 与 pixelBuffer、清空 texture
 - (void)dealloc
 {
     if (self.data != NULL) {
@@ -75,6 +81,7 @@
     self.texture = nil;
 }
 
+/// 默认类型为视频
 - (instancetype)init
 {
     self = [super init];
@@ -84,6 +91,7 @@
     return self;
 }
 
+/// 带 data 初始化，并标成视频
 - (instancetype)initWithData:(uint *)data length:(UInt32)length pts:(UInt64)pts
 {
     self = [super initWithData:data length:length pts:pts];
@@ -93,6 +101,7 @@
     return self;
 }
 
+/// 浅拷贝宽高、缓冲和纹理引用
 - (id)weakCopy
 {
     VideoFrame *frame = [[VideoFrame alloc] init];
@@ -108,7 +117,7 @@
     return frame;
 }
 
-
+/// 替换 pixelBuffer 时先 Release 旧的再 Retain 新的
 - (void)setPixelBuffer:(CVPixelBufferRef)pixelBuffer
 {
     if (_pixelBuffer != pixelBuffer) {

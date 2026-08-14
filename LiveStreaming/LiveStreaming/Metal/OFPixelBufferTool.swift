@@ -4,25 +4,33 @@
 //
 //  Created by anker on 2021/12/6.
 //
+//  滤镜输出用的 CVPixelBuffer 池。需同时 Metal / OpenGL ES 兼容，便于 Compute 写、预览读。
+//
 
 import Foundation
 import CocoaLumberjack
 
+/// PixelBuffer 池，避免每帧 malloc。
 class OFPixelBufferTool: NSObject {
+    /// 全局共享实例
     static let sharedInstance = OFPixelBufferTool()
     
+    /// CoreVideo 缓冲池；尺寸或格式变化时重建
     var pixelBufferPool: CVPixelBufferPool?
+    /// 当前池宽度
     var width: UInt32 = 0
+    /// 当前池高度
     var height: UInt32 = 0
+    /// 当前像素格式（如 32BGRA）
     var pixelFormat: OSType?
+    /// 池中至少保留的 buffer 数量
     let minimumBufferCount: UInt32 = 3
     
-    /// 更新缓冲池
-    /// - parameter width: 宽
-    /// - parameter height: 高
-    /// - parameter pixelFormat: pixel类型
-    ///
-    /// 根据pixel的类型，更新缓冲池
+    /// 尺寸或格式变化时刷新缓冲池
+    /// - Parameters:
+    ///   - width: 宽
+    ///   - height: 高
+    ///   - pixelFormat: pixel 类型
     func update(width: UInt32, height: UInt32, pixelFormat: OSType) {
         if pixelBufferPool != nil {
             guard self.width != width || self.height != height || self.pixelFormat != pixelFormat else {
@@ -34,7 +42,11 @@ class OFPixelBufferTool: NSObject {
         createPixelBufferPool(width: width, height: height, pixelFormat: pixelFormat)
     }
     
-    /// 通过宽高等信息创建一个缓冲池
+    /// 按宽高和格式创建新池，并打开 Metal / GLES 兼容
+    /// - Parameters:
+    ///   - width: 宽
+    ///   - height: 高
+    ///   - pixelFormat: pixel 类型
     func createPixelBufferPool(width: UInt32, height: UInt32, pixelFormat: OSType) {
         DDLogInfo("create pixel buffer pool \(width)x\(height) format:\(pixelFormat)")
         self.width = width
@@ -52,8 +64,8 @@ class OFPixelBufferTool: NSObject {
         CVPixelBufferPoolCreate(kCFAllocatorDefault, pixelBufferPoolOptions as CFDictionary, sourcePixelBufferOptions as CFDictionary, &pixelBufferPool)
     }
 
-    /// 从缓冲池中创建一个buffer
-    /// - Parameter pixelBuffer: 需要创建的缓存
+    /// 从池中取出一块可写 pixel buffer
+    /// - Returns: 新的 CVPixelBuffer；池未创建时为 nil
     func createPixelBuffer() -> CVPixelBuffer? {
         guard let pool = pixelBufferPool else {
             return nil

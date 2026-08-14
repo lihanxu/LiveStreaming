@@ -8,13 +8,16 @@
 import Foundation
 import CocoaLumberjack
 
+/// 链表越界错误
 enum SCLinkedListError: Error {
-    case outOfRange                     //越界
+    /// 下标超出 [0, size) 或插入超出 [0, size]
+    case outOfRange
 }
 
+/// 线性表协议。
 protocol SCList {
     associatedtype Element
-    ///元素没有找到
+    /// 查找失败时的哨兵下标
     static var ELEMENT_NOT_FOUND: Int {get}
     ///链表长度
     func size() -> Int
@@ -38,10 +41,12 @@ protocol SCList {
     func clear()
 }
 
+/// 单向链表。当前处理图未使用。
 class SCLinkedList<T: Equatable> {
+    /// 节点元素类型
     typealias Element = T
     
-    //链表节点
+    /// 单向链表节点
     fileprivate class Node <Element> {
         ///节点中保存的元素
         var element: Element
@@ -54,15 +59,19 @@ class SCLinkedList<T: Equatable> {
         }
     }
     
+    /// 当前节点数
     fileprivate var listSize: Int = 0
+    /// 头节点
     fileprivate var first: Node<Element>?
     
+    /// 访问/删除时检查 index ∈ [0, size)
     fileprivate func rangeCheck(index: Int) throws {
         if index < 0 || index >= listSize {
             throw SCLinkedListError.outOfRange
         }
     }
     
+    /// 插入时检查 index ∈ [0, size]
     fileprivate func rangeCheckForAdd(index: Int) {
             do {
                 if index < 0 || index > listSize {
@@ -73,10 +82,14 @@ class SCLinkedList<T: Equatable> {
             }
     }
     
+    /// 抛出越界（当前未调用）
     private func outOfBounds(index: Int) throws {
         throw SCLinkedListError.outOfRange
     }
     
+    /// 从头走到指定下标
+    /// - Parameter at: 下标
+    /// - Returns: 对应节点
     fileprivate func getNode(at: Int) -> Node<Element> {
         do {
             try rangeCheck(index: at)
@@ -90,6 +103,7 @@ class SCLinkedList<T: Equatable> {
         return node!
     }
 
+    /// 调试打印全部元素
     func printList() {
         var node = first
         for _ in 0..<listSize {
@@ -177,6 +191,7 @@ extension SCLinkedList: SCList {
 }
 
 extension SCLinkedList: CustomStringConvertible {
+    /// 逗号分隔的元素列表
     var description: String {
         guard listSize > 0 else {
             return "nil"

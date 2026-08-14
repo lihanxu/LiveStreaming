@@ -8,11 +8,16 @@
 import Foundation
 import CocoaLumberjack
 
+/// FIFO 队列。图的 Kahn 拓扑排序用它存放入度为 0 的顶点。
 class SCQueue<T> {
+    /// 队列元素类型
     typealias Element = T
+    /// 底层数组，队头为下标 0
     private var list = Array<T>()
+    /// 可选互斥；拓扑排序单线程可不加
     private let semaphore: DispatchSemaphore?
     
+    /// - Parameter withSemaphore: true 时 enqueue/dequeue 加锁
     init(withSemaphore: Bool = false) {
         semaphore = withSemaphore ? DispatchSemaphore(value: 1) : nil
     }

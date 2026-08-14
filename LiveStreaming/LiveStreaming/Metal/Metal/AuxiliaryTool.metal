@@ -8,6 +8,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// 单色 / 灰度：type 1=R 2=G 3=B 4=Rec.709 灰度
 kernel void assistTools(texture2d<float, access::read> videoTexture [[texture(0)]],
                         texture2d<float, access::write> destTexture [[texture(1)]],
                         constant uint *size [[ buffer(0) ]],
@@ -28,6 +29,7 @@ kernel void assistTools(texture2d<float, access::read> videoTexture [[texture(0)
     destTexture.write(assistColor, threadPosInGrid);
 }
 
+// Laplacian 高反差：邻域 8 点权重 -1、中心 +8，超过阈值画白边
 kernel void peak(texture2d<float, access::read> videoTexture [[texture(0)]],
                  texture2d<float, access::write> destTexture [[texture(1)]],
                  constant uint *size [[ buffer(0) ]],
@@ -91,6 +93,7 @@ kernel void peak(texture2d<float, access::read> videoTexture [[texture(0)]],
     destTexture.write(outputColor, threadPosInGrid);
 }
 
+// 3×3 高斯卷积：mask 由 CPU 归一化后传入
 kernel void gaussianBlur(texture2d<float, access::read> videoTexture [[texture(0)]],
                  texture2d<float, access::write> destTexture [[texture(1)]],
                  constant uint *size [[ buffer(0) ]],
@@ -109,12 +112,14 @@ kernel void gaussianBlur(texture2d<float, access::read> videoTexture [[texture(0
     destTexture.write(outputColor, threadPosInGrid);
 }
 
+// 3D LUT：512×512 PNG = 8×8 个 64×64 切片。B 选切片，R/G 为切片内坐标，四面体插值。
 kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
                      texture2d<float, access::read> lutTexture [[texture(1)]],
                      texture2d<float, access::write> destTexture [[texture(2)]],
                      constant uint *size [[ buffer(0) ]],
                      const uint2 threadPosInGrid [[thread_position_in_grid]])
 {
+    // size 必须是 uint32 宽高；越界线程直接返回，避免写坏目标纹理
     if (threadPosInGrid.x >= size[0] || threadPosInGrid.y >= size[1]) {
         return;
     }
@@ -129,6 +134,7 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
     const int3 nextRGB = int3((int(R) + 1) > 63 ? 63 : (int(R) + 1), (int(G) + 1) > 63 ? 63 : (int(G) + 1), (int(B) + 1) > 63 ? 63 : (int(B) + 1));
     const float3 d = float3(R - float(prevRGB.r), G - float(prevRGB.g), B - float(prevRGB.b));
     
+    // 蓝通道决定 8×8 网格中的哪一块 64×64
     uint2 texPos000 = uint2((prevRGB.b % 8) * 64 + prevRGB.r, (prevRGB.b / 8) * 64 + prevRGB.g);
     uint2 texPos001 = uint2((nextRGB.b % 8) * 64 + prevRGB.r, (nextRGB.b / 8) * 64 + prevRGB.g);
     uint2 texPos010 = uint2((prevRGB.b % 8) * 64 + prevRGB.r, (prevRGB.b / 8) * 64 + nextRGB.g);
@@ -147,6 +153,7 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
     float4 c110 = lutTexture.read(texPos110);
     float4 c111 = lutTexture.read(texPos111);
     
+    // 按 RGB 分数部分的大小关系选四面体，在立方体 8 个角点间插值
     float3 c;
     if (d.r > d.g) {
         if (d.g > d.b) {

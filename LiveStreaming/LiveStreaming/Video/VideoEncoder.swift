@@ -4,13 +4,17 @@
 //
 //  Created by hansen on 2022/10/9.
 //
+//  VideoToolbox H.264 硬编，Annex-B 写入临时目录 temp.h264。尚未做推流封装。
+//
 
 import UIKit
 import VideoToolbox
 import CocoaLumberjack
 
+/// 实时 H.264 编码器。
 class VideoEncoder: NSObject {
     
+    /// 结束会话并释放编码器
     deinit {
         guard let encoderSession = encoderSession else {
            return
@@ -21,7 +25,7 @@ class VideoEncoder: NSObject {
         self.encoderSession = nil
     }
     
-    /// 编码器
+    /// VideoToolbox 压缩会话
     private var encoderSession: VTCompressionSession?
 
     /// 初始化Encoder
@@ -86,6 +90,8 @@ class VideoEncoder: NSObject {
         CVPixelBufferUnlockBaseAddress(pixelBuffer, flags)
     }
     
+    /// 把编码后的 sample 拆成 Annex-B：关键帧先写 SPS/PPS，再按 NALU 写文件
+    /// - Parameter sampleBuffer: VideoToolbox 回调给出的压缩帧
     fileprivate func processEncoded(sampleBuffer: CMSampleBuffer) {
         guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: true) else { return }
         
@@ -93,6 +99,7 @@ class VideoEncoder: NSObject {
         let rawDic: CFDictionary = Unmanaged.fromOpaque(CFArrayGetValueAtIndex(attachments, 0)).takeUnretainedValue()
         let keyFrame: Bool = !CFDictionaryContainsKey(rawDic, Unmanaged.passUnretained(kCMSampleAttachmentKey_NotSync).toOpaque())
         if keyFrame {
+            // 关键帧：从 format description 取出 SPS / PPS
             let formatDes = CMSampleBufferGetFormatDescription(sampleBuffer)
             var sps: UnsafePointer<UInt8>?
             var spsSize: Int = 0
@@ -126,7 +133,7 @@ class VideoEncoder: NSObject {
                     
             while bufferOffset < (totalLength - AVCCHeaderLength) {
                 var NALUnitLength: UInt32 = 0
-                // 前四个字符为NALUnit长度
+                // AVCC：前 4 字节是 NALU 长度（大端），换成 00 00 00 01 起始码
                 memcpy(&NALUnitLength, dataPointer?.advanced(by: bufferOffset), AVCCHeaderLength)
                 // 大端到主机端。iOS中是小端序
                 NALUnitLength = CFSwapInt32BigToHost(NALUnitLength)
@@ -140,9 +147,12 @@ class VideoEncoder: NSObject {
         }
     }
     
+    /// Annex-B 起始码 00 00 00 01
     fileprivate var NALUHeader: [UInt8] = [0, 0, 0, 1]
+    /// 写入 NSTemporaryDirectory()/temp.h264
     var fileHandler: FileHandle?
 
+    /// 关键帧前写入 SPS、PPS（各带起始码）
     private func handle(sps: NSData, pps: NSData) {
         guard let fh = fileHandler else {
             return
@@ -155,6 +165,10 @@ class VideoEncoder: NSObject {
         fh.write(pps as Data)
     }
     
+    /// 把一个 NALU 写成起始码 + 载荷
+    /// - Parameters:
+    ///   - data: NALU 内容（不含长度头）
+    ///   - isKeyFrame: 是否关键帧（当前仅透传，未单独处理）
     private func encode(data: NSData, isKeyFrame: Bool) {
         guard let fh = fileHandler else {
             return
@@ -165,6 +179,7 @@ class VideoEncoder: NSObject {
     }
 }
 
+/// VideoToolbox 编码完成回调：校验状态后转回 VideoEncoder.processEncoded
 func VideoEncoder_EncoderOutputCallback(outputCallbackRefCon: UnsafeMutableRawPointer?, sourceFrameRefCon: UnsafeMutableRawPointer?, status: OSStatus, infoFlags: VTEncodeInfoFlags, sampleBuffer: CMSampleBuffer?) -> Void {
     guard status == noErr else {
         DDLogError("video encode error: \(status)")

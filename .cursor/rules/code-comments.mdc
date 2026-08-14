@@ -1,0 +1,37 @@
+---
+description: 类的每个属性和方法都要有中文注释；复杂实现要写步骤说明
+globs: LiveStreaming/LiveStreaming/**/*.{swift,h,m,metal,vsh,fsh}
+alwaysApply: true
+---
+
+# 代码注释
+
+修改或新增 `LiveStreaming/LiveStreaming` 下的源码时必须写注释。不要改 `Pods/`。
+
+## 必须写
+
+- **类 / 协议 / 枚举 / 结构体**：文件头或类型上方说明职责。
+- **每个属性**：`///` 说明含义、单位、生命周期或为何可选。
+- **每个方法**：`///` 说明做什么；有参数/返回值时写 `- Parameters:` / `- Returns:`（ObjC 用 `/// @param`）。
+- **复杂实现**：方法体内用编号步骤注释「为什么」和关键顺序（如 GPU 绑定、拓扑排序、NALU 拆包），不要逐行复述代码。
+
+## 语言与风格
+
+- 中文。
+- 注释解释意图、约束、坑（例如 sizeBuffer 必须 UInt32），不写无意义翻译。
+- 新增类型、属性、方法时同步补注释，不要等事后补。
+
+```swift
+// ❌ BAD
+var state = false
+func input(frame: VideoFrame) { ... }
+
+// ✅ GOOD
+/// 开关；写入 GPU 的 int buffer（0/1）
+var state = false
+/// 打开时跑 peak kernel，结果写回 frame
+func input(frame: VideoFrame) {
+    // 1. 按帧尺寸更新线程组和输出池
+    // 2. 绑定纹理并同步提交
+}
+```

@@ -4,34 +4,46 @@
 //
 //  Created by anker on 2021/12/6.
 //
+//  Peak 节点：Laplacian 高反差描边，用于对焦辅助。关闭时透传。
+//
 
 import Foundation
 import CocoaLumberjack
 
+/// 边缘检测处理节点。
 class OFPeakComputer: NSObject, OFProcessNode {
-    var isEnabled: Bool {
-        return state
-    }
-    
-    func process(_ frame: VideoFrame) {
-        input(frame: frame)
-    }
-    
+    /// 共享 Metal 设备 / 队列 / sizeBuffer
     let defalutMetal = OFDefalutMetal.standardDefalutMetal
+    /// 滤镜输出像素缓冲池
     let pixelBufferPool = OFPixelBufferTool.sharedInstance
+    /// peak compute pipeline
     var pipelineState: MTLComputePipelineState?
+    /// 开关；写入 GPU 的 int buffer（0/1）
     var state = false {
         didSet {
             stateBuffer = defalutMetal.device?.makeBuffer(bytes: [state ? 1 : 0], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
         }
     }
+    /// 传给 kernel 的开关 buffer
     var stateBuffer: MTLBuffer?
 
+    /// 打开时调度器才会调用 process
+    var isEnabled: Bool {
+        return state
+    }
+    
+    /// 协议入口，转给 input
+    func process(_ frame: VideoFrame) {
+        input(frame: frame)
+    }
+
+    /// 创建节点并编译 peak kernel
     override init() {
         super.init()
         setupMetal()
     }
     
+    /// 从默认 library 取出 peak 并创建 pipeline、初始化 stateBuffer
     private func setupMetal() {
         let library = defalutMetal.device?.makeDefaultLibrary()
         let program = library?.makeFunction(name: "peak")
@@ -43,6 +55,9 @@ class OFPeakComputer: NSObject, OFProcessNode {
         stateBuffer = defalutMetal.device?.makeBuffer(bytes: [state ? 1 : 0], length: MemoryLayout<Int>.size, options: MTLResourceOptions(rawValue: 0))
     }
     
+    /// 从 pixel buffer 创建可计算的 Metal 纹理
+    /// - Parameter pixelBuffer: BGRA 像素缓冲
+    /// - Returns: 包装后的 MTLTexture；失败为 nil
     func createTextureFromPixelBuffer(pixelBuffer: CVPixelBuffer) -> MTLTexture? {
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
@@ -58,13 +73,17 @@ class OFPeakComputer: NSObject, OFProcessNode {
         return outputTexture
     }
     
+    /// 打开时跑 peak kernel，结果写回 frame
+    /// - Parameter frame: 会被原地替换 pixelBuffer 与 texture
     func input(frame: VideoFrame) {
         if state == false {
             return
         }
+        // 1. 按帧尺寸更新线程组和输出池
         defalutMetal.updateTexture(width: frame.frameWidth, height: frame.frameHeight)
         pixelBufferPool.update(width: UInt32(frame.frameWidth), height: UInt32(frame.frameHeight), pixelFormat: kCVPixelFormatType_32BGRA)
         
+        // 2. 准备源纹理
         var sourceTexture: MTLTexture? = nil
         if frame.texture == nil {
             sourceTexture = createTextureFromPixelBuffer(pixelBuffer: frame.pixelBuffer)
@@ -72,11 +91,13 @@ class OFPeakComputer: NSObject, OFProcessNode {
             sourceTexture = frame.texture
         }
 
+        // 3. 目标 buffer + 纹理
         guard let destPixelBuffer = pixelBufferPool.createPixelBuffer() else {
             return
         }
         let outputTexture = createTextureFromPixelBuffer(pixelBuffer: destPixelBuffer)
         
+        // 4. 绑定纹理/开关并同步提交
         let commandBuffer = defalutMetal.commandQueue?.makeCommandBuffer()
         let computeEncoder = commandBuffer?.makeComputeCommandEncoder()
         

@@ -4,10 +4,14 @@
 //
 //  Created by anker on 2021/12/6.
 //
+//  CocoaLumberjack 初始化：os_log + 按天滚动的文件日志。
+//
 
 import CocoaLumberjack
 
+/// 应用启动时配置日志。
 enum OFLogger {
+    /// 注册 DDOSLogger 和按天滚动的文件 logger（保留 7 天）
     static func setup() {
         dynamicLogLevel = .debug
         
@@ -25,14 +29,20 @@ enum OFLogger {
     }
 }
 
+/// 统一日志格式：时间 [级别] 文件:行号 内容
 private final class OFLogFormatter: NSObject, DDLogFormatter {
+    /// 仅输出时分秒毫秒；DateFormatter 非线程安全，格式化时加锁
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss.SSS"
         return formatter
     }()
+    /// 保护 dateFormatter
     private let lock = NSLock()
     
+    /// 把 DDLogMessage 格式化成一行字符串
+    /// - Parameter logMessage: Lumberjack 消息
+    /// - Returns: 可写入 os_log / 文件的文本
     func format(message logMessage: DDLogMessage) -> String? {
         lock.lock()
         let time = dateFormatter.string(from: logMessage.timestamp)
