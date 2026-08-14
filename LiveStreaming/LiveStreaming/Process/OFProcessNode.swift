@@ -21,6 +21,8 @@ enum OFProcessNodeID: String, Hashable {
     case gaussianBlur
     /// 边缘检测（Peak）
     case peak
+    /// MediaPipe 人脸网格（美颜底座）
+    case faceLandmarker
     /// 预览/编码出口（无处理器，由 ViewController 继续处理）
     case sink
 }

@@ -13,7 +13,7 @@ enum OFSettingsPageID: Equatable {
     case root
     /// LUT 预设列表
     case lut
-    /// 美颜参数（处理图尚未接入，先占位）
+    /// 美颜参数；人脸网格已接入 Face Landmarker
     case beauty
 }
 
@@ -35,6 +35,8 @@ enum OFSettingID: Equatable {
     case beauty
     /// 美颜总开关
     case beautyMaster
+    /// 人脸网格预览（画 Face Landmarker 点）
+    case faceMeshOverlay
     /// 磨皮档位（占位）
     case beautySmooth
     /// 美白档位（占位）

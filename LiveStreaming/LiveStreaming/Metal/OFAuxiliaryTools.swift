@@ -5,10 +5,11 @@
 //  Created by anker on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
-//  默认链路：Source → LUT → SingleColor → GaussianBlur → Peak → Sink
+//  默认链路：Source → FaceLandmarker → LUT → SingleColor → GaussianBlur → Peak → Sink
 //
 
 import Foundation
+import CoreGraphics
 
 /// 辅助滤镜门面，ViewController 只跟这一层打交道。
 class OFAuxiliaryTools: NSObject {
@@ -37,6 +38,16 @@ class OFAuxiliaryTools: NSObject {
         return OFGaussianBlurComputer()
     }()
     
+    /// Face Landmarker：关键点底座
+    private lazy var faceLandmarker: OFFaceLandmarkerComputer = {
+        return OFFaceLandmarkerComputer()
+    }()
+    
+    /// 美颜总开关（磨皮尚未接到 GPU）
+    private var beautyEnabled = false
+    /// 是否在预览上画人脸网格
+    private var faceMeshOverlayEnabled = false
+    
     /// 初始化时搭好默认处理图
     override init() {
         super.init()
@@ -46,13 +57,15 @@ class OFAuxiliaryTools: NSObject {
     /// 注册节点并连成一条有向链。后续加贴纸等只需加顶点加边。
     private func setupProcessGraph() {
         processGraph.addNode(.source)
+        processGraph.addNode(.faceLandmarker, processor: faceLandmarker)
         processGraph.addNode(.lut, processor: lut)
         processGraph.addNode(.singleColor, processor: singleColor)
         processGraph.addNode(.gaussianBlur, processor: gaussianBlur)
         processGraph.addNode(.peak, processor: peak)
         processGraph.addNode(.sink)
         
-        processGraph.addEdge(from: .source, to: .lut)
+        processGraph.addEdge(from: .source, to: .faceLandmarker)
+        processGraph.addEdge(from: .faceLandmarker, to: .lut)
         processGraph.addEdge(from: .lut, to: .singleColor)
         processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
         processGraph.addEdge(from: .gaussianBlur, to: .peak)
@@ -63,6 +76,7 @@ class OFAuxiliaryTools: NSObject {
     /// - Parameter frame: 当前视频帧
     func inputFrame(_ frame: VideoFrame) {
         processGraph.process(frame)
+        faceLandmarker.applyDebugOverlayIfNeeded(frame)
     }
     
     /// 设置页 LUT 当前值：关闭显示「关」，否则显示预设名
@@ -131,5 +145,41 @@ class OFAuxiliaryTools: NSObject {
     /// 开关高斯模糊
     func switchGaussianBlur() {
         gaussianBlur.enabled = !gaussianBlur.enabled
+    }
+    
+    /// 美颜总开关：打开后开始跑 Face Landmarker
+    /// - Parameter enabled: 是否开启
+    func setBeautyEnabled(_ enabled: Bool) {
+        beautyEnabled = enabled
+        updateFaceLandmarkerFlags()
+    }
+    
+    /// 人脸网格预览开关；打开时也会跑推理
+    /// - Parameter enabled: 是否画点
+    func setFaceMeshOverlayEnabled(_ enabled: Bool) {
+        faceMeshOverlayEnabled = enabled
+        updateFaceLandmarkerFlags()
+    }
+    
+    /// 人脸网格是否在画
+    var isFaceMeshOverlayEnabled: Bool {
+        return faceMeshOverlayEnabled
+    }
+    
+    /// 美颜是否打开
+    var isBeautyEnabled: Bool {
+        return beautyEnabled
+    }
+    
+    /// 最近一次检测到的归一化人脸点，供后续美颜变形使用
+    /// - Returns: 每张脸一组点
+    func latestFaceLandmarks() -> [[CGPoint]] {
+        return faceLandmarker.copyLatestFaces()
+    }
+    
+    /// 美颜或网格任一打开就推理
+    private func updateFaceLandmarkerFlags() {
+        faceLandmarker.overlayEnabled = faceMeshOverlayEnabled
+        faceLandmarker.inferenceEnabled = beautyEnabled || faceMeshOverlayEnabled
     }
 }

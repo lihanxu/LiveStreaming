@@ -7,8 +7,6 @@
 
 import Foundation
 
-/// 默认最多缓存 10 帧
-
 /// 有容量上限的缓冲队列，满了丢最旧的一帧。预览侧实际用的是 ObjC FrameBuffer。
 class SCBufferQueue<T> {
     /// 缓冲元素类型
@@ -21,8 +19,8 @@ class SCBufferQueue<T> {
     /// 容量上限，超出丢最旧
     var maxSize: Int
     
-    /// - Parameter maxSize: 最多保存的元素个数
-    init(maxSize: Int = defaultMaxSize) {
+    /// - Parameter maxSize: 最多保存的元素个数，默认 10
+    init(maxSize: Int = 10) {
         contition = NSCondition()
         self.maxSize = maxSize
     }

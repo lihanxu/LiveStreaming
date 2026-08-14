@@ -2,7 +2,7 @@
 //  OFSettingsController.swift
 //  LiveStreaming
 //
-//  设置页数据源：组装网格、把点击转到滤镜 / 摄像头 / 美颜占位。
+//  设置页数据源：组装网格、把点击转到滤镜 / 摄像头 / 美颜。
 //  新增参数时在 makeRootPage 加一项，并在 performTap 里处理即可。
 //
 
@@ -65,7 +65,11 @@ class OFSettingsController {
             return .push(.beauty)
         case .beautyMaster:
             beauty.isEnabled.toggle()
-            DDLogInfo("beauty master \(beauty.isEnabled)，处理图尚未接入")
+            tools.setBeautyEnabled(beauty.isEnabled)
+            DDLogInfo("beauty master \(beauty.isEnabled)")
+            return .reload
+        case .faceMeshOverlay:
+            tools.setFaceMeshOverlayEnabled(!tools.isFaceMeshOverlayEnabled)
             return .reload
         case .beautySmooth:
             beauty.smooth = beauty.smooth.next()
@@ -105,11 +109,12 @@ class OFSettingsController {
         return OFSettingsPage(id: .lut, title: "LUT", items: items)
     }
     
-    /// 美颜二级页：先改占位状态，接入节点后再接到 tools
+    /// 美颜二级页：总开关和网格接到 Face Landmarker，磨皮/美白仍占位
     /// - Returns: 美颜页
     private func makeBeautyPage() -> OFSettingsPage {
         let items: [OFSettingItem] = [
             OFSettingItem(id: .beautyMaster, title: "美颜", valueText: beauty.isEnabled ? "开" : "关", interaction: .toggle),
+            OFSettingItem(id: .faceMeshOverlay, title: "人脸网格", valueText: tools.isFaceMeshOverlayEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .beautySmooth, title: "磨皮", valueText: beauty.smooth.displayName, interaction: .cycle),
             OFSettingItem(id: .beautyWhitening, title: "美白", valueText: beauty.whitening.displayName, interaction: .cycle),
         ]
