@@ -318,3 +318,206 @@ kernel void colorAdjustDetail(texture2d<float, access::read> videoTexture [[text
     
     destTexture.write(float4(clamp(rgb, 0.0, 1.0), center4.a), gid);
 }
+
+// 与 OFBeautyComputer 参数顺序一致：smooth, whitening, brightEyes, whiteTeeth
+struct BeautyParams {
+    float smooth;
+    float whitening;
+    float brightEyes;
+    float whiteTeeth;
+};
+
+/// BeautifyFace 肤色启发式改成软权重。硬阈值会把鼻侧/眼窝阴影判成非皮肤，美白后变成黑斑。
+static inline float beautySkinDetect(float3 c) {
+    float r = c.r;
+    float g = c.g;
+    float b = c.b;
+    float luma = rec709Luma(c);
+    float chroma = max(max(r, g), b) - min(min(r, g), b);
+    float tone = smoothstep(0.03, 0.14, luma);
+    float warm = smoothstep(-0.04, 0.03, r - b);
+    float rg = smoothstep(-0.05, 0.02, r - g);
+    float ch = smoothstep(0.01, 0.05, chroma);
+    return tone * mix(0.55, 1.0, warm * rg * ch);
+}
+
+/// Overlay 混合单通道，MagicCamera 美白用这一式，比 screen 更不容易爆白
+static inline float beautyOverlay(float base, float blend) {
+    return base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend));
+}
+
+/// 3×3 Sobel 边缘强度，替代完整 Canny
+static inline float beautySobel(texture2d<float, access::read> src, uint2 gid, uint2 maxPos) {
+    int2 p = int2(gid);
+    int2 hi = int2(maxPos);
+    float tl = rec709Luma(src.read(uint2(clamp(p + int2(-1, -1), int2(0), hi))).rgb);
+    float t  = rec709Luma(src.read(uint2(clamp(p + int2( 0, -1), int2(0), hi))).rgb);
+    float tr = rec709Luma(src.read(uint2(clamp(p + int2( 1, -1), int2(0), hi))).rgb);
+    float l  = rec709Luma(src.read(uint2(clamp(p + int2(-1,  0), int2(0), hi))).rgb);
+    float r  = rec709Luma(src.read(uint2(clamp(p + int2( 1,  0), int2(0), hi))).rgb);
+    float bl = rec709Luma(src.read(uint2(clamp(p + int2(-1,  1), int2(0), hi))).rgb);
+    float b  = rec709Luma(src.read(uint2(clamp(p + int2( 0,  1), int2(0), hi))).rgb);
+    float br = rec709Luma(src.read(uint2(clamp(p + int2( 1,  1), int2(0), hi))).rgb);
+    float gx = -tl - 2.0 * l - bl + tr + 2.0 * r + br;
+    float gy = -tl - 2.0 * t - tr + bl + 2.0 * b + br;
+    return length(float2(gx, gy));
+}
+
+/// 1/2 分辨率下采样，双边滤波在半分辨率上做，等效 texelSpacing≈4
+kernel void beautyDownsample(texture2d<float, access::sample> videoTexture [[texture(0)]],
+                             texture2d<float, access::write> destTexture [[texture(1)]],
+                             const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= destTexture.get_width() || gid.y >= destTexture.get_height()) {
+        return;
+    }
+    float2 uv = (float2(gid) + 0.5) / float2(destTexture.get_width(), destTexture.get_height());
+    constexpr sampler linearSampler(coord::normalized, filter::linear, address::clamp_to_edge);
+    destTexture.write(videoTexture.sample(linearSampler, uv), gid);
+}
+
+/// 可分离双边水平 pass，权重与 GPUImageBilateralFilter 一致，distanceNormalizationFactor=4
+kernel void beautyBilateralH(texture2d<float, access::read> srcTexture [[texture(0)]],
+                             texture2d<float, access::write> destTexture [[texture(1)]],
+                             const uint2 gid [[thread_position_in_grid]])
+{
+    uint w = destTexture.get_width();
+    uint h = destTexture.get_height();
+    if (gid.x >= w || gid.y >= h) {
+        return;
+    }
+    const float weights[9] = {0.05, 0.09, 0.12, 0.15, 0.18, 0.15, 0.12, 0.09, 0.05};
+    const float distNorm = 4.0;
+    const int spacing = 2;
+    int2 pos = int2(gid);
+    int maxX = int(w) - 1;
+    float3 center = srcTexture.read(gid).rgb;
+    float3 sum = center * weights[4];
+    float wsum = weights[4];
+    for (int i = -4; i <= 4; i++) {
+        if (i == 0) {
+            continue;
+        }
+        uint x = uint(clamp(pos.x + i * spacing, 0, maxX));
+        float3 sampleColor = srcTexture.read(uint2(x, gid.y)).rgb;
+        float d = min(distance(center, sampleColor) * distNorm, 1.0);
+        float gw = weights[i + 4] * (1.0 - d);
+        sum += sampleColor * gw;
+        wsum += gw;
+    }
+    destTexture.write(float4(sum / max(wsum, 1e-5), 1.0), gid);
+}
+
+/// 可分离双边垂直 pass
+kernel void beautyBilateralV(texture2d<float, access::read> srcTexture [[texture(0)]],
+                             texture2d<float, access::write> destTexture [[texture(1)]],
+                             const uint2 gid [[thread_position_in_grid]])
+{
+    uint w = destTexture.get_width();
+    uint h = destTexture.get_height();
+    if (gid.x >= w || gid.y >= h) {
+        return;
+    }
+    const float weights[9] = {0.05, 0.09, 0.12, 0.15, 0.18, 0.15, 0.12, 0.09, 0.05};
+    const float distNorm = 4.0;
+    const int spacing = 2;
+    int2 pos = int2(gid);
+    int maxY = int(h) - 1;
+    float3 center = srcTexture.read(gid).rgb;
+    float3 sum = center * weights[4];
+    float wsum = weights[4];
+    for (int i = -4; i <= 4; i++) {
+        if (i == 0) {
+            continue;
+        }
+        uint y = uint(clamp(pos.y + i * spacing, 0, maxY));
+        float3 sampleColor = srcTexture.read(uint2(gid.x, y)).rgb;
+        float d = min(distance(center, sampleColor) * distNorm, 1.0);
+        float gw = weights[i + 4] * (1.0 - d);
+        sum += sampleColor * gw;
+        wsum += gw;
+    }
+    destTexture.write(float4(sum / max(wsum, 1e-5), 1.0), gid);
+}
+
+/// 按遮罩合成。磨皮对齐 BeautifyFace CombinationFilter：弱边缘且肤色才 mix 双边结果。
+kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)]],
+                        texture2d<float, access::sample> blurTexture [[texture(1)]],
+                        texture2d<float, access::sample> maskTexture [[texture(2)]],
+                        texture2d<float, access::write> destTexture [[texture(3)]],
+                        constant uint *size [[ buffer(0) ]],
+                        constant BeautyParams &p [[ buffer(1) ]],
+                        const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= size[0] || gid.y >= size[1]) {
+        return;
+    }
+    float4 src4 = videoTexture.read(gid);
+    float3 origin = src4.rgb;
+    float3 rgb = origin;
+    float2 uv = (float2(gid) + 0.5) / float2(size[0], size[1]);
+    constexpr sampler linearSampler(coord::normalized, filter::linear, address::clamp_to_edge);
+    constexpr sampler nearestSampler(coord::normalized, filter::nearest, address::clamp_to_edge);
+    float skinMask = maskTexture.sample(linearSampler, uv).r;
+    float3 maskHard = maskTexture.sample(nearestSampler, uv).rgb;
+    float3 bilateral = blurTexture.sample(linearSampler, uv).rgb;
+    
+    // 1. 磨皮：弱边缘才 mix 双边
+    float detect = beautySkinDetect(origin);
+    float skin = skinMask * mix(0.80, 1.0, detect);
+    float smoothW = p.smooth * skin;
+    if (smoothW > 0.01) {
+        uint2 maxPos = uint2(size[0] - 1, size[1] - 1);
+        float edge = beautySobel(videoTexture, gid, maxPos);
+        float edgeGate = 1.0 - smoothstep(0.12, 0.28, edge);
+        float mixW = smoothW * edgeGate;
+        rgb = mix(origin, bilateral, mixW);
+    }
+    
+    // 2. 美白：GPUPixel levels + MagicCamera overlay（用户确认这一套观感更好）
+    float whiteW = p.whitening * skinMask * 0.45;
+    if (whiteW > 0.01) {
+        float3 leveled = clamp((rgb - float3(0.025882)) * 1.02657, 0.0, 1.0);
+        float3 mild = mix(rgb, leveled, 0.40);
+        float luma = rec709Luma(rgb);
+        float mid = smoothstep(0.12, 0.32, luma) * (1.0 - smoothstep(0.78, 0.96, luma));
+        mild += 0.045 * mid;
+        float3 overlaid = float3(
+            beautyOverlay(rgb.r, mild.r),
+            beautyOverlay(rgb.g, mild.g),
+            beautyOverlay(rgb.b, mild.b)
+        );
+        rgb = mix(rgb, overlaid, whiteW);
+    }
+    
+    // 3. 亮眼：眼白明显提亮，虹膜略提；皮肤/眼皮偏暖则跳过
+    if (p.brightEyes * maskHard.g > 0.01) {
+        float luma = rec709Luma(rgb);
+        float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
+        float warm = rgb.r - rgb.b;
+        float skinLike = smoothstep(0.04, 0.10, warm) * smoothstep(0.08, 0.18, chroma);
+        float sclera = smoothstep(0.32, 0.62, luma);
+        float iris = (1.0 - sclera) * smoothstep(0.06, 0.28, luma);
+        float eye = p.brightEyes * maskHard.g * (1.0 - skinLike);
+        rgb += float3(0.11, 0.12, 0.16) * eye * sclera;
+        rgb += float3(0.04, 0.045, 0.055) * eye * iris;
+    }
+    
+    // 4. 白牙：去黄 + 可见提亮，舌头偏红排除
+    if (p.whiteTeeth * maskHard.b > 0.01) {
+        float luma = rec709Luma(rgb);
+        float redBias = rgb.r - max(rgb.g, rgb.b);
+        float yellow = max(0.0, (rgb.r + rgb.g) * 0.5 - rgb.b);
+        float notTongue = 1.0 - smoothstep(0.06, 0.16, redBias);
+        float brightEnough = smoothstep(0.16, 0.32, luma);
+        float tw = p.whiteTeeth * maskHard.b * notTongue * brightEnough;
+        float3 teeth = rgb;
+        teeth.r -= yellow * 0.55 * tw;
+        teeth.g -= yellow * 0.40 * tw;
+        teeth.b += 0.10 * tw;
+        teeth += 0.08 * tw;
+        rgb = mix(rgb, teeth, tw);
+    }
+    
+    destTexture.write(float4(clamp(rgb, 0.0, 1.0), src4.a), gid);
+}

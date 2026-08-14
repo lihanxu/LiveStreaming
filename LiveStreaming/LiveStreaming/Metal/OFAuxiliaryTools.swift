@@ -5,7 +5,7 @@
 //  Created by anker on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
-//  默认链路：Source → FaceLandmarker → ColorAdjust → LUT → SingleColor → GaussianBlur → Peak → Sink
+//  默认链路：Source → FaceLandmarker → Beauty → ColorAdjust → LUT → SingleColor → GaussianBlur → Peak → Sink
 //
 
 import Foundation
@@ -43,12 +43,19 @@ class OFAuxiliaryTools: NSObject {
         return OFFaceLandmarkerComputer()
     }()
     
+    /// 美颜：磨皮、美白、亮眼、白牙
+    private lazy var beauty: OFBeautyComputer = {
+        let node = OFBeautyComputer()
+        node.landmarker = faceLandmarker
+        return node
+    }()
+    
     /// 全局调色节点（曝光、对比、色温等）
     private lazy var colorAdjust: OFColorAdjustComputer = {
         return OFColorAdjustComputer()
     }()
     
-    /// 美颜总开关（磨皮尚未接到 GPU）
+    /// 美颜总开关（与档位一起写入 GPU）
     private var beautyEnabled = false
     /// 是否在预览上画人脸网格
     private var faceMeshOverlayEnabled = false
@@ -63,6 +70,7 @@ class OFAuxiliaryTools: NSObject {
     private func setupProcessGraph() {
         processGraph.addNode(.source)
         processGraph.addNode(.faceLandmarker, processor: faceLandmarker)
+        processGraph.addNode(.beauty, processor: beauty)
         processGraph.addNode(.colorAdjust, processor: colorAdjust)
         processGraph.addNode(.lut, processor: lut)
         processGraph.addNode(.singleColor, processor: singleColor)
@@ -71,7 +79,8 @@ class OFAuxiliaryTools: NSObject {
         processGraph.addNode(.sink)
         
         processGraph.addEdge(from: .source, to: .faceLandmarker)
-        processGraph.addEdge(from: .faceLandmarker, to: .colorAdjust)
+        processGraph.addEdge(from: .faceLandmarker, to: .beauty)
+        processGraph.addEdge(from: .beauty, to: .colorAdjust)
         processGraph.addEdge(from: .colorAdjust, to: .lut)
         processGraph.addEdge(from: .lut, to: .singleColor)
         processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
@@ -154,10 +163,18 @@ class OFAuxiliaryTools: NSObject {
         gaussianBlur.enabled = !gaussianBlur.enabled
     }
     
-    /// 美颜总开关：打开后开始跑 Face Landmarker
+    /// 美颜总开关：打开后开始跑 Face Landmarker，并按当前档位做 GPU
     /// - Parameter enabled: 是否开启
     func setBeautyEnabled(_ enabled: Bool) {
         beautyEnabled = enabled
+        updateFaceLandmarkerFlags()
+    }
+    
+    /// 把设置页档位写进美颜节点
+    /// - Parameter settings: 总开关 + 四项档位
+    func applyBeautySettings(_ settings: OFBeautySettings) {
+        beautyEnabled = settings.isEnabled
+        beauty.applySettings(settings)
         updateFaceLandmarkerFlags()
     }
     

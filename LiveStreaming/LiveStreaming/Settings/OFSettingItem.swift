@@ -39,10 +39,14 @@ enum OFSettingID: Equatable {
     case beautyMaster
     /// 人脸网格预览（画 Face Landmarker 点）
     case faceMeshOverlay
-    /// 磨皮档位（占位）
+    /// 磨皮档位
     case beautySmooth
-    /// 美白档位（占位）
+    /// 美白档位
     case beautyWhitening
+    /// 亮眼档位
+    case beautyBrightEyes
+    /// 白牙档位
+    case beautyWhiteTeeth
     /// 主页上的调色入口
     case colorAdjust
     /// 调色滑杆
@@ -120,7 +124,7 @@ enum OFSettingsTapResult {
     case push(OFSettingsPageID)
 }
 
-/// 美颜档位占位，GPU 接入前只改文案。
+/// 美颜档位，关/低/中/高对应 GPU 强度 0…1。
 enum OFBeautyLevel: Int, CaseIterable {
     /// 关闭
     case off = 0
@@ -150,19 +154,45 @@ enum OFBeautyLevel: Int, CaseIterable {
     func next() -> OFBeautyLevel {
         return OFBeautyLevel(rawValue: rawValue + 1) ?? .off
     }
+    
+    /// 写入 GPU 的强度，0…1
+    var gpuStrength: Float {
+        switch self {
+        case .off:
+            return 0
+        case .low:
+            return 0.45
+        case .medium:
+            return 0.75
+        case .high:
+            return 1.0
+        }
+    }
 }
 
-/// 美颜参数占位状态，后续接到处理图时直接读这些值。
+/// 美颜参数状态，接到处理图时读这些档位。
 class OFBeautySettings {
-    /// 总开关
+    /// 总开关；关闭时不跑美颜 kernel，也不强制推理
     var isEnabled = false
     /// 磨皮
     var smooth: OFBeautyLevel = .off
     /// 美白
     var whitening: OFBeautyLevel = .off
+    /// 亮眼
+    var brightEyes: OFBeautyLevel = .off
+    /// 白牙
+    var whiteTeeth: OFBeautyLevel = .off
     
     /// 主页上美颜格子的当前值
     var summaryText: String {
         return isEnabled ? "开" : "关"
+    }
+    
+    /// 四项强度都为 0 时 GPU 可跳过合成
+    var isIdentity: Bool {
+        return smooth.gpuStrength < 0.001
+            && whitening.gpuStrength < 0.001
+            && brightEyes.gpuStrength < 0.001
+            && whiteTeeth.gpuStrength < 0.001
     }
 }

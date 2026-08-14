@@ -19,6 +19,8 @@
 		60A40012275E000100000052 /* OFSettingsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40002275E000100000042 /* OFSettingsController.swift */; };
 		60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40003275E000100000043 /* OFSettingsSheetView.swift */; };
 		60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */; };
+		60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70001275E000100000201 /* OFFaceRegionMask.swift */; };
+		60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70002275E000100000202 /* OFBeautyComputer.swift */; };
 		60A50012275E000100000072 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 60A50002275E000100000062 /* face_landmarker.task */; };
 		60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60001275E000100000101 /* OFColorAdjustParams.swift */; };
 		60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60002275E000100000102 /* OFColorAdjustComputer.swift */; };
@@ -78,6 +80,8 @@
 		60A40002275E000100000042 /* OFSettingsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsController.swift; sourceTree = "<group>"; };
 		60A40003275E000100000043 /* OFSettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsSheetView.swift; sourceTree = "<group>"; };
 		60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceLandmarkerComputer.swift; sourceTree = "<group>"; };
+		60A70001275E000100000201 /* OFFaceRegionMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceRegionMask.swift; sourceTree = "<group>"; };
+		60A70002275E000100000202 /* OFBeautyComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyComputer.swift; sourceTree = "<group>"; };
 		60A50002275E000100000062 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
 		60A60001275E000100000101 /* OFColorAdjustParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustParams.swift; sourceTree = "<group>"; };
 		60A60002275E000100000102 /* OFColorAdjustComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustComputer.swift; sourceTree = "<group>"; };
@@ -182,6 +186,8 @@
 			isa = PBXGroup;
 			children = (
 				60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */,
+				60A70001275E000100000201 /* OFFaceRegionMask.swift */,
+				60A70002275E000100000202 /* OFBeautyComputer.swift */,
 			);
 			path = Face;
 			sourceTree = "<group>";
@@ -512,6 +518,8 @@
 				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,
 				60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */,
 				60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */,
+				60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */,
+				60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */,
 				60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */,
 				60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */,
 				60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */,

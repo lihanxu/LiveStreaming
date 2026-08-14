@@ -28,7 +28,9 @@ class OFFaceLandmarkerComputer: NSObject, OFProcessNode {
     private var landmarker: FaceLandmarker?
     /// 单调递增时间戳（毫秒），live stream 要求严格递增
     private var nextTimestampMs = 0
-    /// 保护 latestFaces
+    /// 上一帧还没回调时不再送帧，避免推理队列堆积把采集线程拖死
+    private var inferenceInFlight = false
+    /// 保护 latestFaces / inferenceInFlight
     private let lock = NSLock()
     /// 归一化关键点（x/y ∈ [0,1]），每人一张脸
     private var latestFaces: [[CGPoint]] = []
@@ -54,7 +56,7 @@ class OFFaceLandmarkerComputer: NSObject, OFProcessNode {
         options.minFaceDetectionConfidence = 0.5
         options.minFacePresenceConfidence = 0.5
         options.minTrackingConfidence = 0.5
-        options.outputFaceBlendshapes = true
+        options.outputFaceBlendshapes = false
         options.faceLandmarkerLiveStreamDelegate = self
         do {
             landmarker = try FaceLandmarker(options: options)
@@ -64,27 +66,45 @@ class OFFaceLandmarkerComputer: NSObject, OFProcessNode {
         }
     }
     
-    /// 送一帧做异步检测；需要时用上一帧网格画点
+    /// 送一帧做异步检测。推理未完成时跳过本帧，避免队列堆积。
     /// - Parameter frame: 当前视频帧
     func process(_ frame: VideoFrame) {
         guard inferenceEnabled else {
             return
         }
-        // 1. 转 MPImage 并异步推理，时间戳必须递增
+        // 1. 上一趟没回来就不送，美颜继续用上一帧点
+        lock.lock()
+        let busy = inferenceInFlight
+        if !busy {
+            inferenceInFlight = true
+        }
+        lock.unlock()
+        if busy {
+            return
+        }
+        // 2. 转 MPImage 并异步推理，时间戳必须递增
         if let landmarker = landmarker, let pixelBuffer = frame.pixelBuffer {
             do {
                 let image = try MPImage(pixelBuffer: pixelBuffer)
-                nextTimestampMs += 1
+                nextTimestampMs += 33
                 try landmarker.detectAsync(image: image, timestampInMilliseconds: nextTimestampMs)
             } catch {
+                lock.lock()
+                inferenceInFlight = false
+                lock.unlock()
                 if !didLogSetupError {
                     DDLogError("FaceLandmarker detectAsync failed: \(error)")
                     didLogSetupError = true
                 }
             }
-        } else if landmarker == nil, !didLogSetupError {
-            DDLogError("FaceLandmarker is nil, skip inference")
-            didLogSetupError = true
+        } else {
+            lock.lock()
+            inferenceInFlight = false
+            lock.unlock()
+            if landmarker == nil, !didLogSetupError {
+                DDLogError("FaceLandmarker is nil, skip inference")
+                didLogSetupError = true
+            }
         }
     }
     
@@ -170,9 +190,15 @@ extension OFFaceLandmarkerComputer: FaceLandmarkerLiveStreamDelegate {
     ) {
         if let error = error {
             DDLogError("FaceLandmarker result error: \(error)")
+            lock.lock()
+            inferenceInFlight = false
+            lock.unlock()
             return
         }
         guard let result = result else {
+            lock.lock()
+            inferenceInFlight = false
+            lock.unlock()
             return
         }
         var faces: [[CGPoint]] = []
@@ -182,6 +208,7 @@ extension OFFaceLandmarkerComputer: FaceLandmarkerLiveStreamDelegate {
         }
         lock.lock()
         latestFaces = faces
+        inferenceInFlight = false
         lock.unlock()
     }
 }

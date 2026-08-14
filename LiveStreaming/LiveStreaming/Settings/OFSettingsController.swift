@@ -73,7 +73,7 @@ class OFSettingsController {
             return .reload
         case .beautyMaster:
             beauty.isEnabled.toggle()
-            tools.setBeautyEnabled(beauty.isEnabled)
+            tools.applyBeautySettings(beauty)
             DDLogInfo("beauty master \(beauty.isEnabled)")
             return .reload
         case .faceMeshOverlay:
@@ -81,11 +81,19 @@ class OFSettingsController {
             return .reload
         case .beautySmooth:
             beauty.smooth = beauty.smooth.next()
-            DDLogInfo("beauty smooth \(beauty.smooth.displayName)，处理图尚未接入")
+            tools.applyBeautySettings(beauty)
             return .reload
         case .beautyWhitening:
             beauty.whitening = beauty.whitening.next()
-            DDLogInfo("beauty whitening \(beauty.whitening.displayName)，处理图尚未接入")
+            tools.applyBeautySettings(beauty)
+            return .reload
+        case .beautyBrightEyes:
+            beauty.brightEyes = beauty.brightEyes.next()
+            tools.applyBeautySettings(beauty)
+            return .reload
+        case .beautyWhiteTeeth:
+            beauty.whiteTeeth = beauty.whiteTeeth.next()
+            tools.applyBeautySettings(beauty)
             return .reload
         }
     }
@@ -118,7 +126,7 @@ class OFSettingsController {
         return OFSettingsPage(id: .lut, title: "LUT", items: items)
     }
     
-    /// 美颜二级页：总开关和网格接到 Face Landmarker，磨皮/美白仍占位
+    /// 美颜二级页：总开关、网格、磨皮/美白/亮眼/白牙
     /// - Returns: 美颜页
     private func makeBeautyPage() -> OFSettingsPage {
         let items: [OFSettingItem] = [
@@ -126,6 +134,8 @@ class OFSettingsController {
             OFSettingItem(id: .faceMeshOverlay, title: "人脸网格", valueText: tools.isFaceMeshOverlayEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .beautySmooth, title: "磨皮", valueText: beauty.smooth.displayName, interaction: .cycle),
             OFSettingItem(id: .beautyWhitening, title: "美白", valueText: beauty.whitening.displayName, interaction: .cycle),
+            OFSettingItem(id: .beautyBrightEyes, title: "亮眼", valueText: beauty.brightEyes.displayName, interaction: .cycle),
+            OFSettingItem(id: .beautyWhiteTeeth, title: "白牙", valueText: beauty.whiteTeeth.displayName, interaction: .cycle),
         ]
         return OFSettingsPage(id: .beauty, title: "美颜", items: items)
     }

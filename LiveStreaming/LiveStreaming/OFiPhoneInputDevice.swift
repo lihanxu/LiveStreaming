@@ -60,8 +60,8 @@ class OFiPhoneInputDevice: OFInputDevice {
     private func setupSession() {
         // 如果使用蓝牙耳机，则需要设置为false
         captureSession.automaticallyConfiguresApplicationAudioSession = false
-        // 获取视频设备
-        guard let videoDevice = AVCaptureDevice.default(for: .video) else { return }
+        // 默认前置广角，没有前置再退回系统默认镜头
+        guard let videoDevice = frontDevice ?? AVCaptureDevice.default(for: .video) else { return }
         do {
             // 视频输入
             let videoInput = try AVCaptureDeviceInput(device: videoDevice)
@@ -91,10 +91,13 @@ class OFiPhoneInputDevice: OFInputDevice {
         videoOutput!.setSampleBufferDelegate(self, queue: videoQueue)
         videoOutput!.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         captureSession.addOutput(videoOutput!)
-        // 设置输出视频方向
+        // 设置输出视频方向；前置默认镜像，和自拍预览一致
         let videoConnection = videoOutput?.connection(with: .video)
         videoConnection?.automaticallyAdjustsVideoMirroring = false
         videoConnection?.videoOrientation = .portrait
+        if videoDevice.position == .front {
+            videoConnection?.isVideoMirrored = true
+        }
         
         // 添加音频输出
         let audioQueue = DispatchQueue.init(label: "audio output queue in capture session")

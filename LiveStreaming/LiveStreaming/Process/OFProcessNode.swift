@@ -27,6 +27,8 @@ enum OFProcessNodeID: String, Hashable {
     case sink
     /// 全局调色（曝光、对比、色温等）
     case colorAdjust
+    /// 美颜（磨皮、美白、亮眼、白牙）
+    case beauty
 }
 
 /// 可插入处理图的滤镜节点。
