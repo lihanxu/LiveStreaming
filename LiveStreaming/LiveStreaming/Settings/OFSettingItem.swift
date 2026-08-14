@@ -161,9 +161,9 @@ enum OFBeautyLevel: Int, CaseIterable {
         case .off:
             return 0
         case .low:
-            return 0.45
+            return 0.52
         case .medium:
-            return 0.75
+            return 0.82
         case .high:
             return 1.0
         }

@@ -43,6 +43,10 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     weak var landmarker: OFFaceLandmarkerComputer?
     /// 皮肤/眼睛/牙齿遮罩
     private var regionMask: OFFaceRegionMask?
+    /// 距上次重绘遮罩的帧数
+    private var framesSinceMask = 100
+    /// 鼻尖，用来判断脸是否明显移动
+    private var lastNose = CGPoint.zero
     /// 下采样宽
     private var blurWidth = 0
     /// 下采样高
@@ -179,6 +183,23 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         return (cvTexture, texture)
     }
     
+    /// 鼻尖移动超过阈值，或隔了两帧，才重绘遮罩
+    /// - Parameter face: 当前关键点
+    /// - Returns: 是否需要栅格化
+    private func shouldRebuildMask(face: [CGPoint]) -> Bool {
+        framesSinceMask += 1
+        let nose = face.count > 1 ? face[1] : .zero
+        let dx = nose.x - lastNose.x
+        let dy = nose.y - lastNose.y
+        let moved = (dx * dx + dy * dy) > 0.000064
+        if framesSinceMask >= 2 || moved || regionMask?.texture == nil {
+            lastNose = nose
+            framesSinceMask = 0
+            return true
+        }
+        return false
+    }
+    
     /// 有人脸时按遮罩做磨皮/美白/亮眼/白牙
     /// - Parameter frame: 原地替换 pixelBuffer / texture
     func process(_ frame: VideoFrame) {
@@ -189,7 +210,15 @@ class OFBeautyComputer: NSObject, OFProcessNode {
             return
         }
         let faces = landmarker?.copyLatestFaces() ?? []
-        guard let face = faces.first, regionMask?.update(face: face) == true, let maskTexture = regionMask?.texture else {
+        guard let face = faces.first else {
+            return
+        }
+        if shouldRebuildMask(face: face) {
+            guard regionMask?.update(face: face) == true else {
+                return
+            }
+        }
+        guard let maskTexture = regionMask?.texture else {
             return
         }
         

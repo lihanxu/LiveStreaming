@@ -21,8 +21,6 @@ class OFFaceRegionMask {
     private let bytesPerPixel = 4
     /// CPU 像素；上传到 maskTexture
     private var pixels: [UInt8]
-    /// 羽化读入缓冲，避免边写边读
-    private var scratch: [UInt8]
     /// GPU 遮罩纹理，linear 采样做软边
     private(set) var texture: MTLTexture?
     
@@ -31,7 +29,6 @@ class OFFaceRegionMask {
     init(device: MTLDevice?) {
         let count = OFFaceRegionMask.size * OFFaceRegionMask.size * 4
         pixels = [UInt8](repeating: 0, count: count)
-        scratch = [UInt8](repeating: 0, count: count)
         let desc = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba8Unorm,
             width: OFFaceRegionMask.size,
@@ -80,34 +77,8 @@ class OFFaceRegionMask {
                 fillPolygon(Self.innerLips(from: face), width: w, height: h, rgba: base, channel: 2, value: 255, clearChannel: 0)
             }
         }
-        feather()
         upload()
         return true
-    }
-    
-    /// 128 上只羽化皮肤通道。眼睛/牙齿硬边，避免亮眼糊到眼镜框、白牙糊到嘴唇。
-    private func feather() {
-        let w = OFFaceRegionMask.size
-        let h = OFFaceRegionMask.size
-        scratch = pixels
-        scratch.withUnsafeBufferPointer { srcBuf in
-            pixels.withUnsafeMutableBufferPointer { dstBuf in
-                guard let src = srcBuf.baseAddress, let dst = dstBuf.baseAddress else {
-                    return
-                }
-                for y in 1..<(h - 1) {
-                    for x in 1..<(w - 1) {
-                        var sum = 0
-                        for dy in -1...1 {
-                            for dx in -1...1 {
-                                sum += Int(src[((y + dy) * w + (x + dx)) * bytesPerPixel])
-                            }
-                        }
-                        dst[(y * w + x) * bytesPerPixel] = UInt8(sum / 9)
-                    }
-                }
-            }
-        }
     }
     
     /// 把 CPU 像素写进 MTLTexture

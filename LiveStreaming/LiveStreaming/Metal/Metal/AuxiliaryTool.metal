@@ -341,11 +341,6 @@ static inline float beautySkinDetect(float3 c) {
     return tone * mix(0.55, 1.0, warm * rg * ch);
 }
 
-/// Overlay 混合单通道，MagicCamera 美白用这一式，比 screen 更不容易爆白
-static inline float beautyOverlay(float base, float blend) {
-    return base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend));
-}
-
 /// 3×3 Sobel 边缘强度，替代完整 Canny
 static inline float beautySobel(texture2d<float, access::read> src, uint2 gid, uint2 maxPos) {
     int2 p = int2(gid);
@@ -470,24 +465,22 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         uint2 maxPos = uint2(size[0] - 1, size[1] - 1);
         float edge = beautySobel(videoTexture, gid, maxPos);
         float edgeGate = 1.0 - smoothstep(0.12, 0.28, edge);
-        float mixW = smoothW * edgeGate;
+        float mixW = min(1.0, smoothW * edgeGate * 1.12);
         rgb = mix(origin, bilateral, mixW);
     }
     
-    // 2. 美白：GPUPixel levels + MagicCamera overlay（用户确认这一套观感更好）
-    float whiteW = p.whitening * skinMask * 0.45;
+    // 2. 美白：轻量 screen + 少量去红。强度打满也不整脸替换成灰白，避免煞白
+    float whiteW = p.whitening * skinMask * 0.48;
     if (whiteW > 0.01) {
-        float3 leveled = clamp((rgb - float3(0.025882)) * 1.02657, 0.0, 1.0);
-        float3 mild = mix(rgb, leveled, 0.40);
         float luma = rec709Luma(rgb);
-        float mid = smoothstep(0.12, 0.32, luma) * (1.0 - smoothstep(0.78, 0.96, luma));
-        mild += 0.045 * mid;
-        float3 overlaid = float3(
-            beautyOverlay(rgb.r, mild.r),
-            beautyOverlay(rgb.g, mild.g),
-            beautyOverlay(rgb.b, mild.b)
-        );
-        rgb = mix(rgb, overlaid, whiteW);
+        float lift = whiteW * (0.14 + 0.08 * (1.0 - luma));
+        float3 lifted = rgb + (1.0 - rgb) * lift;
+        float liftedLuma = rec709Luma(lifted);
+        float3 fair = mix(lifted, float3(liftedLuma), 0.12);
+        float redBias = max(0.0, fair.r - fair.g);
+        fair.r -= redBias * 0.22;
+        fair.b += redBias * 0.08;
+        rgb = mix(rgb, fair, whiteW);
     }
     
     // 3. 亮眼：眼白明显提亮，虹膜略提；皮肤/眼皮偏暖则跳过
@@ -499,8 +492,8 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         float sclera = smoothstep(0.32, 0.62, luma);
         float iris = (1.0 - sclera) * smoothstep(0.06, 0.28, luma);
         float eye = p.brightEyes * maskHard.g * (1.0 - skinLike);
-        rgb += float3(0.11, 0.12, 0.16) * eye * sclera;
-        rgb += float3(0.04, 0.045, 0.055) * eye * iris;
+        rgb += float3(0.13, 0.14, 0.18) * eye * sclera;
+        rgb += float3(0.05, 0.055, 0.065) * eye * iris;
     }
     
     // 4. 白牙：去黄 + 可见提亮，舌头偏红排除
@@ -512,10 +505,10 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         float brightEnough = smoothstep(0.16, 0.32, luma);
         float tw = p.whiteTeeth * maskHard.b * notTongue * brightEnough;
         float3 teeth = rgb;
-        teeth.r -= yellow * 0.55 * tw;
-        teeth.g -= yellow * 0.40 * tw;
-        teeth.b += 0.10 * tw;
-        teeth += 0.08 * tw;
+        teeth.r -= yellow * 0.62 * tw;
+        teeth.g -= yellow * 0.46 * tw;
+        teeth.b += 0.12 * tw;
+        teeth += 0.10 * tw;
         rgb = mix(rgb, teeth, tw);
     }
     
