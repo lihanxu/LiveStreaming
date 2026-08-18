@@ -5,7 +5,7 @@
 //  Created by anker on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
-//  默认链路：Source → FaceLandmarker → Beauty → ColorAdjust → LUT → SingleColor → GaussianBlur → Peak → Sink
+//  默认链路：Source → FaceLandmarker → Beauty → FaceReshape → ColorAdjust → LUT → SingleColor → GaussianBlur → Peak → Sink
 //
 
 import Foundation
@@ -50,6 +50,13 @@ class OFAuxiliaryTools: NSObject {
         return node
     }()
     
+    /// 面部重塑：瘦脸、大眼、瘦鼻、嘴巴、发际线、下颌
+    private lazy var faceReshape: OFFaceReshapeComputer = {
+        let node = OFFaceReshapeComputer()
+        node.landmarker = faceLandmarker
+        return node
+    }()
+    
     /// 全局调色节点（曝光、对比、色温等）
     private lazy var colorAdjust: OFColorAdjustComputer = {
         return OFColorAdjustComputer()
@@ -71,6 +78,7 @@ class OFAuxiliaryTools: NSObject {
         processGraph.addNode(.source)
         processGraph.addNode(.faceLandmarker, processor: faceLandmarker)
         processGraph.addNode(.beauty, processor: beauty)
+        processGraph.addNode(.faceReshape, processor: faceReshape)
         processGraph.addNode(.colorAdjust, processor: colorAdjust)
         processGraph.addNode(.lut, processor: lut)
         processGraph.addNode(.singleColor, processor: singleColor)
@@ -80,7 +88,8 @@ class OFAuxiliaryTools: NSObject {
         
         processGraph.addEdge(from: .source, to: .faceLandmarker)
         processGraph.addEdge(from: .faceLandmarker, to: .beauty)
-        processGraph.addEdge(from: .beauty, to: .colorAdjust)
+        processGraph.addEdge(from: .beauty, to: .faceReshape)
+        processGraph.addEdge(from: .faceReshape, to: .colorAdjust)
         processGraph.addEdge(from: .colorAdjust, to: .lut)
         processGraph.addEdge(from: .lut, to: .singleColor)
         processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
@@ -170,11 +179,12 @@ class OFAuxiliaryTools: NSObject {
         updateFaceLandmarkerFlags()
     }
     
-    /// 把设置页档位写进美颜节点
-    /// - Parameter settings: 总开关 + 四项档位
+    /// 把设置页档位写进美颜和面部重塑节点
+    /// - Parameter settings: 总开关 + 着色档位 + 形变档位
     func applyBeautySettings(_ settings: OFBeautySettings) {
         beautyEnabled = settings.isEnabled
         beauty.applySettings(settings)
+        faceReshape.applySettings(settings)
         updateFaceLandmarkerFlags()
     }
     
@@ -248,5 +258,17 @@ class OFAuxiliaryTools: NSObject {
     /// - Parameter bypassed: true 看原片
     func setColorAdjustBypassed(_ bypassed: Bool) {
         colorAdjust.setBypassed(bypassed)
+    }
+    
+    /// 按住对比按钮时旁路美颜着色
+    /// - Parameter bypassed: true 看未磨皮美白的画面
+    func setBeautyToneBypassed(_ bypassed: Bool) {
+        beauty.setBypassed(bypassed)
+    }
+    
+    /// 按住对比按钮时旁路面部重塑
+    /// - Parameter bypassed: true 看未变形的脸
+    func setFaceReshapeBypassed(_ bypassed: Bool) {
+        faceReshape.setBypassed(bypassed)
     }
 }

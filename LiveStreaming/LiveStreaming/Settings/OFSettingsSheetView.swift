@@ -38,6 +38,10 @@ class OFSettingsSheetView: UIView {
     private let resetButton = UIButton(type: .system)
     /// 调色内容，放在同一张卡片里
     private let colorEditor = OFColorAdjustEditorView()
+    /// 面部重塑：对比 + 图标 + 滑杆
+    private let reshapeEditor = OFFaceReshapeEditorView()
+    /// 美颜着色：对比 + 图标 + 滑杆
+    private let beautyEditor = OFBeautyEditorView()
     /// 参数网格
     private var collectionView: UICollectionView!
     /// 底部横条，提示可下拉关闭
@@ -59,7 +63,7 @@ class OFSettingsSheetView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    /// 调色页时空白区域把触摸交给预览，避免全屏视图挡住画面
+    /// 调色 / 重塑页时空白区域把触摸交给预览，避免全屏视图挡住画面
     /// - Parameters:
     ///   - point: 本视图坐标
     ///   - event: 触摸事件
@@ -68,7 +72,7 @@ class OFSettingsSheetView: UIView {
         if isHidden {
             return nil
         }
-        if !colorEditor.isHidden {
+        if !colorEditor.isHidden || !reshapeEditor.isHidden || !beautyEditor.isHidden {
             let cardLocal = convert(point, to: cardView)
             return cardView.hitTest(cardLocal, with: event)
         }
@@ -130,6 +134,14 @@ class OFSettingsSheetView: UIView {
         colorEditor.isHidden = true
         cardView.addSubview(colorEditor)
         
+        reshapeEditor.delegate = self
+        reshapeEditor.isHidden = true
+        cardView.addSubview(reshapeEditor)
+        
+        beautyEditor.delegate = self
+        beautyEditor.isHidden = true
+        cardView.addSubview(beautyEditor)
+        
         homeIndicator.backgroundColor = UIColor(white: 1, alpha: 0.85)
         homeIndicator.layer.cornerRadius = 2.5
         cardView.addSubview(homeIndicator)
@@ -144,6 +156,8 @@ class OFSettingsSheetView: UIView {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         homeIndicator.translatesAutoresizingMaskIntoConstraints = false
         colorEditor.translatesAutoresizingMaskIntoConstraints = false
+        reshapeEditor.translatesAutoresizingMaskIntoConstraints = false
+        beautyEditor.translatesAutoresizingMaskIntoConstraints = false
         
         let cardHeight = cardHeightConstraint(forRowCount: 2)
         cardHeightConstraint = cardHeight
@@ -190,6 +204,16 @@ class OFSettingsSheetView: UIView {
             colorEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
             colorEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
             
+            reshapeEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            reshapeEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            reshapeEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            reshapeEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
+            
+            beautyEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            beautyEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            beautyEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            beautyEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
+            
             homeIndicator.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
             homeIndicator.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -10),
             homeIndicator.widthAnchor.constraint(equalToConstant: 36),
@@ -217,6 +241,12 @@ class OFSettingsSheetView: UIView {
         if pageStack.last == .colorAdjust {
             controller.confirmColorAdjustEditing()
         }
+        if pageStack.last == .faceReshape {
+            controller.setFaceReshapeCompareHolding(false)
+        }
+        if pageStack.last == .beauty {
+            controller.setBeautyToneCompareHolding(false)
+        }
         cardBottomConstraint?.constant = 420
         UIView.animate(withDuration: 0.24, delay: 0, options: [.curveEaseIn], animations: {
             self.layoutIfNeeded()
@@ -231,9 +261,15 @@ class OFSettingsSheetView: UIView {
         dismiss()
     }
     
-    /// 调色页全部滑杆归零
+    /// 调色或重塑页全部滑杆归零
     @objc private func handleReset() {
-        controller.resetColorAdjust()
+        if pageStack.last == .colorAdjust {
+            controller.resetColorAdjust()
+        } else if pageStack.last == .faceReshape {
+            controller.resetFaceReshape()
+        } else if pageStack.last == .beauty {
+            controller.resetBeautyTone()
+        }
         reloadCurrentPage()
     }
     
@@ -244,6 +280,12 @@ class OFSettingsSheetView: UIView {
         }
         if pageStack.last == .colorAdjust {
             controller.confirmColorAdjustEditing()
+        }
+        if pageStack.last == .faceReshape {
+            controller.setFaceReshapeCompareHolding(false)
+        }
+        if pageStack.last == .beauty {
+            controller.setBeautyToneCompareHolding(false)
         }
         pageStack.removeLast()
         reloadCurrentPage()
@@ -274,17 +316,27 @@ class OFSettingsSheetView: UIView {
     private func reloadCurrentPage() {
         let page = controller.page(for: pageStack.last ?? .root)
         let isColor = page.id == .colorAdjust
+        let isReshape = page.id == .faceReshape
+        let isBeauty = page.id == .beauty
         titleLabel.text = page.title
         backButton.isHidden = pageStack.count <= 1
-        resetButton.isHidden = !isColor
+        resetButton.isHidden = !(isColor || isReshape || isBeauty)
         collectionView.isScrollEnabled = false
-        collectionView.isHidden = isColor
+        collectionView.isHidden = isColor || isReshape || isBeauty
         colorEditor.isHidden = !isColor
+        reshapeEditor.isHidden = !isReshape
+        beautyEditor.isHidden = !isBeauty
         cardView.isHidden = false
         dimmingView.isUserInteractionEnabled = true
         if isColor {
             cardHeightConstraint?.constant = cardHeightValue(forColorEditor: colorEditor.contentHeight())
             colorEditor.reload(rows: page.sliders)
+        } else if isReshape {
+            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: reshapeEditor.contentHeight())
+            reshapeEditor.reload(rows: page.reshapeSliders)
+        } else if isBeauty {
+            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: beautyEditor.contentHeight())
+            beautyEditor.reload(rows: page.beautySliders, meshOn: controller.isFaceMeshOverlayEnabled)
         } else {
             let rows = max(1, Int(ceil(Double(page.items.count) / Double(columns))))
             cardHeightConstraint?.constant = cardHeightValue(forRowCount: rows)
@@ -379,6 +431,42 @@ extension OFSettingsSheetView: OFColorAdjustEditorViewDelegate {
     /// 按住对比看原片
     func colorAdjustEditor(_ editor: OFColorAdjustEditorView, compareHolding: Bool) {
         controller.setColorAdjustCompareHolding(compareHolding)
+    }
+}
+
+extension OFSettingsSheetView: OFFaceReshapeEditorViewDelegate {
+    /// 拖动当前项灵敏度
+    func faceReshapeEditor(_ editor: OFFaceReshapeEditorView, didChange key: OFFaceReshapeKey, value: Float) {
+        controller.updateFaceReshape(key: key, value: value)
+    }
+    
+    /// 按住对比看未变形的脸
+    func faceReshapeEditor(_ editor: OFFaceReshapeEditorView, compareHolding: Bool) {
+        controller.setFaceReshapeCompareHolding(compareHolding)
+    }
+}
+
+extension OFSettingsSheetView: OFBeautyEditorViewDelegate {
+    /// 拖动着色滑杆
+    func beautyEditor(_ editor: OFBeautyEditorView, didChange key: OFBeautyToneKey, value: Float) {
+        controller.updateBeautyTone(key: key, value: value)
+    }
+    
+    /// 按住对比看未着色的脸
+    func beautyEditor(_ editor: OFBeautyEditorView, compareHolding: Bool) {
+        controller.setBeautyToneCompareHolding(compareHolding)
+    }
+    
+    /// 开关人脸网格
+    func beautyEditorDidToggleMesh(_ editor: OFBeautyEditorView) {
+        _ = controller.performTap(.faceMeshOverlay)
+        reloadCurrentPage()
+    }
+    
+    /// 进入面部重塑页
+    func beautyEditorDidTapReshape(_ editor: OFBeautyEditorView) {
+        pageStack.append(.faceReshape)
+        reloadCurrentPage()
     }
 }
 

@@ -29,6 +29,8 @@ enum OFProcessNodeID: String, Hashable {
     case colorAdjust
     /// 美颜（磨皮、美白、亮眼、白牙）
     case beauty
+    /// 面部重塑（瘦脸、大眼、瘦鼻、嘴巴、发际线、下颌）
+    case faceReshape
 }
 
 /// 可插入处理图的滤镜节点。

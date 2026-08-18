@@ -3,10 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		601FF06F3033F9E000E1DF59 /* neutral-lut.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF06A3033F9E000E1DF59 /* neutral-lut.png */; };
+		601FF0733033FCD400E1DF59 /* HLG normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0713033FCD400E1DF59 /* HLG normal.png */; };
+		601FF0743033FCD400E1DF59 /* zlog2v709.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0723033FCD400E1DF59 /* zlog2v709.png */; };
 		60A20001275E000100000001 /* OFProcessNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10001275E000100000001 /* OFProcessNode.swift */; };
 		60A20002275E000100000002 /* OFProcessGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10002275E000100000002 /* OFProcessGraph.swift */; };
 		60A20003275E000100000003 /* OFLUTLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10003275E000100000003 /* OFLUTLoader.swift */; };
@@ -18,13 +21,16 @@
 		60A40011275E000100000051 /* OFSettingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40001275E000100000041 /* OFSettingItem.swift */; };
 		60A40012275E000100000052 /* OFSettingsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40002275E000100000042 /* OFSettingsController.swift */; };
 		60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40003275E000100000043 /* OFSettingsSheetView.swift */; };
+		60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */; };
+		60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40005275E000100000045 /* OFBeautyEditorView.swift */; };
 		60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */; };
-		60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70001275E000100000201 /* OFFaceRegionMask.swift */; };
-		60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70002275E000100000202 /* OFBeautyComputer.swift */; };
 		60A50012275E000100000072 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 60A50002275E000100000062 /* face_landmarker.task */; };
 		60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60001275E000100000101 /* OFColorAdjustParams.swift */; };
 		60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60002275E000100000102 /* OFColorAdjustComputer.swift */; };
 		60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60003275E000100000103 /* OFColorAdjustEditorView.swift */; };
+		60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70001275E000100000201 /* OFFaceRegionMask.swift */; };
+		60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70002275E000100000202 /* OFBeautyComputer.swift */; };
+		60A70013275E000100000213 /* OFFaceReshapeComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70003275E000100000203 /* OFFaceReshapeComputer.swift */; };
 		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
 		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
 		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
@@ -68,6 +74,9 @@
 
 /* Begin PBXFileReference section */
 		57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LiveStreaming.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		601FF06A3033F9E000E1DF59 /* neutral-lut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "neutral-lut.png"; sourceTree = "<group>"; };
+		601FF0713033FCD400E1DF59 /* HLG normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "HLG normal.png"; sourceTree = "<group>"; };
+		601FF0723033FCD400E1DF59 /* zlog2v709.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = zlog2v709.png; sourceTree = "<group>"; };
 		60A10001275E000100000001 /* OFProcessNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessNode.swift; sourceTree = "<group>"; };
 		60A10002275E000100000002 /* OFProcessGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessGraph.swift; sourceTree = "<group>"; };
 		60A10003275E000100000003 /* OFLUTLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTLoader.swift; sourceTree = "<group>"; };
@@ -79,13 +88,16 @@
 		60A40001275E000100000041 /* OFSettingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingItem.swift; sourceTree = "<group>"; };
 		60A40002275E000100000042 /* OFSettingsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsController.swift; sourceTree = "<group>"; };
 		60A40003275E000100000043 /* OFSettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsSheetView.swift; sourceTree = "<group>"; };
+		60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeEditorView.swift; sourceTree = "<group>"; };
+		60A40005275E000100000045 /* OFBeautyEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyEditorView.swift; sourceTree = "<group>"; };
 		60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceLandmarkerComputer.swift; sourceTree = "<group>"; };
-		60A70001275E000100000201 /* OFFaceRegionMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceRegionMask.swift; sourceTree = "<group>"; };
-		60A70002275E000100000202 /* OFBeautyComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyComputer.swift; sourceTree = "<group>"; };
 		60A50002275E000100000062 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
 		60A60001275E000100000101 /* OFColorAdjustParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustParams.swift; sourceTree = "<group>"; };
 		60A60002275E000100000102 /* OFColorAdjustComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustComputer.swift; sourceTree = "<group>"; };
 		60A60003275E000100000103 /* OFColorAdjustEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustEditorView.swift; sourceTree = "<group>"; };
+		60A70001275E000100000201 /* OFFaceRegionMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceRegionMask.swift; sourceTree = "<group>"; };
+		60A70002275E000100000202 /* OFBeautyComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyComputer.swift; sourceTree = "<group>"; };
+		60A70003275E000100000203 /* OFFaceReshapeComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeComputer.swift; sourceTree = "<group>"; };
 		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
 		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
@@ -159,7 +171,6 @@
 				B47F3D4F6AB97F37508D3C16 /* Pods-LiveStreaming.debug.xcconfig */,
 				67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -170,44 +181,6 @@
 				60A10002275E000100000002 /* OFProcessGraph.swift */,
 			);
 			path = Process;
-			sourceTree = "<group>";
-		};
-		60A40020275E000100000061 /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				60A40001275E000100000041 /* OFSettingItem.swift */,
-				60A40002275E000100000042 /* OFSettingsController.swift */,
-				60A40003275E000100000043 /* OFSettingsSheetView.swift */,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
-		60A50020275E000100000081 /* Face */ = {
-			isa = PBXGroup;
-			children = (
-				60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */,
-				60A70001275E000100000201 /* OFFaceRegionMask.swift */,
-				60A70002275E000100000202 /* OFBeautyComputer.swift */,
-			);
-			path = Face;
-			sourceTree = "<group>";
-		};
-		60A60020275E000100000120 /* ColorAdjust */ = {
-			isa = PBXGroup;
-			children = (
-				60A60001275E000100000101 /* OFColorAdjustParams.swift */,
-				60A60002275E000100000102 /* OFColorAdjustComputer.swift */,
-				60A60003275E000100000103 /* OFColorAdjustEditorView.swift */,
-			);
-			path = ColorAdjust;
-			sourceTree = "<group>";
-		};
-		60A50021275E000100000082 /* FaceLandmarker */ = {
-			isa = PBXGroup;
-			children = (
-				60A50002275E000100000062 /* face_landmarker.task */,
-			);
-			path = FaceLandmarker;
 			sourceTree = "<group>";
 		};
 		60A10021275E000100000021 /* LUT */ = {
@@ -222,11 +195,55 @@
 		60A10022275E000100000022 /* LUT */ = {
 			isa = PBXGroup;
 			children = (
+				601FF06A3033F9E000E1DF59 /* neutral-lut.png */,
 				60A10011275E000100000011 /* Rec709 normal.png */,
+				601FF0713033FCD400E1DF59 /* HLG normal.png */,
+				601FF0723033FCD400E1DF59 /* zlog2v709.png */,
 				60A10012275E000100000012 /* SRGB normal.png */,
 				60A10013275E000100000013 /* ACESAP0 normal.png */,
 			);
 			path = LUT;
+			sourceTree = "<group>";
+		};
+		60A40020275E000100000061 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				60A40001275E000100000041 /* OFSettingItem.swift */,
+				60A40002275E000100000042 /* OFSettingsController.swift */,
+				60A40003275E000100000043 /* OFSettingsSheetView.swift */,
+				60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */,
+				60A40005275E000100000045 /* OFBeautyEditorView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		60A50020275E000100000081 /* Face */ = {
+			isa = PBXGroup;
+			children = (
+				60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */,
+				60A70001275E000100000201 /* OFFaceRegionMask.swift */,
+				60A70002275E000100000202 /* OFBeautyComputer.swift */,
+				60A70003275E000100000203 /* OFFaceReshapeComputer.swift */,
+			);
+			path = Face;
+			sourceTree = "<group>";
+		};
+		60A50021275E000100000082 /* FaceLandmarker */ = {
+			isa = PBXGroup;
+			children = (
+				60A50002275E000100000062 /* face_landmarker.task */,
+			);
+			path = FaceLandmarker;
+			sourceTree = "<group>";
+		};
+		60A60020275E000100000120 /* ColorAdjust */ = {
+			isa = PBXGroup;
+			children = (
+				60A60001275E000100000101 /* OFColorAdjustParams.swift */,
+				60A60002275E000100000102 /* OFColorAdjustComputer.swift */,
+				60A60003275E000100000103 /* OFColorAdjustEditorView.swift */,
+			);
+			path = ColorAdjust;
 			sourceTree = "<group>";
 		};
 		9A16DDAB273A12CB0045F456 /* Shader */ = {
@@ -449,6 +466,7 @@
 				60A20012275E000100000012 /* SRGB normal.png in Resources */,
 				60A20013275E000100000013 /* ACESAP0 normal.png in Resources */,
 				9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */,
+				601FF06F3033F9E000E1DF59 /* neutral-lut.png in Resources */,
 				9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */,
 				9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */,
 				9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */,
@@ -457,6 +475,8 @@
 				9AFFCB862738C1C200161747 /* Main.storyboard in Resources */,
 				9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */,
 				9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */,
+				601FF0733033FCD400E1DF59 /* HLG normal.png in Resources */,
+				601FF0743033FCD400E1DF59 /* zlog2v709.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -493,9 +513,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -517,9 +541,12 @@
 				60A40011275E000100000051 /* OFSettingItem.swift in Sources */,
 				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,
 				60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */,
+				60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */,
+				60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */,
 				60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */,
 				60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */,
 				60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */,
+				60A70013275E000100000213 /* OFFaceReshapeComputer.swift in Sources */,
 				60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */,
 				60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */,
 				60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */,

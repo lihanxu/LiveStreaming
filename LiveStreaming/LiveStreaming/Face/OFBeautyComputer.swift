@@ -37,6 +37,8 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     private var whiteTeeth: Float = 0
     /// 总开关
     private var masterEnabled = false
+    /// 按住对比时为 true，节点跳过但参数保留
+    private var bypassed = false
     /// 保护参数，设置页与采集线程可能同时访问
     private let lock = NSLock()
     /// 人脸关键点来源
@@ -59,7 +61,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     /// 总开关打开、有非零项、pipeline 就绪才跑
     var isEnabled: Bool {
         lock.lock()
-        let on = masterEnabled && !isIdentityLocked()
+        let on = masterEnabled && !isIdentityLocked() && !bypassed
         lock.unlock()
         return on && applyPipeline != nil
     }
@@ -77,11 +79,19 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     func applySettings(_ settings: OFBeautySettings) {
         lock.lock()
         masterEnabled = settings.isEnabled
-        smooth = settings.smooth.gpuStrength
-        whitening = settings.whitening.gpuStrength
-        brightEyes = settings.brightEyes.gpuStrength
-        whiteTeeth = settings.whiteTeeth.gpuStrength
+        smooth = OFBeautySettings.toneGpuStrength(settings.smooth, key: .smooth)
+        whitening = OFBeautySettings.toneGpuStrength(settings.whitening, key: .whitening)
+        brightEyes = OFBeautySettings.toneGpuStrength(settings.brightEyes, key: .brightEyes)
+        whiteTeeth = OFBeautySettings.toneGpuStrength(settings.whiteTeeth, key: .whiteTeeth)
         syncParamsBuffer()
+        lock.unlock()
+    }
+    
+    /// 对比原片：不改参数，只决定这一帧是否跑 kernel
+    /// - Parameter bypassed: true 时透传
+    func setBypassed(_ bypassed: Bool) {
+        lock.lock()
+        self.bypassed = bypassed
         lock.unlock()
     }
     

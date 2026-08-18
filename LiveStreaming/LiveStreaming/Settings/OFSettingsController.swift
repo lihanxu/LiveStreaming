@@ -37,6 +37,8 @@ class OFSettingsController {
             return makeLUTPage()
         case .beauty:
             return makeBeautyPage()
+        case .faceReshape:
+            return makeFaceReshapePage()
         case .colorAdjust:
             return makeColorAdjustPage()
         }
@@ -67,6 +69,8 @@ class OFSettingsController {
             return .reload
         case .beauty:
             return .push(.beauty)
+        case .faceReshape:
+            return .push(.faceReshape)
         case .colorAdjust:
             return .push(.colorAdjust)
         case .colorParam:
@@ -78,22 +82,7 @@ class OFSettingsController {
             return .reload
         case .faceMeshOverlay:
             tools.setFaceMeshOverlayEnabled(!tools.isFaceMeshOverlayEnabled)
-            return .reload
-        case .beautySmooth:
-            beauty.smooth = beauty.smooth.next()
-            tools.applyBeautySettings(beauty)
-            return .reload
-        case .beautyWhitening:
-            beauty.whitening = beauty.whitening.next()
-            tools.applyBeautySettings(beauty)
-            return .reload
-        case .beautyBrightEyes:
-            beauty.brightEyes = beauty.brightEyes.next()
-            tools.applyBeautySettings(beauty)
-            return .reload
-        case .beautyWhiteTeeth:
-            beauty.whiteTeeth = beauty.whiteTeeth.next()
-            tools.applyBeautySettings(beauty)
+            syncBeautyMaster()
             return .reload
         }
     }
@@ -126,24 +115,79 @@ class OFSettingsController {
         return OFSettingsPage(id: .lut, title: "LUT", items: items)
     }
     
-    /// 美颜二级页：总开关、网格、磨皮/美白/亮眼/白牙
+    /// 美颜二级页：对比 + 横向图标 + 滑杆
     /// - Returns: 美颜页
     private func makeBeautyPage() -> OFSettingsPage {
-        let items: [OFSettingItem] = [
-            OFSettingItem(id: .beautyMaster, title: "美颜", valueText: beauty.isEnabled ? "开" : "关", interaction: .toggle),
-            OFSettingItem(id: .faceMeshOverlay, title: "人脸网格", valueText: tools.isFaceMeshOverlayEnabled ? "开" : "关", interaction: .toggle),
-            OFSettingItem(id: .beautySmooth, title: "磨皮", valueText: beauty.smooth.displayName, interaction: .cycle),
-            OFSettingItem(id: .beautyWhitening, title: "美白", valueText: beauty.whitening.displayName, interaction: .cycle),
-            OFSettingItem(id: .beautyBrightEyes, title: "亮眼", valueText: beauty.brightEyes.displayName, interaction: .cycle),
-            OFSettingItem(id: .beautyWhiteTeeth, title: "白牙", valueText: beauty.whiteTeeth.displayName, interaction: .cycle),
-        ]
-        return OFSettingsPage(id: .beauty, title: "美颜", items: items)
+        return OFSettingsPage(
+            id: .beauty,
+            title: "美颜",
+            beautySliders: beauty.beautySliderRows(meshOn: tools.isFaceMeshOverlayEnabled)
+        )
+    }
+    
+    /// 面部重塑页：六项灵敏度滑杆
+    /// - Returns: 重塑页
+    private func makeFaceReshapePage() -> OFSettingsPage {
+        return OFSettingsPage(id: .faceReshape, title: "面部重塑", reshapeSliders: beauty.reshapeSliderRows())
     }
     
     /// 调色二级页：列表滑杆，拖动即写入处理图
     /// - Returns: 滑杆页
     private func makeColorAdjustPage() -> OFSettingsPage {
         return OFSettingsPage(id: .colorAdjust, title: "调色", sliders: tools.colorAdjustSliderRows())
+    }
+    
+    /// 拖动面部重塑滑杆，即时写入 GPU
+    /// - Parameters:
+    ///   - key: 六项 ID
+    ///   - value: −50…50
+    func updateFaceReshape(key: OFFaceReshapeKey, value: Float) {
+        beauty.setReshapeValue(value, for: key)
+        syncBeautyMaster()
+    }
+    
+    /// 六项灵敏度归零
+    func resetFaceReshape() {
+        beauty.resetReshape()
+        syncBeautyMaster()
+    }
+    
+    /// 拖动磨皮 / 美白 / 亮眼 / 白牙
+    /// - Parameters:
+    ///   - key: 着色项
+    ///   - value: 0…100
+    func updateBeautyTone(key: OFBeautyToneKey, value: Float) {
+        beauty.setToneValue(value, for: key)
+        syncBeautyMaster()
+    }
+    
+    /// 四项着色归零
+    func resetBeautyTone() {
+        beauty.resetTone()
+        syncBeautyMaster()
+    }
+    
+    /// 按住对比看未着色的脸
+    /// - Parameter holding: 是否按住
+    func setBeautyToneCompareHolding(_ holding: Bool) {
+        tools.setBeautyToneBypassed(holding)
+    }
+    
+    /// 有滑杆或网格时打开总开关，否则关掉以免空跑推理
+    private func syncBeautyMaster() {
+        beauty.isEnabled = !beauty.isIdentity || !beauty.isReshapeIdentity || tools.isFaceMeshOverlayEnabled
+        tools.applyBeautySettings(beauty)
+    }
+    
+    /// 按住对比看未变形的脸
+    /// - Parameter holding: 是否按住
+    func setFaceReshapeCompareHolding(_ holding: Bool) {
+        tools.setFaceReshapeBypassed(holding)
+    }
+    
+    /// 人脸网格是否在画
+    var isFaceMeshOverlayEnabled: Bool {
+        return tools.isFaceMeshOverlayEnabled
     }
     
     /// 拖动调色滑杆

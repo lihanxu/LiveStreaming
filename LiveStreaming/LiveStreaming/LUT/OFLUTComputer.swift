@@ -22,6 +22,7 @@ struct OFLUTPreset {
     /// 内置预设列表，第一项为关闭
     static let all: [OFLUTPreset] = [
         OFLUTPreset(displayName: "LUT", fileName: nil),
+        OFLUTPreset(displayName: "neutral", fileName: "neutral-lut"),
         OFLUTPreset(displayName: "Rec709", fileName: "Rec709 normal"),
         OFLUTPreset(displayName: "sRGB", fileName: "SRGB normal"),
         OFLUTPreset(displayName: "ACES", fileName: "ACESAP0 normal"),

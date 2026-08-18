@@ -536,3 +536,121 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
     
     destTexture.write(float4(clamp(rgb, 0.0, 1.0), src4.a), gid);
 }
+
+/// 把 origin 附近的像素吸向 target。weight 用 smoothstep 平方，避免圆斑硬边。
+/// aspect 把 0…1 UV 拉成近似各向同性，避免竖屏脸被拉扁。
+static inline float2 reshapeTranslate(float2 uv, float2 origin, float2 target, float radius, float intensity, float aspect) {
+    if (abs(intensity) < 0.001 || radius < 1e-4) {
+        return uv;
+    }
+    float2 d = uv - origin;
+    d.x *= aspect;
+    float dist = length(d);
+    if (dist >= radius) {
+        return uv;
+    }
+    float t = 1.0 - dist / radius;
+    float weight = t * t * (3.0 - 2.0 * t);
+    float2 move = target - origin;
+    move.x *= aspect;
+    move *= intensity * weight;
+    move.x /= max(aspect, 1e-4);
+    return uv - move;
+}
+
+/// 以 center 为圆心放大：采样点往中心收，画面上该区域被撑开。
+static inline float2 reshapeEnlarge(float2 uv, float2 center, float radius, float intensity, float aspect) {
+    if (abs(intensity) < 0.001 || radius < 1e-4) {
+        return uv;
+    }
+    float2 d = uv - center;
+    d.x *= aspect;
+    float dist = length(d);
+    if (dist >= radius) {
+        return uv;
+    }
+    float t = dist / radius;
+    float falloff = (1.0 - t) * (1.0 - t);
+    float scale = 1.0 - intensity * falloff;
+    d *= scale;
+    d.x /= max(aspect, 1e-4);
+    return center + d;
+}
+
+/// 面部重塑：按 MediaPipe 控制点做局部平移 / 放大。参数由 CPU 每帧写入，见 OFFaceReshapeComputer。
+/// buffer1：0…5 强度，6 faceWidth（各向同性），8 起每两个 float 一个点。
+kernel void faceReshape(texture2d<float, access::sample> videoTexture [[texture(0)]],
+                        texture2d<float, access::write> destTexture [[texture(1)]],
+                        constant uint *size [[buffer(0)]],
+                        constant float *p [[buffer(1)]],
+                        const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= size[0] || gid.y >= size[1]) {
+        return;
+    }
+    constexpr sampler linearSampler(coord::normalized, filter::linear, address::clamp_to_edge);
+    float2 uv = (float2(gid) + 0.5) / float2(size[0], size[1]);
+    float aspect = float(size[0]) / max(float(size[1]), 1.0);
+
+    float slimFace = p[0];
+    float bigEye = p[1];
+    float slimNose = p[2];
+    float mouth = p[3];
+    float hairline = p[4];
+    float jaw = p[5];
+    float faceW = max(p[6], 1e-4);
+
+    float2 faceCenter = float2(p[8], p[9]);
+    float2 chin = float2(p[10], p[11]);
+    float2 leftCheek = float2(p[14], p[15]);
+    float2 rightCheek = float2(p[16], p[17]);
+    float2 leftEye = float2(p[18], p[19]);
+    float2 rightEye = float2(p[20], p[21]);
+    float2 leftAla = float2(p[22], p[23]);
+    float2 rightAla = float2(p[24], p[25]);
+    float2 mouthCenter = float2(p[26], p[27]);
+    float2 leftMouth = float2(p[28], p[29]);
+    float2 rightMouth = float2(p[30], p[31]);
+    float2 leftJaw = float2(p[32], p[33]);
+    float2 rightJaw = float2(p[34], p[35]);
+    float2 hairOrigin = float2(p[36], p[37]);
+    float2 hairTarget = float2(p[38], p[39]);
+    float2 leftCheek2 = float2(p[40], p[41]);
+    float2 rightCheek2 = float2(p[42], p[43]);
+    float2 leftJaw2 = float2(p[44], p[45]);
+    float2 rightJaw2 = float2(p[46], p[47]);
+
+    // 强度可正可负：负值把像素往反方向推（胖脸、小眼、宽鼻、小嘴、发际线下移、下颌外扩）
+    uv = reshapeTranslate(uv, hairOrigin, hairTarget, faceW * 0.42, hairline * 0.09, aspect);
+
+    // 2. 下颌内收成 V：下颌角和下巴两侧往中线、略朝下巴收
+    float2 jawTargetL = float2(mix(leftJaw.x, faceCenter.x, 0.55), mix(leftJaw.y, chin.y, 0.22));
+    float2 jawTargetR = float2(mix(rightJaw.x, faceCenter.x, 0.55), mix(rightJaw.y, chin.y, 0.22));
+    uv = reshapeTranslate(uv, leftJaw, jawTargetL, faceW * 0.30, jaw * 0.12, aspect);
+    uv = reshapeTranslate(uv, rightJaw, jawTargetR, faceW * 0.30, jaw * 0.12, aspect);
+    uv = reshapeTranslate(uv, leftJaw2, jawTargetL, faceW * 0.26, jaw * 0.09, aspect);
+    uv = reshapeTranslate(uv, rightJaw2, jawTargetR, faceW * 0.26, jaw * 0.09, aspect);
+
+    // 3. 瘦脸：脸颊水平吸向中线，第二圈点盖颧骨下方
+    float2 cheekTargetL = float2(faceCenter.x, leftCheek.y);
+    float2 cheekTargetR = float2(faceCenter.x, rightCheek.y);
+    uv = reshapeTranslate(uv, leftCheek, cheekTargetL, faceW * 0.48, slimFace * 0.055, aspect);
+    uv = reshapeTranslate(uv, rightCheek, cheekTargetR, faceW * 0.48, slimFace * 0.055, aspect);
+    uv = reshapeTranslate(uv, leftCheek2, float2(faceCenter.x, leftCheek2.y), faceW * 0.40, slimFace * 0.035, aspect);
+    uv = reshapeTranslate(uv, rightCheek2, float2(faceCenter.x, rightCheek2.y), faceW * 0.40, slimFace * 0.035, aspect);
+
+    // 4. 瘦鼻：鼻翼水平吸向中线，避免把鼻尖拉歪
+    uv = reshapeTranslate(uv, leftAla, float2(faceCenter.x, leftAla.y), faceW * 0.18, slimNose * 0.13, aspect);
+    uv = reshapeTranslate(uv, rightAla, float2(faceCenter.x, rightAla.y), faceW * 0.18, slimNose * 0.13, aspect);
+
+    // 5. 嘴巴：以唇心放大，嘴角跟着略撑开
+    uv = reshapeEnlarge(uv, mouthCenter, faceW * 0.22, mouth * 0.07, aspect);
+    uv = reshapeTranslate(uv, leftMouth, float2(mix(leftMouth.x, faceCenter.x, -0.35), leftMouth.y), faceW * 0.14, mouth * 0.05, aspect);
+    uv = reshapeTranslate(uv, rightMouth, float2(mix(rightMouth.x, faceCenter.x, -0.35), rightMouth.y), faceW * 0.14, mouth * 0.05, aspect);
+
+    // 6. 大眼放最后，避免被瘦脸把眼距挤乱
+    uv = reshapeEnlarge(uv, leftEye, faceW * 0.16, bigEye * 0.18, aspect);
+    uv = reshapeEnlarge(uv, rightEye, faceW * 0.16, bigEye * 0.18, aspect);
+
+    destTexture.write(videoTexture.sample(linearSampler, uv), gid);
+}
