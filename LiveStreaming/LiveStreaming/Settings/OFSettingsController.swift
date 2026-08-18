@@ -162,12 +162,14 @@ class OFSettingsController {
     ///   - key: 六项 ID
     ///   - value: −50…50
     func updateFaceReshape(key: OFFaceReshapeKey, value: Float) {
+        beauty.leaveOneClickKeepingValues()
         beauty.setReshapeValue(value, for: key)
         syncBeautyMaster()
     }
     
     /// 六项灵敏度归零
     func resetFaceReshape() {
+        beauty.leaveOneClickKeepingValues()
         beauty.resetReshape()
         syncBeautyMaster()
     }
@@ -177,13 +179,35 @@ class OFSettingsController {
     ///   - key: 着色项
     ///   - value: 0…100
     func updateBeautyTone(key: OFBeautyToneKey, value: Float) {
+        beauty.leaveOneClickKeepingValues()
         beauty.setToneValue(value, for: key)
         syncBeautyMaster()
     }
     
     /// 四项着色归零
     func resetBeautyTone() {
+        let wasOneClick = beauty.oneClickEnabled
+        beauty.oneClickEnabled = false
         beauty.resetTone()
+        if wasOneClick {
+            beauty.resetReshape()
+        }
+        syncBeautyMaster()
+    }
+    
+    /// 开关一键美颜：打开套预设，关掉还原打开前的手动值
+    func toggleBeautyOneClick() {
+        if beauty.oneClickEnabled {
+            beauty.disableOneClickRestoreBackup()
+        } else {
+            beauty.enableOneClickPreset()
+        }
+        syncBeautyMaster()
+    }
+    
+    /// 点了其它子项，一键关掉但参数留着给手动微调
+    func leaveBeautyOneClick() {
+        beauty.leaveOneClickKeepingValues()
         syncBeautyMaster()
     }
     
@@ -208,6 +232,11 @@ class OFSettingsController {
     /// 人脸网格是否在画
     var isFaceMeshOverlayEnabled: Bool {
         return tools.isFaceMeshOverlayEnabled
+    }
+    
+    /// 一键美颜是否打开
+    var isBeautyOneClickEnabled: Bool {
+        return beauty.oneClickEnabled
     }
     
     /// 拖动调色滑杆

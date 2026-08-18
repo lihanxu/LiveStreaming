@@ -336,7 +336,11 @@ class OFSettingsSheetView: UIView {
             reshapeEditor.reload(rows: page.reshapeSliders)
         } else if isBeauty {
             cardHeightConstraint?.constant = cardHeightValue(forColorEditor: beautyEditor.contentHeight())
-            beautyEditor.reload(rows: page.beautySliders, meshOn: controller.isFaceMeshOverlayEnabled)
+            beautyEditor.reload(
+                rows: page.beautySliders,
+                meshOn: controller.isFaceMeshOverlayEnabled,
+                oneClickOn: controller.isBeautyOneClickEnabled
+            )
         } else {
             let rows = max(1, Int(ceil(Double(page.items.count) / Double(columns))))
             cardHeightConstraint?.constant = cardHeightValue(forRowCount: rows)
@@ -466,6 +470,18 @@ extension OFSettingsSheetView: OFBeautyEditorViewDelegate {
     /// 进入面部重塑页
     func beautyEditorDidTapReshape(_ editor: OFBeautyEditorView) {
         pageStack.append(.faceReshape)
+        reloadCurrentPage()
+    }
+    
+    /// 开关一键美颜
+    func beautyEditorDidToggleOneClick(_ editor: OFBeautyEditorView) {
+        controller.toggleBeautyOneClick()
+        reloadCurrentPage()
+    }
+    
+    /// 点子项后退出一键，保留预设数值给手动调
+    func beautyEditorDidLeaveOneClick(_ editor: OFBeautyEditorView) {
+        controller.leaveBeautyOneClick()
         reloadCurrentPage()
     }
 }

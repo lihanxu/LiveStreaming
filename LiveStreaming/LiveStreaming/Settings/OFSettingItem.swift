@@ -138,7 +138,7 @@ struct OFSettingsPage {
     /// - Parameters:
     ///   - id: 页 ID
     ///   - title: 标题
-    ///   - beautySliders: 磨皮 / 美白 / 亮眼 / 白牙 / 网格 / 重塑
+    ///   - beautySliders: 一键 / 网格 / 重塑 / 磨皮等
     init(id: OFSettingsPageID, title: String, beautySliders: [OFBeautySliderRow]) {
         self.id = id
         self.title = title
@@ -178,6 +178,8 @@ enum OFBeautyToneKey: String, CaseIterable {
 
 /// 美颜面板图标：四项滑杆 + 网格开关 + 进入重塑。
 enum OFBeautyPanelKey: String, CaseIterable {
+    /// 一键套用最优参数，与手动滑杆互斥
+    case oneClick
     /// 人脸网格预览
     case faceMesh
     /// 进入面部重塑
@@ -194,6 +196,7 @@ enum OFBeautyPanelKey: String, CaseIterable {
     /// 设置页标题
     var title: String {
         switch self {
+        case .oneClick: return "一键"
         case .smooth: return "磨皮"
         case .whitening: return "美白"
         case .brightEyes: return "亮眼"
@@ -208,7 +211,7 @@ enum OFBeautyPanelKey: String, CaseIterable {
         switch self {
         case .smooth, .whitening, .brightEyes, .whiteTeeth:
             return true
-        case .faceMesh, .faceReshape:
+        case .oneClick, .faceMesh, .faceReshape:
             return false
         }
     }
@@ -220,7 +223,7 @@ enum OFBeautyPanelKey: String, CaseIterable {
         case .whitening: return .whitening
         case .brightEyes: return .brightEyes
         case .whiteTeeth: return .whiteTeeth
-        case .faceMesh, .faceReshape: return nil
+        case .faceMesh, .faceReshape, .oneClick: return nil
         }
     }
 }
@@ -271,6 +274,28 @@ class OFBeautySettings {
     var hairline: Float = 0
     /// 下颌，滑杆 −50…50，正内收负外扩
     var jaw: Float = 0
+    /// 一键美颜是否打开；打开时用预设，手动改任一子项会关掉
+    var oneClickEnabled = false
+    /// 打开一键前的着色备份，关掉一键时还原
+    private var backupSmooth: Float = 0
+    /// 打开一键前的美白备份
+    private var backupWhitening: Float = 0
+    /// 打开一键前的亮眼备份
+    private var backupBrightEyes: Float = 0
+    /// 打开一键前的白牙备份
+    private var backupWhiteTeeth: Float = 0
+    /// 打开一键前的瘦脸备份
+    private var backupSlimFace: Float = 0
+    /// 打开一键前的大眼备份
+    private var backupBigEye: Float = 0
+    /// 打开一键前的瘦鼻备份
+    private var backupSlimNose: Float = 0
+    /// 打开一键前的嘴巴备份
+    private var backupMouth: Float = 0
+    /// 打开一键前的发际线备份
+    private var backupHairline: Float = 0
+    /// 打开一键前的下颌备份
+    private var backupJaw: Float = 0
     
     /// 主页上美颜格子的当前值
     var summaryText: String {
@@ -358,7 +383,7 @@ class OFBeautySettings {
         whiteTeeth = 0
     }
     
-    /// 美颜页图标数据（含网格 / 重塑入口）
+    /// 美颜页图标数据（含一键 / 网格 / 重塑入口）
     /// - Parameter meshOn: 人脸网格是否打开
     /// - Returns: 面板行
     func beautySliderRows(meshOn: Bool) -> [OFBeautySliderRow] {
@@ -366,7 +391,14 @@ class OFBeautySettings {
             if let tone = key.toneKey {
                 return OFBeautySliderRow(key: key, title: key.title, value: toneValue(for: tone), minimum: 0, maximum: 100)
             }
-            let flag: Float = (key == .faceMesh && meshOn) ? 1 : 0
+            let flag: Float
+            if key == .faceMesh && meshOn {
+                flag = 1
+            } else if key == .oneClick && oneClickEnabled {
+                flag = 1
+            } else {
+                flag = 0
+            }
             return OFBeautySliderRow(key: key, title: key.title, value: flag, minimum: 0, maximum: 1)
         }
     }
@@ -417,6 +449,56 @@ class OFBeautySettings {
         return OFFaceReshapeKey.allCases.map { key in
             OFFaceReshapeSliderRow(key: key, title: key.title, value: reshapeValue(for: key), minimum: -50, maximum: 50)
         }
+    }
+    
+    /// 记下当前手动参数，再套一键预设
+    func enableOneClickPreset() {
+        backupSmooth = smooth
+        backupWhitening = whitening
+        backupBrightEyes = brightEyes
+        backupWhiteTeeth = whiteTeeth
+        backupSlimFace = slimFace
+        backupBigEye = bigEye
+        backupSlimNose = slimNose
+        backupMouth = mouth
+        backupHairline = hairline
+        backupJaw = jaw
+        applyOneClickPreset()
+        oneClickEnabled = true
+    }
+    
+    /// 关掉一键并还原打开前的手动参数
+    func disableOneClickRestoreBackup() {
+        oneClickEnabled = false
+        smooth = backupSmooth
+        whitening = backupWhitening
+        brightEyes = backupBrightEyes
+        whiteTeeth = backupWhiteTeeth
+        slimFace = backupSlimFace
+        bigEye = backupBigEye
+        slimNose = backupSlimNose
+        mouth = backupMouth
+        hairline = backupHairline
+        jaw = backupJaw
+    }
+    
+    /// 用户改了子项：退出一键模式，但保留当前数值当手动值
+    func leaveOneClickKeepingValues() {
+        oneClickEnabled = false
+    }
+    
+    /// 直播向的中等预设：磨皮明显、美白克制、轻量形变
+    private func applyOneClickPreset() {
+        smooth = 55
+        whitening = 38
+        brightEyes = 34
+        whiteTeeth = 28
+        slimFace = 16
+        bigEye = 22
+        slimNose = 10
+        mouth = 8
+        hairline = 6
+        jaw = 12
     }
 }
 

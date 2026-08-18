@@ -3,7 +3,7 @@
 //  LiveStreaming
 //
 //  美颜卡片内容：对齐调色面板——对比、横向图标、单滑杆。
-//  磨皮 / 美白 / 亮眼 / 白牙用滑杆；网格点按开关；重塑点按进入子页。
+//  磨皮 / 美白 / 亮眼 / 白牙用滑杆；一键套预设且与手动互斥；网格点按开关；重塑点按进入子页。
 //
 
 import UIKit
@@ -18,6 +18,10 @@ protocol OFBeautyEditorViewDelegate: AnyObject {
     func beautyEditorDidToggleMesh(_ editor: OFBeautyEditorView)
     /// 点面部重塑
     func beautyEditorDidTapReshape(_ editor: OFBeautyEditorView)
+    /// 点一键美颜
+    func beautyEditorDidToggleOneClick(_ editor: OFBeautyEditorView)
+    /// 点了磨皮等子项或进入重塑，退出一键模式并保留当前数值
+    func beautyEditorDidLeaveOneClick(_ editor: OFBeautyEditorView)
 }
 
 /// 美颜卡片内容：对比、横向图标、单滑杆。
@@ -41,6 +45,8 @@ class OFBeautyEditorView: UIView {
     private var selectedKey: OFBeautyPanelKey = .smooth
     /// 人脸网格是否打开，用来画选中圈
     private var meshOn = false
+    /// 一键美颜是否打开
+    private var oneClickOn = false
     
     /// 按住对比未美颜画面
     private let compareButton = UIButton(type: .custom)
@@ -70,11 +76,19 @@ class OFBeautyEditorView: UIView {
     /// - Parameters:
     ///   - rows: 面板行
     ///   - meshOn: 网格是否打开
-    func reload(rows: [OFBeautySliderRow], meshOn: Bool) {
+    ///   - oneClickOn: 一键美颜是否打开
+    func reload(rows: [OFBeautySliderRow], meshOn: Bool, oneClickOn: Bool) {
         self.rows = rows
         self.meshOn = meshOn
-        if !selectedKey.usesSlider, let first = rows.first(where: { $0.key.usesSlider }) {
-            selectedKey = first.key
+        self.oneClickOn = oneClickOn
+        if oneClickOn {
+            selectedKey = .oneClick
+            slider.isHidden = true
+        } else {
+            slider.isHidden = false
+            if !selectedKey.usesSlider, let first = rows.first(where: { $0.key.usesSlider }) {
+                selectedKey = first.key
+            }
         }
         iconCollection.reloadData()
         syncSlider()
@@ -186,10 +200,12 @@ extension OFBeautyEditorView: UICollectionViewDataSource, UICollectionViewDelega
         switch row.key {
         case .faceMesh:
             selected = meshOn
+        case .oneClick:
+            selected = oneClickOn
         case .faceReshape:
             selected = false
         default:
-            selected = row.key == selectedKey
+            selected = !oneClickOn && row.key == selectedKey
         }
         cell.bind(row: row, selected: selected)
         return cell
@@ -204,13 +220,25 @@ extension OFBeautyEditorView: UICollectionViewDataSource, UICollectionViewDelega
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let key = rows[indexPath.item].key
         switch key {
+        case .oneClick:
+            delegate?.beautyEditorDidToggleOneClick(self)
         case .faceMesh:
             delegate?.beautyEditorDidToggleMesh(self)
         case .faceReshape:
+            if oneClickOn {
+                oneClickOn = false
+                delegate?.beautyEditorDidLeaveOneClick(self)
+            }
             delegate?.beautyEditorDidTapReshape(self)
         case .smooth, .whitening, .brightEyes, .whiteTeeth:
             selectedKey = key
+            if oneClickOn {
+                oneClickOn = false
+                slider.isHidden = false
+                delegate?.beautyEditorDidLeaveOneClick(self)
+            }
             collectionView.reloadData()
+            slider.isHidden = false
             syncSlider()
         }
     }
@@ -307,6 +335,19 @@ enum OFBeautyIconDrawer {
         path.lineCapStyle = .round
         path.lineJoinStyle = .round
         switch key {
+        case .oneClick:
+            // 四角星：一键套用
+            path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.midX + 2.2, y: rect.midY - 2.2))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.midX + 2.2, y: rect.midY + 2.2))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.midX - 2.2, y: rect.midY + 2.2))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.midX - 2.2, y: rect.midY - 2.2))
+            path.close()
+            path.fill()
+            return
         case .smooth:
             UIBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 3)).stroke()
             path.move(to: CGPoint(x: rect.minX + 2, y: rect.maxY - 2))
