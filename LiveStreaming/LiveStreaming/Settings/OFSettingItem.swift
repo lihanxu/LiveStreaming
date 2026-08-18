@@ -325,7 +325,7 @@ class OFBeautySettings {
             && abs(jaw) < 0.5
     }
     
-    /// 着色滑杆写成 GPU 强度。美白上限减半，亮眼/白牙上限加半。
+    /// 着色滑杆写成 GPU 强度。美白与滑杆 1:1；亮眼/白牙上限加半。
     /// - Parameters:
     ///   - slider: 0…100
     ///   - key: 着色项
@@ -333,10 +333,8 @@ class OFBeautySettings {
     static func toneGpuStrength(_ slider: Float, key: OFBeautyToneKey) -> Float {
         let unit = min(1, max(0, slider / 100))
         switch key {
-        case .smooth:
+        case .smooth, .whitening:
             return unit
-        case .whitening:
-            return unit * 0.5
         case .brightEyes, .whiteTeeth:
             return unit * 1.5
         }

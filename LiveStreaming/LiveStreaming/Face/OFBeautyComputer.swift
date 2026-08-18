@@ -4,7 +4,7 @@
 //
 //  美颜节点：磨皮、美白、亮眼、白牙。
 //  磨皮对齐 BeautifyFaceDemo：半分辨率可分离双边 + Sobel 保边 + 肤色检测。
-//  美白用同一套 log 曲线；亮眼/白牙仍靠关键点遮罩。
+//  美白：脸区关键点采样当前肤色，全图按色度匹配皮肤（含脖子/手臂）；亮眼/白牙仍靠关键点遮罩。
 //
 
 import Foundation
@@ -25,7 +25,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     private var blurVPipeline: MTLComputePipelineState?
     /// 按遮罩合成四项效果
     private var applyPipeline: MTLComputePipelineState?
-    /// smooth / whitening / brightEyes / whiteTeeth，与 Metal BeautyParams 对齐
+    /// 与 Metal BeautyParams 对齐：四项强度 + 肤色 RGB + skinValid
     private var paramsBuffer: MTLBuffer?
     /// 当前档位强度
     private var smooth: Float = 0
@@ -35,6 +35,14 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     private var brightEyes: Float = 0
     /// 白牙强度 0…1
     private var whiteTeeth: Float = 0
+    /// 从脸颊/额区估出的肤色 R，给全图美白匹配用
+    private var skinRefR: Float = 0.72
+    /// 肤色 G
+    private var skinRefG: Float = 0.55
+    /// 肤色 B
+    private var skinRefB: Float = 0.48
+    /// 1 表示本趟采样有效；0 则 shader 只靠启发式肤色检测
+    private var skinValid: Float = 0
     /// 总开关
     private var masterEnabled = false
     /// 按住对比时为 true，节点跳过但参数保留
@@ -121,9 +129,9 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         return smooth < 0.001 && whitening < 0.001 && brightEyes < 0.001 && whiteTeeth < 0.001
     }
     
-    /// 把 4 个 float 写进已有 GPU buffer，避免每帧重新分配
+    /// 把 BeautyParams 写进已有 GPU buffer，避免每帧重新分配
     private func syncParamsBuffer() {
-        let packed: [Float] = [smooth, whitening, brightEyes, whiteTeeth]
+        let packed: [Float] = [smooth, whitening, brightEyes, whiteTeeth, skinRefR, skinRefG, skinRefB, skinValid]
         let byteCount = packed.count * MemoryLayout<Float>.size
         if paramsBuffer == nil || (paramsBuffer?.length ?? 0) < byteCount {
             paramsBuffer = defalutMetal.device?.makeBuffer(length: byteCount, options: .storageModeShared)
@@ -210,11 +218,82 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         return false
     }
     
+    /// 脸颊/鼻翼旁/眉心，避开唇眼，用来估当前肤色
+    private static let skinSampleIndices = [50, 101, 116, 117, 187, 205, 280, 330, 346, 347, 411, 425, 151]
+    
+    /// 在人脸关键点邻域采样 BGRA，得到当前肤色中心。跟遮罩同频，避免每帧锁 buffer。
+    /// - Parameters:
+    ///   - face: 归一化关键点
+    ///   - pixelBuffer: 当前帧，BGRA
+    private func sampleFaceSkin(face: [CGPoint], pixelBuffer: CVPixelBuffer) {
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        guard width > 8, height > 8, face.count >= 426 else {
+            return
+        }
+        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        defer {
+            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+        }
+        guard let base = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+            return
+        }
+        let stride = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        let ptr = base.assumingMemoryBound(to: UInt8.self)
+        var sumR: Float = 0
+        var sumG: Float = 0
+        var sumB: Float = 0
+        var count: Float = 0
+        for index in Self.skinSampleIndices {
+            let px = Int((face[index].x * CGFloat(width)).rounded())
+            let py = Int((face[index].y * CGFloat(height)).rounded())
+            for dy in -2...2 {
+                for dx in -2...2 {
+                    let x = min(max(px + dx, 0), width - 1)
+                    let y = min(max(py + dy, 0), height - 1)
+                    let offset = y * stride + x * 4
+                    let b = Float(ptr[offset]) / 255.0
+                    let g = Float(ptr[offset + 1]) / 255.0
+                    let r = Float(ptr[offset + 2]) / 255.0
+                    let luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                    // 1. 丢掉过暗过亮（阴影、高光、头发）
+                    if luma < 0.14 || luma > 0.90 {
+                        continue
+                    }
+                    // 2. 只要偏暖的像素，避免采到衣服/背景
+                    if r + 0.02 < b || r + 0.03 < g {
+                        continue
+                    }
+                    sumR += r
+                    sumG += g
+                    sumB += b
+                    count += 1
+                }
+            }
+        }
+        guard count > 24 else {
+            return
+        }
+        let meanR = sumR / count
+        let meanG = sumG / count
+        let meanB = sumB / count
+        lock.lock()
+        // 3. 指数平滑，灯光抖动时肤色中心不跳
+        let alpha: Float = skinValid > 0.5 ? 0.28 : 1.0
+        skinRefR = skinRefR * (1.0 - alpha) + meanR * alpha
+        skinRefG = skinRefG * (1.0 - alpha) + meanG * alpha
+        skinRefB = skinRefB * (1.0 - alpha) + meanB * alpha
+        skinValid = 1
+        syncParamsBuffer()
+        lock.unlock()
+    }
+    
     /// 有人脸时按遮罩做磨皮/美白/亮眼/白牙
     /// - Parameter frame: 原地替换 pixelBuffer / texture
     func process(_ frame: VideoFrame) {
         lock.lock()
         let needBlur = smooth > 0.001
+        let needWhite = whitening > 0.001
         lock.unlock()
         guard let applyPipeline = applyPipeline, let paramsBuffer = paramsBuffer else {
             return
@@ -226,6 +305,9 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         if shouldRebuildMask(face: face) {
             guard regionMask?.update(face: face) == true else {
                 return
+            }
+            if needWhite {
+                sampleFaceSkin(face: face, pixelBuffer: frame.pixelBuffer)
             }
         }
         guard let maskTexture = regionMask?.texture else {

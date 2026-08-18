@@ -341,12 +341,16 @@ kernel void colorAdjustDetail(texture2d<float, access::read> videoTexture [[text
     destTexture.write(float4(clamp(rgb, 0.0, 1.0), center4.a), gid);
 }
 
-// 与 OFBeautyComputer 参数顺序一致：smooth, whitening, brightEyes, whiteTeeth
+// 与 OFBeautyComputer 参数顺序一致：四项强度 + 脸区估的肤色中心 + 是否有效
 struct BeautyParams {
     float smooth;
     float whitening;
     float brightEyes;
     float whiteTeeth;
+    float skinR;
+    float skinG;
+    float skinB;
+    float skinValid;
 };
 
 /// BeautifyFace 肤色启发式改成软权重。硬阈值会把鼻侧/眼窝阴影判成非皮肤，美白后变成黑斑。
@@ -491,8 +495,20 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         rgb = mix(origin, bilateral, mixW);
     }
     
-    // 2. 美白：轻量 screen + 少量去红。强度打满也不整脸替换成灰白，避免煞白
-    float whiteW = p.whitening * skinMask * 0.48;
+    // 2. 美白：用脸区估的肤色中心在全图找皮肤（脖子/手臂也要白），脸椭圆只作保底
+    float bodySkin = detect;
+    if (p.skinValid > 0.5) {
+        float3 ref = float3(p.skinR, p.skinG, p.skinB);
+        float y = rec709Luma(origin);
+        float refY = rec709Luma(ref);
+        float dChroma = length(float2((origin.b - y) - (ref.b - refY), (origin.r - y) - (ref.r - refY)));
+        float dY = abs(y - refY);
+        float match = (1.0 - smoothstep(0.05, 0.14, dChroma)) * (1.0 - smoothstep(0.28, 0.52, dY));
+        bodySkin *= mix(0.25, 1.0, match);
+    }
+    float skinW = max(bodySkin, skinMask * mix(0.75, 1.0, detect));
+    skinW *= (1.0 - maskHard.g) * (1.0 - maskHard.b);
+    float whiteW = p.whitening * skinW * 0.48;
     if (whiteW > 0.01) {
         float luma = rec709Luma(rgb);
         float lift = whiteW * (0.14 + 0.08 * (1.0 - luma));
