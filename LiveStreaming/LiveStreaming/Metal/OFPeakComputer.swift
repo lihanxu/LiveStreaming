@@ -4,7 +4,7 @@
 //
 //  Created by anker on 2021/12/6.
 //
-//  Peak 节点：Laplacian 高反差描边，用于对焦辅助。关闭时透传。
+//  Peak 节点：高斯平滑 + Sobel 描边，用于对焦辅助。关闭时透传。
 //
 
 import Foundation
@@ -73,7 +73,7 @@ class OFPeakComputer: NSObject, OFProcessNode {
         return outputTexture
     }
     
-    /// 打开时跑 peak kernel，结果写回 frame
+    /// 打开时跑 peak kernel（去噪 Sobel），结果写回 frame
     /// - Parameter frame: 会被原地替换 pixelBuffer 与 texture
     func input(frame: VideoFrame) {
         if state == false {

@@ -29,67 +29,89 @@ kernel void assistTools(texture2d<float, access::read> videoTexture [[texture(0)
     destTexture.write(assistColor, threadPosInGrid);
 }
 
-// Laplacian 高反差：邻域 8 点权重 -1、中心 +8，超过阈值画白边
+/// Rec.709 亮度；越界像素钳到画面内，避免边框假边缘。
+static inline float peakLuma(texture2d<float, access::read> tex, uint2 pos, uint2 maxPos) {
+    float4 c = tex.read(min(pos, maxPos));
+    return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+}
+
+/// 对 5×5 亮度窗口做 3×3 高斯，返回以 (cx, cy) 为中心的平滑值（cx/cy 取值 1…3）。
+static inline float peakBlur3(thread const float n[5][5], int cx, int cy) {
+    return (n[cy - 1][cx - 1] + 2.0 * n[cy - 1][cx] + n[cy - 1][cx + 1]
+          + 2.0 * n[cy][cx - 1] + 4.0 * n[cy][cx] + 2.0 * n[cy][cx + 1]
+          + n[cy + 1][cx - 1] + 2.0 * n[cy + 1][cx] + n[cy + 1][cx + 1]) * (1.0 / 16.0);
+}
+
+/// 边缘检测：先高斯去传感器噪点，再 Sobel；用局部对比度 + 尖峰抑制去掉孤立白点。
 kernel void peak(texture2d<float, access::read> videoTexture [[texture(0)]],
                  texture2d<float, access::write> destTexture [[texture(1)]],
                  constant uint *size [[ buffer(0) ]],
                  constant int *state [[ buffer(1) ]],
                  const uint2 threadPosInGrid [[thread_position_in_grid]])
 {
-    float4 peakColor = float4(1.0, 1.0, 1.0, 1.0);
-    float4 outputColor = float4(0.0, 0.0, 0.0, 0.0);
-    
+    float4 outputColor = float4(0.0, 0.0, 0.0, 1.0);
+
     if (state[0] == 0) {
         outputColor = videoTexture.read(threadPosInGrid);
-    } else if (threadPosInGrid.x == size[0] - 1 || threadPosInGrid.y == size[1] - 1 || threadPosInGrid.x == 0 || threadPosInGrid.y == 0) {
-        outputColor = float4(0.0, 0.0, 0.0, 1.0);
-    } else {
-        float4 color;
-        float yAdd = 0.0;
-        float y = 0.0;
-        // -1,-1 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x - 1, threadPosInGrid.y - 1));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // 0,-1 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x, threadPosInGrid.y - 1));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // 1,-1 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x + 1, threadPosInGrid.y - 1));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // -1,0 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x - 1, threadPosInGrid.y));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // 0,0 --> 8
-        color = videoTexture.read(uint2(threadPosInGrid.x, threadPosInGrid.y));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (8.0 * y);
-        // 1,0 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x + 1, threadPosInGrid.y));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // -1,1 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x - 1, threadPosInGrid.y + 1));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // 0,1 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x, threadPosInGrid.y + 1));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        // 1,1 --> -1
-        color = videoTexture.read(uint2(threadPosInGrid.x + 1, threadPosInGrid.y + 1));
-        y = (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
-        yAdd = yAdd + (-1.0 * y);
-        
-        float peakSensitivity = 0.05;
-        
-        if (yAdd > peakSensitivity) {
-            outputColor = peakColor;
+        destTexture.write(outputColor, threadPosInGrid);
+        return;
+    }
+
+    uint2 maxPos = uint2(size[0] - 1, size[1] - 1);
+    // 5×5 窗口需要至少距边 2 像素
+    if (threadPosInGrid.x < 2 || threadPosInGrid.y < 2
+        || threadPosInGrid.x + 2 > maxPos.x || threadPosInGrid.y + 2 > maxPos.y) {
+        destTexture.write(outputColor, threadPosInGrid);
+        return;
+    }
+
+    // 1. 读 5×5 亮度，供后续高斯 / Sobel 复用，避免重复采样
+    float n[5][5];
+    for (int y = 0; y < 5; y++) {
+        for (int x = 0; x < 5; x++) {
+            n[y][x] = peakLuma(videoTexture, threadPosInGrid + uint2(x - 2, y - 2), maxPos);
         }
     }
+
+    // 2. 内层 3×3 高斯平滑：压掉单像素噪点，真边缘对比度仍在
+    float b[3][3];
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            b[y][x] = peakBlur3(n, x + 1, y + 1);
+        }
+    }
+
+    // 3. Sobel 梯度幅值（比 Laplacian 更抗各向同性噪点）
+    float gx = -b[0][0] + b[0][2] - 2.0 * b[1][0] + 2.0 * b[1][2] - b[2][0] + b[2][2];
+    float gy = -b[0][0] - 2.0 * b[0][1] - b[0][2] + b[2][0] + 2.0 * b[2][1] + b[2][2];
+    float mag = sqrt(gx * gx + gy * gy);
+
+    // 4. 局部动态范围：平滑后仍几乎平坦的区域视为噪声，不画边
+    float localMin = b[0][0];
+    float localMax = b[0][0];
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            localMin = min(localMin, b[y][x]);
+            localMax = max(localMax, b[y][x]);
+        }
+    }
+    float localRange = localMax - localMin;
+
+    // 5. 沿主梯度方向亮度应单调穿越中心；两侧同号是尖峰噪点，丢掉
+    bool notSpike;
+    if (abs(gx) >= abs(gy)) {
+        notSpike = (b[1][0] - b[1][1]) * (b[1][2] - b[1][1]) < 0.0;
+    } else {
+        notSpike = (b[0][1] - b[1][1]) * (b[2][1] - b[1][1]) < 0.0;
+    }
+
+    // mag / range 阈值针对 1080p 前置传感器噪点：低于此多为皮肤纹理与 ISO 噪点
+    constexpr float magThresh = 0.22;
+    constexpr float rangeThresh = 0.10;
+    if (notSpike && mag > magThresh && localRange > rangeThresh) {
+        outputColor = float4(1.0, 1.0, 1.0, 1.0);
+    }
+
     destTexture.write(outputColor, threadPosInGrid);
 }
 
