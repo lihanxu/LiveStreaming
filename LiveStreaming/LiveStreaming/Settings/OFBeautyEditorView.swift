@@ -2,8 +2,8 @@
 //  OFBeautyEditorView.swift
 //  LiveStreaming
 //
-//  美颜卡片内容：对齐调色面板——对比、横向图标、单滑杆。
-//  磨皮 / 美白 / 亮眼 / 白牙用滑杆；一键套预设且与手动互斥；网格点按开关；重塑点按进入子页。
+//  美颜卡片内容：横向图标、单滑杆。对比按钮在设置卡片外由外壳放置。
+//  磨皮 / 美白 / 亮眼 / 白牙用滑杆；点美白进入暖白/冷白/粉白二级页；一键与手动互斥。
 //
 
 import UIKit
@@ -12,19 +12,19 @@ import UIKit
 protocol OFBeautyEditorViewDelegate: AnyObject {
     /// 拖动着色滑杆
     func beautyEditor(_ editor: OFBeautyEditorView, didChange key: OFBeautyToneKey, value: Float)
-    /// 按住对比时旁路着色，松开关闭
-    func beautyEditor(_ editor: OFBeautyEditorView, compareHolding: Bool)
     /// 点人脸网格
     func beautyEditorDidToggleMesh(_ editor: OFBeautyEditorView)
     /// 点面部重塑
     func beautyEditorDidTapReshape(_ editor: OFBeautyEditorView)
+    /// 点美白，进入风格二级页
+    func beautyEditorDidTapWhiteningStyle(_ editor: OFBeautyEditorView)
     /// 点一键美颜
     func beautyEditorDidToggleOneClick(_ editor: OFBeautyEditorView)
     /// 点了磨皮等子项或进入重塑，退出一键模式并保留当前数值
     func beautyEditorDidLeaveOneClick(_ editor: OFBeautyEditorView)
 }
 
-/// 美颜卡片内容：对比、横向图标、单滑杆。
+/// 美颜卡片内容：横向图标、单滑杆。
 class OFBeautyEditorView: UIView {
     /// 图标区高度
     private let iconRowHeight: CGFloat = 72
@@ -32,8 +32,6 @@ class OFBeautyEditorView: UIView {
     private let iconItemWidth: CGFloat = 56
     /// 滑杆区高度
     private let sliderRowHeight: CGFloat = 44
-    /// 对比按钮边长
-    private let compareSize: CGFloat = 36
     /// 滑杆强调色
     private let accentColor = UIColor(red: 1.0, green: 0.42, blue: 0.18, alpha: 1.0)
     
@@ -48,14 +46,12 @@ class OFBeautyEditorView: UIView {
     /// 一键美颜是否打开
     private var oneClickOn = false
     
-    /// 按住对比未美颜画面
-    private let compareButton = UIButton(type: .custom)
     /// 横向图标列表
     private var iconCollection: UICollectionView!
     /// 当前项灵敏度
     private let slider = UISlider()
     
-    /// 组装对比按钮、图标、滑杆
+    /// 组装图标、滑杆
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
@@ -69,7 +65,7 @@ class OFBeautyEditorView: UIView {
     /// 卡片内内容高度
     /// - Returns: 不含顶栏和指示条
     func contentHeight() -> CGFloat {
-        return 8 + compareSize + 4 + iconRowHeight + sliderRowHeight
+        return 8 + iconRowHeight + sliderRowHeight
     }
     
     /// 用最新参数刷新；保留当前着色项
@@ -97,16 +93,9 @@ class OFBeautyEditorView: UIView {
         }
     }
     
-    /// 对比按钮、横向列表、滑杆
+    /// 横向列表、滑杆
     private func setupViews() {
         backgroundColor = .clear
-        
-        compareButton.setImage(OFColorAdjustIconDrawer.compareImage(size: compareSize), for: .normal)
-        compareButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
-        compareButton.layer.cornerRadius = compareSize / 2
-        compareButton.addTarget(self, action: #selector(handleCompareDown), for: .touchDown)
-        compareButton.addTarget(self, action: #selector(handleCompareUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        addSubview(compareButton)
         
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -126,17 +115,11 @@ class OFBeautyEditorView: UIView {
         slider.addTarget(self, action: #selector(handleSlider), for: .valueChanged)
         addSubview(slider)
         
-        compareButton.translatesAutoresizingMaskIntoConstraints = false
         iconCollection.translatesAutoresizingMaskIntoConstraints = false
         slider.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            compareButton.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            compareButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            compareButton.widthAnchor.constraint(equalToConstant: compareSize),
-            compareButton.heightAnchor.constraint(equalToConstant: compareSize),
-            
-            iconCollection.topAnchor.constraint(equalTo: compareButton.bottomAnchor, constant: 4),
+            iconCollection.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             iconCollection.leadingAnchor.constraint(equalTo: leadingAnchor),
             iconCollection.trailingAnchor.constraint(equalTo: trailingAnchor),
             iconCollection.heightAnchor.constraint(equalToConstant: iconRowHeight),
@@ -173,16 +156,6 @@ class OFBeautyEditorView: UIView {
                 maximum: rows[index].maximum
             )
         }
-    }
-    
-    /// 按住对比：临时关掉磨皮美白亮眼白牙
-    @objc private func handleCompareDown() {
-        delegate?.beautyEditor(self, compareHolding: true)
-    }
-    
-    /// 松开对比
-    @objc private func handleCompareUp() {
-        delegate?.beautyEditor(self, compareHolding: false)
     }
 }
 
@@ -230,7 +203,15 @@ extension OFBeautyEditorView: UICollectionViewDataSource, UICollectionViewDelega
                 delegate?.beautyEditorDidLeaveOneClick(self)
             }
             delegate?.beautyEditorDidTapReshape(self)
-        case .smooth, .whitening, .brightEyes, .whiteTeeth:
+        case .whitening:
+            selectedKey = key
+            if oneClickOn {
+                oneClickOn = false
+                slider.isHidden = false
+                delegate?.beautyEditorDidLeaveOneClick(self)
+            }
+            delegate?.beautyEditorDidTapWhiteningStyle(self)
+        case .smooth, .brightEyes, .whiteTeeth:
             selectedKey = key
             if oneClickOn {
                 oneClickOn = false

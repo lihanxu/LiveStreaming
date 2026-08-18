@@ -39,6 +39,8 @@ class OFSettingsController {
             return makeCartoonPage()
         case .beauty:
             return makeBeautyPage()
+        case .whiteningStyle:
+            return makeWhiteningStylePage()
         case .faceReshape:
             return makeFaceReshapePage()
         case .colorAdjust:
@@ -76,6 +78,11 @@ class OFSettingsController {
             return .reload
         case .beauty:
             return .push(.beauty)
+        case .whiteningStylePreset(let style):
+            beauty.leaveOneClickKeepingValues()
+            beauty.whiteningStyle = style
+            syncBeautyMaster()
+            return .reload
         case .faceReshape:
             return .push(.faceReshape)
         case .colorAdjust:
@@ -110,17 +117,24 @@ class OFSettingsController {
         return OFSettingsPage(id: .root, title: "设置", items: items)
     }
     
-    /// LUT 二级页：点某一项直接选中该预设
+    /// LUT 二级页：横向预设 + 灵敏度滑杆，对齐调色
     /// - Returns: LUT 页
     private func makeLUTPage() -> OFSettingsPage {
         let current = tools.currentLUTIndex
-        var items: [OFSettingItem] = []
-        for (index, preset) in OFLUTPreset.all.enumerated() {
-            let name = preset.fileName == nil ? "关" : preset.displayName
-            let mark = index == current ? "已选" : "—"
-            items.append(OFSettingItem(id: .lutPreset(index), title: name, valueText: mark, interaction: .cycle))
+        let options = OFLUTPreset.all.enumerated().map { index, preset in
+            OFOptionSliderRow(id: index, title: preset.fileName == nil ? "关" : preset.displayName)
         }
-        return OFSettingsPage(id: .lut, title: "LUT", items: items)
+        let enabled = OFLUTPreset.all.indices.contains(current) && OFLUTPreset.all[current].fileName != nil
+        return OFSettingsPage(
+            id: .lut,
+            title: "LUT",
+            optionSlider: OFOptionSliderPage(
+                options: options,
+                selectedID: current,
+                intensity: tools.lutIntensitySlider,
+                intensityEnabled: enabled
+            )
+        )
     }
     
     /// 漫画风二级页：关闭 / 宫崎骏 / 新海诚
@@ -135,13 +149,31 @@ class OFSettingsController {
         return OFSettingsPage(id: .cartoon, title: "漫画风", items: items)
     }
     
-    /// 美颜二级页：对比 + 横向图标 + 滑杆
+    /// 美颜二级页：横向图标 + 滑杆；美白点进去选风格
     /// - Returns: 美颜页
     private func makeBeautyPage() -> OFSettingsPage {
         return OFSettingsPage(
             id: .beauty,
             title: "美颜",
             beautySliders: beauty.beautySliderRows(meshOn: tools.isFaceMeshOverlayEnabled)
+        )
+    }
+    
+    /// 美白风格页：暖白 / 冷白 / 粉白 + 灵敏度，对齐调色
+    /// - Returns: 美白页
+    private func makeWhiteningStylePage() -> OFSettingsPage {
+        let options = OFWhiteningStyle.allCases.map { style in
+            OFOptionSliderRow(id: style.rawValue, title: style.title)
+        }
+        return OFSettingsPage(
+            id: .whiteningStyle,
+            title: "美白",
+            optionSlider: OFOptionSliderPage(
+                options: options,
+                selectedID: beauty.whiteningStyle.rawValue,
+                intensity: beauty.whitening,
+                intensityEnabled: true
+            )
         )
     }
     
@@ -155,6 +187,53 @@ class OFSettingsController {
     /// - Returns: 滑杆页
     private func makeColorAdjustPage() -> OFSettingsPage {
         return OFSettingsPage(id: .colorAdjust, title: "调色", sliders: tools.colorAdjustSliderRows())
+    }
+    
+    /// 选中 LUT 预设；从关切到有色表时若灵敏度为 0 则拉满，避免看起来没效果
+    /// - Parameter id: 预设下标
+    func selectLUTOption(_ id: Int) {
+        tools.applyLUT(at: id)
+        let hasLUT = OFLUTPreset.all.indices.contains(id) && OFLUTPreset.all[id].fileName != nil
+        if hasLUT, tools.lutIntensitySlider < 0.5 {
+            tools.setLUTIntensity(100)
+        }
+    }
+    
+    /// 拖动 LUT 灵敏度
+    /// - Parameter value: 0…100
+    func updateLUTIntensity(_ value: Float) {
+        tools.setLUTIntensity(value)
+    }
+    
+    /// LUT 灵敏度拉回 100
+    func resetLUTIntensity() {
+        tools.setLUTIntensity(100)
+    }
+    
+    /// 选中美白风格；强度为 0 时给默认 50，避免只换风格看不见变化
+    /// - Parameter id: 风格 rawValue
+    func selectWhiteningOption(_ id: Int) {
+        beauty.leaveOneClickKeepingValues()
+        beauty.whiteningStyle = OFWhiteningStyle(rawValue: id) ?? .warm
+        if beauty.whitening < 0.5 {
+            beauty.whitening = 50
+        }
+        syncBeautyMaster()
+    }
+    
+    /// 拖动美白灵敏度
+    /// - Parameter value: 0…100
+    func updateWhiteningIntensity(_ value: Float) {
+        beauty.leaveOneClickKeepingValues()
+        beauty.setToneValue(value, for: .whitening)
+        syncBeautyMaster()
+    }
+    
+    /// 美白灵敏度归零
+    func resetWhiteningIntensity() {
+        beauty.leaveOneClickKeepingValues()
+        beauty.setToneValue(0, for: .whitening)
+        syncBeautyMaster()
     }
     
     /// 拖动面部重塑滑杆，即时写入 GPU
@@ -272,6 +351,12 @@ class OFSettingsController {
     /// - Parameter holding: 是否按住
     func setColorAdjustCompareHolding(_ holding: Bool) {
         tools.setColorAdjustBypassed(holding)
+    }
+    
+    /// 按住对比时旁路 LUT
+    /// - Parameter bypassed: true 看未套 LUT 的画面
+    func setLUTBypassed(_ bypassed: Bool) {
+        tools.setLUTBypassed(bypassed)
     }
     
     /// 调色全部复位

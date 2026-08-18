@@ -139,6 +139,7 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
                      texture2d<float, access::read> lutTexture [[texture(1)]],
                      texture2d<float, access::write> destTexture [[texture(2)]],
                      constant uint *size [[ buffer(0) ]],
+                     constant float *intensity [[ buffer(1) ]],
                      const uint2 threadPosInGrid [[thread_position_in_grid]])
 {
     // size 必须是 uint32 宽高；越界线程直接返回，避免写坏目标纹理
@@ -207,7 +208,7 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
         }
     }
     
-    destTexture.write(float4(c, colorAtPixel.a), threadPosInGrid);
+    destTexture.write(float4(mix(colorAtPixel.rgb, c, intensity[0]), colorAtPixel.a), threadPosInGrid);
 }
 
 // 与 OFColorAdjustParams.gpuPacked 顺序一致；14 个 float 紧密排布
@@ -341,7 +342,7 @@ kernel void colorAdjustDetail(texture2d<float, access::read> videoTexture [[text
     destTexture.write(float4(clamp(rgb, 0.0, 1.0), center4.a), gid);
 }
 
-// 与 OFBeautyComputer 参数顺序一致：四项强度 + 脸区估的肤色中心 + 是否有效
+// 与 OFBeautyComputer 参数顺序一致：四项强度 + 脸区估的肤色中心 + 是否有效 + 美白风格
 struct BeautyParams {
     float smooth;
     float whitening;
@@ -351,6 +352,8 @@ struct BeautyParams {
     float skinG;
     float skinB;
     float skinValid;
+    /// 0 暖白  1 冷白  2 粉白
+    float whiteStyle;
 };
 
 /// BeautifyFace 肤色启发式改成软权重。硬阈值会把鼻侧/眼窝阴影判成非皮肤，美白后变成黑斑。
@@ -365,6 +368,43 @@ static inline float beautySkinDetect(float3 c) {
     float rg = smoothstep(-0.05, 0.02, r - g);
     float ch = smoothstep(0.01, 0.05, chroma);
     return tone * mix(0.55, 1.0, warm * rg * ch);
+}
+
+/// 同一套亮度曲线，再按风格偏色。阴影也抬，避免眼窝相对脸颊变成灰块。
+/// - style: 0 暖白  1 冷白  2 粉白
+static inline float3 beautyWhiten(float3 rgb, float whiteW, float style) {
+    float luma = rec709Luma(rgb);
+    float lo = mix(0.70, 1.0, smoothstep(0.04, 0.22, luma));
+    float hi = 1.0 - smoothstep(0.84, 0.97, luma);
+    float targetY = min(0.97, luma + whiteW * 0.10 * lo * hi);
+    float3 c = rgb * (targetY / max(luma, 1e-4));
+    float yellow = max(0.0, (c.r + c.g) * 0.5 - c.b);
+    float shadow = 1.0 - smoothstep(0.10, 0.34, luma);
+    float mid = smoothstep(0.16, 0.40, luma) * (1.0 - smoothstep(0.72, 0.92, luma));
+    if (style < 0.5) {
+        // 暖白：提亮、黄桃底留下；R/G 对称收潮红，避免偏大红
+        float flush = max(0.0, c.r - c.g - 0.05);
+        c.r -= flush * 0.20 * whiteW;
+        c += float3(0.010, 0.007, -0.004) * whiteW;
+        c += float3(0.012, 0.008, 0.002) * shadow * whiteW;
+    } else if (style < 1.5) {
+        // 冷白：去黄到中性瓷白；R/G 同比减黄。阴影补一点色度，不要死灰
+        c.r -= yellow * 0.24 * whiteW;
+        c.g -= yellow * 0.24 * whiteW;
+        c.b += yellow * 0.05 * whiteW;
+        float flush = max(0.0, c.r - c.g);
+        c.r -= flush * 0.14 * whiteW;
+        c += float3(0.006, 0.006, 0.010) * shadow * whiteW;
+    } else {
+        // 粉白：去黄后中灰加品红（+R +B），并压掉原有潮红，避免整脸过红
+        c.r -= yellow * 0.16 * whiteW;
+        c.g -= yellow * 0.16 * whiteW;
+        c += float3(0.008, 0.000, 0.010) * whiteW * mid;
+        float flush = max(0.0, c.r - c.g - 0.02);
+        c.r -= flush * 0.28 * whiteW;
+        c += float3(0.006, 0.002, 0.008) * shadow * whiteW;
+    }
+    return c;
 }
 
 /// 3×3 Sobel 边缘强度，替代完整 Canny
@@ -461,7 +501,8 @@ kernel void beautyBilateralV(texture2d<float, access::read> srcTexture [[texture
     destTexture.write(float4(sum / max(wsum, 1e-5), 1.0), gid);
 }
 
-/// 按遮罩合成。磨皮对齐 BeautifyFace CombinationFilter：弱边缘且肤色才 mix 双边结果。
+/// 按遮罩合成。磨皮对齐 BeautifyFace CombinationFilter：弱边缘且肤色才 mix 双边；
+/// 再按残差幅度回加高频，避免高档磨皮把毛孔一起抹平。
 kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)]],
                         texture2d<float, access::sample> blurTexture [[texture(1)]],
                         texture2d<float, access::sample> maskTexture [[texture(2)]],
@@ -483,7 +524,7 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
     float3 maskHard = maskTexture.sample(nearestSampler, uv).rgb;
     float3 bilateral = blurTexture.sample(linearSampler, uv).rgb;
     
-    // 1. 磨皮：弱边缘才 mix 双边
+    // 1. 磨皮：弱边缘才 mix 双边；mix 掉的高频里只贴回毛孔量级
     float detect = beautySkinDetect(origin);
     float skin = skinMask * mix(0.80, 1.0, detect);
     float smoothW = p.smooth * skin;
@@ -493,9 +534,15 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         float edgeGate = 1.0 - smoothstep(0.12, 0.28, edge);
         float mixW = min(1.0, smoothW * edgeGate * 1.12);
         rgb = mix(origin, bilateral, mixW);
+        // 2. 残差 = 被双边抹掉的全部起伏。length 小是毛孔，大是斑/阴影，软阈值丢掉后者。
+        //    乘 mixW：五官强边本来几乎没 mix，避免再锐化一刀。高档 smooth 略多贴一点质感。
+        float3 residual = origin - bilateral;
+        float poreGate = 1.0 - smoothstep(0.022, 0.085, length(residual));
+        float texW = mixW * mix(0.30, 0.48, p.smooth);
+        rgb += residual * poreGate * texW;
     }
     
-    // 2. 美白：用脸区估的肤色中心在全图找皮肤（脖子/手臂也要白），脸椭圆只作保底
+    // 3. 美白：脸上跟遮罩走（眼窝也在椭圆里），不要被检测/亮度打出灰块；脖子手臂仍匹配肤色
     float bodySkin = detect;
     if (p.skinValid > 0.5) {
         float3 ref = float3(p.skinR, p.skinG, p.skinB);
@@ -503,25 +550,18 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         float refY = rec709Luma(ref);
         float dChroma = length(float2((origin.b - y) - (ref.b - refY), (origin.r - y) - (ref.r - refY)));
         float dY = abs(y - refY);
-        float match = (1.0 - smoothstep(0.05, 0.14, dChroma)) * (1.0 - smoothstep(0.28, 0.52, dY));
-        bodySkin *= mix(0.25, 1.0, match);
+        float match = (1.0 - smoothstep(0.05, 0.14, dChroma)) * (1.0 - smoothstep(0.38, 0.72, dY));
+        bodySkin *= mix(0.35, 1.0, match);
     }
-    float skinW = max(bodySkin, skinMask * mix(0.75, 1.0, detect));
+    float faceW = skinMask * mix(0.90, 1.0, detect);
+    float skinW = max(faceW, bodySkin);
     skinW *= (1.0 - maskHard.g) * (1.0 - maskHard.b);
-    float whiteW = p.whitening * skinW * 0.48;
+    float whiteW = p.whitening * skinW;
     if (whiteW > 0.01) {
-        float luma = rec709Luma(rgb);
-        float lift = whiteW * (0.14 + 0.08 * (1.0 - luma));
-        float3 lifted = rgb + (1.0 - rgb) * lift;
-        float liftedLuma = rec709Luma(lifted);
-        float3 fair = mix(lifted, float3(liftedLuma), 0.12);
-        float redBias = max(0.0, fair.r - fair.g);
-        fair.r -= redBias * 0.22;
-        fair.b += redBias * 0.08;
-        rgb = mix(rgb, fair, whiteW);
+        rgb = beautyWhiten(rgb, whiteW, p.whiteStyle);
     }
     
-    // 3. 亮眼：眼白明显提亮，虹膜略提；皮肤/眼皮偏暖则跳过
+    // 4. 亮眼：眼白明显提亮，虹膜略提；皮肤/眼皮偏暖则跳过
     if (p.brightEyes * maskHard.g > 0.01) {
         float luma = rec709Luma(rgb);
         float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
@@ -534,7 +574,7 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         rgb += float3(0.05, 0.055, 0.065) * eye * iris;
     }
     
-    // 4. 白牙：去黄 + 可见提亮，舌头偏红排除
+    // 5. 白牙：去黄 + 可见提亮，舌头偏红排除
     if (p.whiteTeeth * maskHard.b > 0.01) {
         float luma = rec709Luma(rgb);
         float redBias = rgb.r - max(rgb.g, rgb.b);

@@ -17,6 +17,8 @@ enum OFSettingsPageID: Equatable {
     case cartoon
     /// 美颜参数；人脸网格已接入 Face Landmarker
     case beauty
+    /// 美白风格：暖白 / 冷白 / 粉白
+    case whiteningStyle
     /// 面部重塑：瘦脸 / 大眼 / 瘦鼻 / 嘴巴 / 发际线 / 下颌
     case faceReshape
     /// 调色滑杆页
@@ -43,6 +45,8 @@ enum OFSettingID: Equatable {
     case edgeDetection
     /// 主页上的美颜入口
     case beauty
+    /// 美白风格页里选中某一档
+    case whiteningStylePreset(OFWhiteningStyle)
     /// 美颜总开关
     case beautyMaster
     /// 人脸网格预览（画 Face Landmarker 点）
@@ -77,6 +81,26 @@ struct OFSettingItem {
     let interaction: OFSettingInteraction
 }
 
+/// 互斥选项 + 一条灵敏度滑杆（LUT、美白风格）。
+struct OFOptionSliderPage {
+    /// 横向图标
+    let options: [OFOptionSliderRow]
+    /// 当前选中项 id
+    let selectedID: Int
+    /// 灵敏度 0…100
+    let intensity: Float
+    /// 选「关」时滑杆不可用
+    let intensityEnabled: Bool
+}
+
+/// 互斥选项里的一项。
+struct OFOptionSliderRow {
+    /// 稳定 id：LUT 用预设下标，美白用风格 rawValue
+    let id: Int
+    /// 图标下标题
+    let title: String
+}
+
 /// 一张设置卡片的内容。
 struct OFSettingsPage {
     /// 页标识，用于导航栈
@@ -91,6 +115,8 @@ struct OFSettingsPage {
     let reshapeSliders: [OFFaceReshapeSliderRow]
     /// 美颜着色滑杆；空表示不用美颜编辑器
     let beautySliders: [OFBeautySliderRow]
+    /// LUT / 美白风格：互斥选项 + 一条灵敏度滑杆
+    let optionSlider: OFOptionSliderPage?
     
     /// 网格页
     /// - Parameters:
@@ -104,6 +130,7 @@ struct OFSettingsPage {
         self.sliders = []
         self.reshapeSliders = []
         self.beautySliders = []
+        self.optionSlider = nil
     }
     
     /// 调色滑杆页
@@ -118,6 +145,7 @@ struct OFSettingsPage {
         self.sliders = sliders
         self.reshapeSliders = []
         self.beautySliders = []
+        self.optionSlider = nil
     }
     
     /// 面部重塑滑杆页
@@ -132,6 +160,7 @@ struct OFSettingsPage {
         self.sliders = []
         self.reshapeSliders = reshapeSliders
         self.beautySliders = []
+        self.optionSlider = nil
     }
     
     /// 美颜着色滑杆页
@@ -146,11 +175,51 @@ struct OFSettingsPage {
         self.sliders = []
         self.reshapeSliders = []
         self.beautySliders = beautySliders
+        self.optionSlider = nil
+    }
+    
+    /// LUT / 美白：横向互斥选项 + 灵敏度滑杆，对齐调色页
+    /// - Parameters:
+    ///   - id: 页 ID
+    ///   - title: 标题
+    ///   - optionSlider: 选项和当前灵敏度
+    init(id: OFSettingsPageID, title: String, optionSlider: OFOptionSliderPage) {
+        self.id = id
+        self.title = title
+        self.items = []
+        self.sliders = []
+        self.reshapeSliders = []
+        self.beautySliders = []
+        self.optionSlider = optionSlider
     }
     
     /// 是否用调色滑杆而不是四宫格
     var usesSliders: Bool {
         return !sliders.isEmpty
+    }
+}
+
+/// 美白风格，对应参考图的暖白 / 冷白 / 粉白。
+enum OFWhiteningStyle: Int, CaseIterable {
+    /// 自然暖白：提亮，保留黄桃底
+    case warm = 0
+    /// 冷白：去黄、偏瓷白中性
+    case cold = 1
+    /// 粉白：中灰加很轻的品红，不推大红
+    case pink = 2
+    
+    /// 分段控件标题
+    var title: String {
+        switch self {
+        case .warm: return "暖白"
+        case .cold: return "冷白"
+        case .pink: return "粉白"
+        }
+    }
+    
+    /// 写入 BeautyParams.whiteStyle
+    var gpuValue: Float {
+        return Float(rawValue)
     }
 }
 
@@ -209,9 +278,9 @@ enum OFBeautyPanelKey: String, CaseIterable {
     /// 是否对应 0…100 滑杆
     var usesSlider: Bool {
         switch self {
-        case .smooth, .whitening, .brightEyes, .whiteTeeth:
+        case .smooth, .brightEyes, .whiteTeeth:
             return true
-        case .oneClick, .faceMesh, .faceReshape:
+        case .oneClick, .faceMesh, .faceReshape, .whitening:
             return false
         }
     }
@@ -256,8 +325,10 @@ class OFBeautySettings {
     var isEnabled = false
     /// 磨皮，滑杆 0…100
     var smooth: Float = 0
-    /// 美白，滑杆 0…100；写入 GPU 时再乘 0.5
+    /// 美白，滑杆 0…100
     var whitening: Float = 0
+    /// 美白风格；强度为 0 时不生效
+    var whiteningStyle: OFWhiteningStyle = .warm
     /// 亮眼，滑杆 0…100；写入 GPU 时再乘 1.5
     var brightEyes: Float = 0
     /// 白牙，滑杆 0…100；写入 GPU 时再乘 1.5
@@ -280,6 +351,8 @@ class OFBeautySettings {
     private var backupSmooth: Float = 0
     /// 打开一键前的美白备份
     private var backupWhitening: Float = 0
+    /// 打开一键前的美白风格备份
+    private var backupWhiteningStyle: OFWhiteningStyle = .warm
     /// 打开一键前的亮眼备份
     private var backupBrightEyes: Float = 0
     /// 打开一键前的白牙备份
@@ -387,7 +460,8 @@ class OFBeautySettings {
     func beautySliderRows(meshOn: Bool) -> [OFBeautySliderRow] {
         return OFBeautyPanelKey.allCases.map { key in
             if let tone = key.toneKey {
-                return OFBeautySliderRow(key: key, title: key.title, value: toneValue(for: tone), minimum: 0, maximum: 100)
+                let title = key == .whitening ? whiteningStyle.title : key.title
+                return OFBeautySliderRow(key: key, title: title, value: toneValue(for: tone), minimum: 0, maximum: 100)
             }
             let flag: Float
             if key == .faceMesh && meshOn {
@@ -453,6 +527,7 @@ class OFBeautySettings {
     func enableOneClickPreset() {
         backupSmooth = smooth
         backupWhitening = whitening
+        backupWhiteningStyle = whiteningStyle
         backupBrightEyes = brightEyes
         backupWhiteTeeth = whiteTeeth
         backupSlimFace = slimFace
@@ -470,6 +545,7 @@ class OFBeautySettings {
         oneClickEnabled = false
         smooth = backupSmooth
         whitening = backupWhitening
+        whiteningStyle = backupWhiteningStyle
         brightEyes = backupBrightEyes
         whiteTeeth = backupWhiteTeeth
         slimFace = backupSlimFace
@@ -489,6 +565,7 @@ class OFBeautySettings {
     private func applyOneClickPreset() {
         smooth = 55
         whitening = 38
+        whiteningStyle = .warm
         brightEyes = 34
         whiteTeeth = 28
         slimFace = 16

@@ -11,11 +11,9 @@ import UIKit
 protocol OFColorAdjustEditorViewDelegate: AnyObject {
     /// 拖动当前项滑杆
     func colorAdjustEditor(_ editor: OFColorAdjustEditorView, didChange key: OFColorAdjustKey, value: Float)
-    /// 按住对比按钮时旁路调色，松开关闭
-    func colorAdjustEditor(_ editor: OFColorAdjustEditorView, compareHolding: Bool)
 }
 
-/// 调色卡片内容：对比、横向图标、单滑杆；外壳跟设置卡片共用。
+/// 调色卡片内容：横向图标、单滑杆；对比按钮在设置卡片外。
 class OFColorAdjustEditorView: UIView {
     /// 图标区高度（图标缩小后压低这一行）
     private let iconRowHeight: CGFloat = 72
@@ -23,8 +21,6 @@ class OFColorAdjustEditorView: UIView {
     private let iconItemWidth: CGFloat = 56
     /// 滑杆区高度
     private let sliderRowHeight: CGFloat = 44
-    /// 对比按钮边长
-    private let compareSize: CGFloat = 36
     /// 滑杆强调色（截图里的橙红圆点）
     private let accentColor = UIColor(red: 1.0, green: 0.42, blue: 0.18, alpha: 1.0)
     
@@ -35,8 +31,6 @@ class OFColorAdjustEditorView: UIView {
     /// 当前选中的调色项
     private var selectedKey: OFColorAdjustKey = .exposure
     
-    /// 按住对比原片
-    private let compareButton = UIButton(type: .custom)
     /// 横向图标列表
     private var iconCollection: UICollectionView!
     /// 当前项强度
@@ -53,10 +47,10 @@ class OFColorAdjustEditorView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    /// 卡片内内容高度：对比行 + 图标 + 滑杆
+    /// 卡片内内容高度：图标 + 滑杆
     /// - Returns: 不含顶栏和指示条
     func contentHeight() -> CGFloat {
-        return 8 + compareSize + 4 + iconRowHeight + sliderRowHeight
+        return 8 + iconRowHeight + sliderRowHeight
     }
     
     /// 用最新参数刷新图标和滑杆；保留当前选中项
@@ -73,16 +67,9 @@ class OFColorAdjustEditorView: UIView {
         }
     }
     
-    /// 对比按钮、横向列表、滑杆
+    /// 横向列表、滑杆
     private func setupViews() {
         backgroundColor = .clear
-        
-        compareButton.setImage(OFColorAdjustIconDrawer.compareImage(size: compareSize), for: .normal)
-        compareButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
-        compareButton.layer.cornerRadius = compareSize / 2
-        compareButton.addTarget(self, action: #selector(handleCompareDown), for: .touchDown)
-        compareButton.addTarget(self, action: #selector(handleCompareUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        addSubview(compareButton)
         
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -102,17 +89,11 @@ class OFColorAdjustEditorView: UIView {
         slider.addTarget(self, action: #selector(handleSlider), for: .valueChanged)
         addSubview(slider)
         
-        compareButton.translatesAutoresizingMaskIntoConstraints = false
         iconCollection.translatesAutoresizingMaskIntoConstraints = false
         slider.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            compareButton.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            compareButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            compareButton.widthAnchor.constraint(equalToConstant: compareSize),
-            compareButton.heightAnchor.constraint(equalToConstant: compareSize),
-            
-            iconCollection.topAnchor.constraint(equalTo: compareButton.bottomAnchor, constant: 4),
+            iconCollection.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             iconCollection.leadingAnchor.constraint(equalTo: leadingAnchor),
             iconCollection.trailingAnchor.constraint(equalTo: trailingAnchor),
             iconCollection.heightAnchor.constraint(equalToConstant: iconRowHeight),
@@ -146,16 +127,6 @@ class OFColorAdjustEditorView: UIView {
                 maximum: rows[index].maximum
             )
         }
-    }
-    
-    /// 按住对比：临时关掉调色看原片
-    @objc private func handleCompareDown() {
-        delegate?.colorAdjustEditor(self, compareHolding: true)
-    }
-    
-    /// 松开对比：恢复当前调色
-    @objc private func handleCompareUp() {
-        delegate?.colorAdjustEditor(self, compareHolding: false)
     }
 }
 

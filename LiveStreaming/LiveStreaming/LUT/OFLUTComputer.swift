@@ -48,6 +48,12 @@ class OFLUTComputer: NSObject, OFProcessNode {
     private var lutTexture: MTLTexture?
     /// 当前预设在 `OFLUTPreset.all` 中的下标
     private var presetIndex = 0
+    /// LUT 与原图混合，0 关闭效果 1 全强度
+    private var intensity: Float = 1
+    /// GPU 强度 buffer，避免每帧分配
+    private var intensityBuffer: MTLBuffer?
+    /// 按住对比时跳过
+    private var bypassed = false
     /// 避免每帧打 Info 日志
     private var didLogProcessInfo = false
     
@@ -56,15 +62,20 @@ class OFLUTComputer: NSObject, OFProcessNode {
         return OFLUTPreset.all[presetIndex]
     }
     
-    /// 选了色表、纹理和 pipeline 都就绪才真正跑 GPU
+    /// 选了色表、有强度、纹理和 pipeline 都就绪才真正跑 GPU
     var isEnabled: Bool {
-        return currentPreset.fileName != nil && lutTexture != nil && pipelineState != nil
+        return !bypassed
+            && currentPreset.fileName != nil
+            && intensity > 0.001
+            && lutTexture != nil
+            && pipelineState != nil
     }
     
     /// 创建节点并编译 ColorLUT kernel
     override init() {
         super.init()
         setupMetal()
+        syncIntensityBuffer()
     }
     
     /// 从默认 library 取出 ColorLUT 并创建 compute pipeline
@@ -108,6 +119,33 @@ class OFLUTComputer: NSObject, OFProcessNode {
     /// 当前预设下标，供设置页高亮「已选」
     var currentPresetIndex: Int {
         return presetIndex
+    }
+    
+    /// 灵敏度 0…100，给设置页滑杆
+    var intensitySlider: Float {
+        return intensity * 100
+    }
+    
+    /// 写入灵敏度
+    /// - Parameter slider: 0…100
+    func setIntensitySlider(_ slider: Float) {
+        intensity = min(1, max(0, slider / 100))
+        syncIntensityBuffer()
+    }
+    
+    /// 按住对比：不改预设，只决定这一帧是否跑 kernel
+    /// - Parameter bypassed: true 时透传
+    func setBypassed(_ bypassed: Bool) {
+        self.bypassed = bypassed
+    }
+    
+    /// 把强度写进 GPU buffer
+    private func syncIntensityBuffer() {
+        let byteCount = MemoryLayout<Float>.size
+        if intensityBuffer == nil || (intensityBuffer?.length ?? 0) < byteCount {
+            intensityBuffer = defalutMetal.device?.makeBuffer(length: byteCount, options: .storageModeShared)
+        }
+        intensityBuffer?.contents().storeBytes(of: intensity, as: Float.self)
     }
     
     /// 按当前预设加载或清空 lutTexture
@@ -158,7 +196,7 @@ class OFLUTComputer: NSObject, OFProcessNode {
     /// 对当前帧做 ColorLUT：源纹理 + LUT 纹理 → 新的 BGRA pixel buffer
     /// - Parameter frame: 会被原地替换 pixelBuffer 与 texture
     func process(_ frame: VideoFrame) {
-        guard isEnabled, let pipelineState = pipelineState, let lutTexture = lutTexture else {
+        guard isEnabled, let pipelineState = pipelineState, let lutTexture = lutTexture, let intensityBuffer = intensityBuffer else {
             return
         }
         // 1. 按帧尺寸更新线程组和输出池
@@ -209,6 +247,7 @@ class OFLUTComputer: NSObject, OFProcessNode {
         computeEncoder.setTexture(lutTexture, index: 1)
         computeEncoder.setTexture(destPair.1, index: 2)
         computeEncoder.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 0)
+        computeEncoder.setBuffer(intensityBuffer, offset: 0, index: 1)
         computeEncoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
         computeEncoder.endEncoding()
         commandBuffer.commit()

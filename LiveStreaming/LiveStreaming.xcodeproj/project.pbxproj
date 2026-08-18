@@ -28,6 +28,7 @@
 		60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40003275E000100000043 /* OFSettingsSheetView.swift */; };
 		60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */; };
 		60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40005275E000100000045 /* OFBeautyEditorView.swift */; };
+		60A40016275E000100000056 /* OFOptionSliderEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40006275E000100000046 /* OFOptionSliderEditorView.swift */; };
 		60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */; };
 		60A50012275E000100000072 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 60A50002275E000100000062 /* face_landmarker.task */; };
 		60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60001275E000100000101 /* OFColorAdjustParams.swift */; };
@@ -103,6 +104,7 @@
 		60A40003275E000100000043 /* OFSettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsSheetView.swift; sourceTree = "<group>"; };
 		60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeEditorView.swift; sourceTree = "<group>"; };
 		60A40005275E000100000045 /* OFBeautyEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyEditorView.swift; sourceTree = "<group>"; };
+		60A40006275E000100000046 /* OFOptionSliderEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFOptionSliderEditorView.swift; sourceTree = "<group>"; };
 		60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceLandmarkerComputer.swift; sourceTree = "<group>"; };
 		60A50002275E000100000062 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
 		60A60001275E000100000101 /* OFColorAdjustParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustParams.swift; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 				60A40003275E000100000043 /* OFSettingsSheetView.swift */,
 				60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */,
 				60A40005275E000100000045 /* OFBeautyEditorView.swift */,
+				60A40006275E000100000046 /* OFOptionSliderEditorView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -591,6 +594,7 @@
 				60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */,
 				60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */,
 				60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */,
+				60A40016275E000100000056 /* OFOptionSliderEditorView.swift in Sources */,
 				60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */,
 				60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */,
 				60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */,

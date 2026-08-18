@@ -4,7 +4,8 @@
 //
 //  美颜节点：磨皮、美白、亮眼、白牙。
 //  磨皮对齐 BeautifyFaceDemo：半分辨率可分离双边 + Sobel 保边 + 肤色检测。
-//  美白：脸区关键点采样当前肤色，全图按色度匹配皮肤（含脖子/手臂）；亮眼/白牙仍靠关键点遮罩。
+//  合成后再加 origin−双边 的小幅残差，把毛孔量级质感贴回，斑点大幅残差仍丢掉。
+//  美白：脸遮罩上整脸均匀提亮（含眼窝），再按暖白 / 冷白 / 粉白偏色；脖子手臂仍靠肤色匹配。
 //
 
 import Foundation
@@ -25,12 +26,14 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     private var blurVPipeline: MTLComputePipelineState?
     /// 按遮罩合成四项效果
     private var applyPipeline: MTLComputePipelineState?
-    /// 与 Metal BeautyParams 对齐：四项强度 + 肤色 RGB + skinValid
+    /// 与 Metal BeautyParams 对齐：四项强度 + 肤色 RGB + skinValid + 美白风格
     private var paramsBuffer: MTLBuffer?
     /// 当前档位强度
     private var smooth: Float = 0
     /// 美白强度 0…1
     private var whitening: Float = 0
+    /// 美白风格：0 暖白 1 冷白 2 粉白
+    private var whiteStyle: Float = 0
     /// 亮眼强度 0…1
     private var brightEyes: Float = 0
     /// 白牙强度 0…1
@@ -89,6 +92,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         masterEnabled = settings.isEnabled
         smooth = OFBeautySettings.toneGpuStrength(settings.smooth, key: .smooth)
         whitening = OFBeautySettings.toneGpuStrength(settings.whitening, key: .whitening)
+        whiteStyle = settings.whiteningStyle.gpuValue
         brightEyes = OFBeautySettings.toneGpuStrength(settings.brightEyes, key: .brightEyes)
         whiteTeeth = OFBeautySettings.toneGpuStrength(settings.whiteTeeth, key: .whiteTeeth)
         syncParamsBuffer()
@@ -131,7 +135,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     
     /// 把 BeautyParams 写进已有 GPU buffer，避免每帧重新分配
     private func syncParamsBuffer() {
-        let packed: [Float] = [smooth, whitening, brightEyes, whiteTeeth, skinRefR, skinRefG, skinRefB, skinValid]
+        let packed: [Float] = [smooth, whitening, brightEyes, whiteTeeth, skinRefR, skinRefG, skinRefB, skinValid, whiteStyle]
         let byteCount = packed.count * MemoryLayout<Float>.size
         if paramsBuffer == nil || (paramsBuffer?.length ?? 0) < byteCount {
             paramsBuffer = defalutMetal.device?.makeBuffer(length: byteCount, options: .storageModeShared)

@@ -164,6 +164,23 @@ class OFAuxiliaryTools: NSObject {
         lut.applyPreset(at: index)
     }
     
+    /// LUT 灵敏度 0…100
+    var lutIntensitySlider: Float {
+        return lut.intensitySlider
+    }
+    
+    /// 写入 LUT 灵敏度
+    /// - Parameter value: 0…100
+    func setLUTIntensity(_ value: Float) {
+        lut.setIntensitySlider(value)
+    }
+    
+    /// 按住对比时旁路 LUT
+    /// - Parameter bypassed: true 看未套 LUT 的画面
+    func setLUTBypassed(_ bypassed: Bool) {
+        lut.setBypassed(bypassed)
+    }
+    
     /// 按钮文案；LUT 显示当前预设名
     /// - Parameter type: 功能类型
     /// - Returns: 展示字符串
