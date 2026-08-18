@@ -35,6 +35,8 @@ class OFSettingsController {
             return makeRootPage()
         case .lut:
             return makeLUTPage()
+        case .cartoon:
+            return makeCartoonPage()
         case .beauty:
             return makeBeautyPage()
         case .faceReshape:
@@ -57,6 +59,11 @@ class OFSettingsController {
             return .push(.lut)
         case .lutPreset(let index):
             tools.applyLUT(at: index)
+            return .reload
+        case .cartoon:
+            return .push(.cartoon)
+        case .cartoonPreset(let index):
+            tools.applyCartoon(at: index)
             return .reload
         case .singleColor:
             tools.switchSingleColor()
@@ -93,6 +100,7 @@ class OFSettingsController {
         let items: [OFSettingItem] = [
             OFSettingItem(id: .camera, title: "摄像头", valueText: cameraValueText(), interaction: .cycle),
             OFSettingItem(id: .lut, title: "LUT", valueText: tools.lutValueText, interaction: .drillIn(.lut)),
+            OFSettingItem(id: .cartoon, title: "漫画风", valueText: tools.cartoonValueText, interaction: .drillIn(.cartoon)),
             OFSettingItem(id: .singleColor, title: "单色", valueText: tools.singleColorValueText, interaction: .cycle),
             OFSettingItem(id: .gaussianBlur, title: "高斯模糊", valueText: tools.isGaussianBlurEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .edgeDetection, title: "描边", valueText: tools.isPeakEnabled ? "开" : "关", interaction: .toggle),
@@ -113,6 +121,18 @@ class OFSettingsController {
             items.append(OFSettingItem(id: .lutPreset(index), title: name, valueText: mark, interaction: .cycle))
         }
         return OFSettingsPage(id: .lut, title: "LUT", items: items)
+    }
+    
+    /// 漫画风二级页：关闭 / 宫崎骏 / 新海诚
+    /// - Returns: 漫画风页
+    private func makeCartoonPage() -> OFSettingsPage {
+        let current = tools.currentCartoonIndex
+        var items: [OFSettingItem] = []
+        for (index, preset) in OFCartoonPreset.all.enumerated() {
+            let mark = index == current ? "已选" : "—"
+            items.append(OFSettingItem(id: .cartoonPreset(index), title: preset.displayName, valueText: mark, interaction: .cycle))
+        }
+        return OFSettingsPage(id: .cartoon, title: "漫画风", items: items)
     }
     
     /// 美颜二级页：对比 + 横向图标 + 滑杆

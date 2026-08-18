@@ -14,6 +14,9 @@
 		60A20002275E000100000002 /* OFProcessGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10002275E000100000002 /* OFProcessGraph.swift */; };
 		60A20003275E000100000003 /* OFLUTLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10003275E000100000003 /* OFLUTLoader.swift */; };
 		60A20004275E000100000004 /* OFLUTComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10004275E000100000004 /* OFLUTComputer.swift */; };
+		60A80011275E000100000311 /* OFCartoonComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A80001275E000100000301 /* OFCartoonComputer.swift */; };
+		60A80012275E000100000312 /* AnimeGANv3_Hayao_36.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = 60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */; };
+		60A80013275E000100000313 /* AnimeGANv3_Shinkai_37.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = 60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */; };
 		60A20011275E000100000011 /* Rec709 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10011275E000100000011 /* Rec709 normal.png */; };
 		60A20012275E000100000012 /* SRGB normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10012275E000100000012 /* SRGB normal.png */; };
 		60A20013275E000100000013 /* ACESAP0 normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 60A10013275E000100000013 /* ACESAP0 normal.png */; };
@@ -81,6 +84,9 @@
 		60A10002275E000100000002 /* OFProcessGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessGraph.swift; sourceTree = "<group>"; };
 		60A10003275E000100000003 /* OFLUTLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTLoader.swift; sourceTree = "<group>"; };
 		60A10004275E000100000004 /* OFLUTComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTComputer.swift; sourceTree = "<group>"; };
+		60A80001275E000100000301 /* OFCartoonComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFCartoonComputer.swift; sourceTree = "<group>"; };
+		60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Hayao_36.mlmodel; sourceTree = "<group>"; };
+		60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Shinkai_37.mlmodel; sourceTree = "<group>"; };
 		60A10011275E000100000011 /* Rec709 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Rec709 normal.png"; sourceTree = "<group>"; };
 		60A10012275E000100000012 /* SRGB normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "SRGB normal.png"; sourceTree = "<group>"; };
 		60A10013275E000100000013 /* ACESAP0 normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ACESAP0 normal.png"; sourceTree = "<group>"; };
@@ -192,6 +198,23 @@
 			path = LUT;
 			sourceTree = "<group>";
 		};
+		60A80020275E000100000320 /* Cartoon */ = {
+			isa = PBXGroup;
+			children = (
+				60A80001275E000100000301 /* OFCartoonComputer.swift */,
+			);
+			path = Cartoon;
+			sourceTree = "<group>";
+		};
+		60A80021275E000100000321 /* Cartoon */ = {
+			isa = PBXGroup;
+			children = (
+				60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */,
+				60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */,
+			);
+			path = Cartoon;
+			sourceTree = "<group>";
+		};
 		60A10022275E000100000022 /* LUT */ = {
 			isa = PBXGroup;
 			children = (
@@ -297,6 +320,7 @@
 			isa = PBXGroup;
 			children = (
 				60A10022275E000100000022 /* LUT */,
+				60A80021275E000100000321 /* Cartoon */,
 				60A50021275E000100000082 /* FaceLandmarker */,
 				9A1E73C727F198920012CCC5 /* fascinated.aac */,
 				9A1E73C627F198920012CCC5 /* fascinated.mp3 */,
@@ -358,6 +382,7 @@
 				60A50020275E000100000081 /* Face */,
 				60A60020275E000100000120 /* ColorAdjust */,
 				60A10021275E000100000021 /* LUT */,
+				60A80020275E000100000320 /* Cartoon */,
 				9A552AB3275DEFA800568A6B /* Metal */,
 				9A552AB2275DED7700568A6B /* Resource */,
 				9A552AA0275DED6900568A6B /* structure */,
@@ -463,6 +488,8 @@
 			files = (
 				60A20011275E000100000011 /* Rec709 normal.png in Resources */,
 				60A50012275E000100000072 /* face_landmarker.task in Resources */,
+				60A80012275E000100000312 /* AnimeGANv3_Hayao_36.mlmodel in Resources */,
+				60A80013275E000100000313 /* AnimeGANv3_Shinkai_37.mlmodel in Resources */,
 				60A20012275E000100000012 /* SRGB normal.png in Resources */,
 				60A20013275E000100000013 /* ACESAP0 normal.png in Resources */,
 				9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */,
@@ -537,6 +564,7 @@
 				60A20002275E000100000002 /* OFProcessGraph.swift in Sources */,
 				60A20003275E000100000003 /* OFLUTLoader.swift in Sources */,
 				60A20004275E000100000004 /* OFLUTComputer.swift in Sources */,
+				60A80011275E000100000311 /* OFCartoonComputer.swift in Sources */,
 				60A30002275E000100000032 /* OFLogger.swift in Sources */,
 				60A40011275E000100000051 /* OFSettingItem.swift in Sources */,
 				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,

@@ -15,6 +15,8 @@ enum OFProcessNodeID: String, Hashable {
     case source
     /// 3D LUT 调色
     case lut
+    /// 整帧漫画风（AnimeGANv3）
+    case cartoon
     /// 单通道 / 灰度
     case singleColor
     /// 高斯模糊
