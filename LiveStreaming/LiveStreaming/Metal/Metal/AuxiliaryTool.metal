@@ -367,7 +367,7 @@ static inline float beautySkinDetect(float3 c) {
     float warm = smoothstep(-0.04, 0.03, r - b);
     float rg = smoothstep(-0.05, 0.02, r - g);
     float ch = smoothstep(0.01, 0.05, chroma);
-    return tone * mix(0.55, 1.0, warm * rg * ch);
+    return tone * warm * rg * ch;
 }
 
 /// 同一套亮度曲线，再按风格偏色。阴影也抬，避免眼窝相对脸颊变成灰块。
@@ -519,14 +519,15 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
     float3 rgb = origin;
     float2 uv = (float2(gid) + 0.5) / float2(size[0], size[1]);
     constexpr sampler linearSampler(coord::normalized, filter::linear, address::clamp_to_edge);
-    constexpr sampler nearestSampler(coord::normalized, filter::nearest, address::clamp_to_edge);
-    float skinMask = maskTexture.sample(linearSampler, uv).r;
-    float3 maskHard = maskTexture.sample(nearestSampler, uv).rgb;
+    float3 mask = maskTexture.sample(linearSampler, uv).rgb;
+    float skinMask = mask.r;
+    float eyeMask = mask.g;
+    float teethMask = mask.b;
     float3 bilateral = blurTexture.sample(linearSampler, uv).rgb;
     
-    // 1. 磨皮：弱边缘才 mix 双边；mix 掉的高频里只贴回毛孔量级
+    // 1. 磨皮：眼裂用软边排除，眼皮仍在皮肤通道，避免 128 挖洞造成马赛克
     float detect = beautySkinDetect(origin);
-    float skin = skinMask * mix(0.80, 1.0, detect);
+    float skin = skinMask * (1.0 - eyeMask) * mix(0.80, 1.0, detect);
     float smoothW = p.smooth * skin;
     if (smoothW > 0.01) {
         uint2 maxPos = uint2(size[0] - 1, size[1] - 1);
@@ -542,46 +543,45 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         rgb += residual * poreGate * texW;
     }
     
-    // 3. 美白：脸上跟遮罩走（眼窝也在椭圆里），不要被检测/亮度打出灰块；脖子手臂仍匹配肤色
-    float bodySkin = detect;
+    // 3. 美白只打在皮肤：脸上跟椭圆遮罩；脖子/手臂必须贴近采样肤色，检测不再保底 0.55
+    float bodySkin = 0.0;
     if (p.skinValid > 0.5) {
         float3 ref = float3(p.skinR, p.skinG, p.skinB);
         float y = rec709Luma(origin);
         float refY = rec709Luma(ref);
         float dChroma = length(float2((origin.b - y) - (ref.b - refY), (origin.r - y) - (ref.r - refY)));
         float dY = abs(y - refY);
-        float match = (1.0 - smoothstep(0.05, 0.14, dChroma)) * (1.0 - smoothstep(0.38, 0.72, dY));
-        bodySkin *= mix(0.35, 1.0, match);
+        float match = (1.0 - smoothstep(0.04, 0.10, dChroma)) * (1.0 - smoothstep(0.18, 0.38, dY));
+        bodySkin = detect * match;
     }
-    float faceW = skinMask * mix(0.90, 1.0, detect);
-    float skinW = max(faceW, bodySkin);
-    skinW *= (1.0 - maskHard.g) * (1.0 - maskHard.b);
+    float skinW = max(skinMask, bodySkin);
+    skinW *= (1.0 - eyeMask) * (1.0 - teethMask);
     float whiteW = p.whitening * skinW;
     if (whiteW > 0.01) {
         rgb = beautyWhiten(rgb, whiteW, p.whiteStyle);
     }
     
     // 4. 亮眼：眼白明显提亮，虹膜略提；皮肤/眼皮偏暖则跳过
-    if (p.brightEyes * maskHard.g > 0.01) {
+    if (p.brightEyes * eyeMask > 0.01) {
         float luma = rec709Luma(rgb);
         float chroma = max(max(rgb.r, rgb.g), rgb.b) - min(min(rgb.r, rgb.g), rgb.b);
         float warm = rgb.r - rgb.b;
         float skinLike = smoothstep(0.04, 0.10, warm) * smoothstep(0.08, 0.18, chroma);
         float sclera = smoothstep(0.32, 0.62, luma);
         float iris = (1.0 - sclera) * smoothstep(0.06, 0.28, luma);
-        float eye = p.brightEyes * maskHard.g * (1.0 - skinLike);
+        float eye = p.brightEyes * eyeMask * (1.0 - skinLike);
         rgb += float3(0.13, 0.14, 0.18) * eye * sclera;
         rgb += float3(0.05, 0.055, 0.065) * eye * iris;
     }
     
     // 5. 白牙：去黄 + 可见提亮，舌头偏红排除
-    if (p.whiteTeeth * maskHard.b > 0.01) {
+    if (p.whiteTeeth * teethMask > 0.01) {
         float luma = rec709Luma(rgb);
         float redBias = rgb.r - max(rgb.g, rgb.b);
         float yellow = max(0.0, (rgb.r + rgb.g) * 0.5 - rgb.b);
         float notTongue = 1.0 - smoothstep(0.06, 0.16, redBias);
         float brightEnough = smoothstep(0.16, 0.32, luma);
-        float tw = p.whiteTeeth * maskHard.b * notTongue * brightEnough;
+        float tw = p.whiteTeeth * teethMask * notTongue * brightEnough;
         float3 teeth = rgb;
         teeth.r -= yellow * 0.62 * tw;
         teeth.g -= yellow * 0.46 * tw;

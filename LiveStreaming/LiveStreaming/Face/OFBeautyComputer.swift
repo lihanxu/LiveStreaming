@@ -5,7 +5,7 @@
 //  美颜节点：磨皮、美白、亮眼、白牙。
 //  磨皮对齐 BeautifyFaceDemo：半分辨率可分离双边 + Sobel 保边 + 肤色检测。
 //  合成后再加 origin−双边 的小幅残差，把毛孔量级质感贴回，斑点大幅残差仍丢掉。
-//  美白：脸遮罩上整脸均匀提亮（含眼窝），再按暖白 / 冷白 / 粉白偏色；脖子手臂仍靠肤色匹配。
+//  美白：脸上跟皮肤遮罩走；脖子/手臂仅当色度贴近脸区采样肤色才提亮，避免整图发白。
 //
 
 import Foundation
@@ -205,7 +205,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         return (cvTexture, texture)
     }
     
-    /// 鼻尖移动超过阈值，或隔了两帧，才重绘遮罩
+    /// 鼻尖明显移动，或隔了三帧，才重绘遮罩；避免每帧扫描线填充拖垮预览
     /// - Parameter face: 当前关键点
     /// - Returns: 是否需要栅格化
     private func shouldRebuildMask(face: [CGPoint]) -> Bool {
@@ -214,7 +214,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         let dx = nose.x - lastNose.x
         let dy = nose.y - lastNose.y
         let moved = (dx * dx + dy * dy) > 0.000064
-        if framesSinceMask >= 2 || moved || regionMask?.texture == nil {
+        if framesSinceMask >= 3 || moved || regionMask?.texture == nil {
             lastNose = nose
             framesSinceMask = 0
             return true

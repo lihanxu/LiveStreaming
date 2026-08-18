@@ -25,9 +25,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, options: [.allowBluetoothA2DP])
+            // 听筒默认会让 playAndRecord 走窄带；开扬声器，蓝牙仍可用 A2DP
+            try audioSession.setCategory(.playAndRecord, mode: .videoRecording, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+            try audioSession.setPreferredSampleRate(48000)
             try audioSession.setActive(true)
-        } catch  {
+        } catch {
             DDLogError("AVAudioSession setCategory failed!!! \(error)")
         }
         

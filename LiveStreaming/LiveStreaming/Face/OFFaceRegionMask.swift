@@ -5,7 +5,8 @@
 //  根据 MediaPipe 478 点网格，在小纹理上栅格化皮肤 / 眼睛 / 牙齿遮罩。
 //  R=皮肤（磨皮、美白），G=眼睛（亮眼），B=牙齿（白牙）。
 //  对齐 self-beauty-core 无分割模型时的降级：FACE_OVAL 作面部皮肤，
-//  眼/眉/唇从皮肤抠掉；虹膜热力提示亮眼；张嘴才填牙齿。128 上做一次 3×3 羽化。
+//  眉毛/嘴唇从皮肤抠掉；眼裂用 MediaPipe 眼轮廓写 G、不挖皮肤；张嘴才填牙齿。
+//  眼睑软边靠 GPU 线性采样，不在 CPU 上羽化，以免拖垮采集线程。
 //
 
 import Foundation
@@ -67,9 +68,9 @@ class OFFaceRegionMask {
             // 3. 眉毛从皮肤抠掉，避免磨皮糊成一条
             fillPolygon(Self.leftBrow(from: face), width: w, height: h, rgba: base, channel: 0, value: 0, clearChannel: nil)
             fillPolygon(Self.rightBrow(from: face), width: w, height: h, rgba: base, channel: 0, value: 0, clearChannel: nil)
-            // 4. 亮眼只填虹膜外扩一圈（眼球），不用眼裂，避免眼皮
-            fillPolygon(Self.leftEyeball(from: face), width: w, height: h, rgba: base, channel: 1, value: 255, clearChannel: 0)
-            fillPolygon(Self.rightEyeball(from: face), width: w, height: h, rgba: base, channel: 1, value: 255, clearChannel: 0)
+            // 4. 亮眼用关键点眼裂填 G，不从皮肤挖洞，眼皮仍走磨皮/美白
+            fillPolygon(Self.leftEyeOpening(from: face), width: w, height: h, rgba: base, channel: 1, value: 255, clearChannel: nil)
+            fillPolygon(Self.rightEyeOpening(from: face), width: w, height: h, rgba: base, channel: 1, value: 255, clearChannel: nil)
             // 5. 外唇从皮肤抠掉
             fillPolygon(Self.outerLips(from: face), width: w, height: h, rgba: base, channel: 0, value: 0, clearChannel: nil)
             // 6. 内唇是口腔区域，牙齿/舌头靠 shader 按颜色分；开口略放宽以免几乎看不见
@@ -130,39 +131,18 @@ class OFFaceRegionMask {
         }
     }
     
-    /// 左眼球：虹膜 4 点从中心放大，只盖眼白+虹膜
+    /// 左眼裂：MediaPipe 眼轮廓，眼皮不在多边形内
     /// - Parameter face: 全脸点
     /// - Returns: 归一化多边形
-    private static func leftEyeball(from face: [CGPoint]) -> [CGPoint] {
-        guard face.count > 472 else {
-            return []
-        }
-        return expandFromCenter(loop([469, 470, 471, 472], face: face), center: face[468], scale: 2.15)
+    private static func leftEyeOpening(from face: [CGPoint]) -> [CGPoint] {
+        return loop([33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246], face: face)
     }
     
-    /// 右眼球
+    /// 右眼裂：MediaPipe 眼轮廓
     /// - Parameter face: 全脸点
     /// - Returns: 归一化多边形
-    private static func rightEyeball(from face: [CGPoint]) -> [CGPoint] {
-        guard face.count > 477 else {
-            return []
-        }
-        return expandFromCenter(loop([474, 475, 476, 477], face: face), center: face[473], scale: 2.15)
-    }
-    
-    /// 多边形从中心放大
-    /// - Parameters:
-    ///   - points: 虹膜轮廓
-    ///   - center: 虹膜中心
-    ///   - scale: 相对半径
-    /// - Returns: 放大后的顶点
-    private static func expandFromCenter(_ points: [CGPoint], center: CGPoint, scale: CGFloat) -> [CGPoint] {
-        return points.map { point in
-            CGPoint(
-                x: min(1, max(0, center.x + (point.x - center.x) * scale)),
-                y: min(1, max(0, center.y + (point.y - center.y) * scale))
-            )
-        }
+    private static func rightEyeOpening(from face: [CGPoint]) -> [CGPoint] {
+        return loop([362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398], face: face)
     }
     
     /// 外唇，用来从皮肤抠嘴
