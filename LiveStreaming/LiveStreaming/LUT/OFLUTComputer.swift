@@ -19,13 +19,20 @@ struct OFLUTPreset {
     /// Bundle 中的 PNG 名（不含扩展名）
     let fileName: String?
     
-    /// 内置预设列表，第一项为关闭
+    /// 内置预设列表，第一项为关闭；fileName 与 Resource/LUT 下 PNG 名一致（不含扩展名）
     static let all: [OFLUTPreset] = [
         OFLUTPreset(displayName: "LUT", fileName: nil),
-        OFLUTPreset(displayName: "neutral", fileName: "neutral-lut"),
-        OFLUTPreset(displayName: "Rec709", fileName: "Rec709 normal"),
-        OFLUTPreset(displayName: "sRGB", fileName: "SRGB normal"),
-        OFLUTPreset(displayName: "ACES", fileName: "ACESAP0 normal"),
+        OFLUTPreset(displayName: "暖色", fileName: "Warm"),
+        OFLUTPreset(displayName: "柔和", fileName: "Soft"),
+        OFLUTPreset(displayName: "人像", fileName: "Portrait"),
+        OFLUTPreset(displayName: "电影", fileName: "ProMovie"),
+        OFLUTPreset(displayName: "复古", fileName: "Vintage"),
+        OFLUTPreset(displayName: "都市", fileName: "Urban"),
+        OFLUTPreset(displayName: "夜景", fileName: "Night"),
+        OFLUTPreset(displayName: "海洋", fileName: "Ocean"),
+        OFLUTPreset(displayName: "青橙", fileName: "TealOrange"),
+        OFLUTPreset(displayName: "黑白", fileName: "Monochrome"),
+        OFLUTPreset(displayName: "负片", fileName: "NegativeClassic"),
     ]
 }
 
