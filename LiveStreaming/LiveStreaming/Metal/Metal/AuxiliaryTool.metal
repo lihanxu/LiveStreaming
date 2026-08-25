@@ -134,30 +134,21 @@ kernel void gaussianBlur(texture2d<float, access::read> videoTexture [[texture(0
     destTexture.write(outputColor, threadPosInGrid);
 }
 
-// 3D LUT：512×512 PNG = 8×8 个 64×64 切片。B 选切片，R/G 为切片内坐标，四面体插值。
-kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
-                     texture2d<float, access::read> lutTexture [[texture(1)]],
-                     texture2d<float, access::write> destTexture [[texture(2)]],
-                     constant uint *size [[ buffer(0) ]],
-                     constant float *intensity [[ buffer(1) ]],
-                     const uint2 threadPosInGrid [[thread_position_in_grid]])
-{
-    // size 必须是 uint32 宽高；越界线程直接返回，避免写坏目标纹理
-    if (threadPosInGrid.x >= size[0] || threadPosInGrid.y >= size[1]) {
-        return;
-    }
-    
-    const float4 colorAtPixel = videoTexture.read(threadPosInGrid);
-    
-    float R = colorAtPixel.r * 63.0;
-    float G = colorAtPixel.g * 63.0;
-    float B = colorAtPixel.b * 63.0;
+/// 3D LUT：512×512 PNG = 8×8 个 64×64 切片。B 选切片，R/G 为切片内坐标，四面体插值。
+/// 美肤与调色页共用同一套查找，强度在调用方 mix。
+/// - Parameters:
+///   - lutTexture: 色表
+///   - rgb: 输入色 0…1
+/// - Returns: 映射后的 RGB
+static inline float3 sampleColorLUT(texture2d<float, access::read> lutTexture, float3 rgb) {
+    float R = clamp(rgb.r, 0.0, 1.0) * 63.0;
+    float G = clamp(rgb.g, 0.0, 1.0) * 63.0;
+    float B = clamp(rgb.b, 0.0, 1.0) * 63.0;
     
     const int3 prevRGB = int3(int(R), int(G), int(B));
     const int3 nextRGB = int3((int(R) + 1) > 63 ? 63 : (int(R) + 1), (int(G) + 1) > 63 ? 63 : (int(G) + 1), (int(B) + 1) > 63 ? 63 : (int(B) + 1));
     const float3 d = float3(R - float(prevRGB.r), G - float(prevRGB.g), B - float(prevRGB.b));
     
-    // 蓝通道决定 8×8 网格中的哪一块 64×64
     uint2 texPos000 = uint2((prevRGB.b % 8) * 64 + prevRGB.r, (prevRGB.b / 8) * 64 + prevRGB.g);
     uint2 texPos001 = uint2((nextRGB.b % 8) * 64 + prevRGB.r, (nextRGB.b / 8) * 64 + prevRGB.g);
     uint2 texPos010 = uint2((prevRGB.b % 8) * 64 + prevRGB.r, (prevRGB.b / 8) * 64 + nextRGB.g);
@@ -176,7 +167,6 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
     float4 c110 = lutTexture.read(texPos110);
     float4 c111 = lutTexture.read(texPos111);
     
-    // 按 RGB 分数部分的大小关系选四面体，在立方体 8 个角点间插值
     float3 c;
     if (d.r > d.g) {
         if (d.g > d.b) {
@@ -207,8 +197,24 @@ kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
             c.b = (1.0-d.g) * c000.b + (d.g-d.r) * c010.b + (d.r-d.b) * c110.b + (d.b) * c111.b;
         }
     }
-    
-    destTexture.write(float4(mix(colorAtPixel.rgb, c, intensity[0]), colorAtPixel.a), threadPosInGrid);
+    return c;
+}
+
+/// 调色页 LUT：源纹理 + 色表 → 按 intensity mix 写回
+kernel void ColorLUT(texture2d<float, access::read> videoTexture [[texture(0)]],
+                     texture2d<float, access::read> lutTexture [[texture(1)]],
+                     texture2d<float, access::write> destTexture [[texture(2)]],
+                     constant uint *size [[ buffer(0) ]],
+                     constant float *intensity [[ buffer(1) ]],
+                     const uint2 threadPosInGrid [[thread_position_in_grid]])
+{
+    // size 必须是 uint32 宽高；越界线程直接返回，避免写坏目标纹理
+    if (threadPosInGrid.x >= size[0] || threadPosInGrid.y >= size[1]) {
+        return;
+    }
+    const float4 colorAtPixel = videoTexture.read(threadPosInGrid);
+    float3 mapped = sampleColorLUT(lutTexture, colorAtPixel.rgb);
+    destTexture.write(float4(mix(colorAtPixel.rgb, mapped, intensity[0]), colorAtPixel.a), threadPosInGrid);
 }
 
 // 与 OFColorAdjustParams.gpuPacked 顺序一致；14 个 float 紧密排布
@@ -342,21 +348,15 @@ kernel void colorAdjustDetail(texture2d<float, access::read> videoTexture [[text
     destTexture.write(float4(clamp(rgb, 0.0, 1.0), center4.a), gid);
 }
 
-// 与 OFBeautyComputer 参数顺序一致：四项强度 + 脸区估的肤色中心 + 是否有效 + 美白风格
+// 与 OFBeautyComputer 参数顺序一致：磨皮 / 美肤 LUT 混合 / 亮眼 / 白牙
 struct BeautyParams {
     float smooth;
     float whitening;
     float brightEyes;
     float whiteTeeth;
-    float skinR;
-    float skinG;
-    float skinB;
-    float skinValid;
-    /// 0 暖白  1 冷白  2 粉白
-    float whiteStyle;
 };
 
-/// BeautifyFace 肤色启发式改成软权重。硬阈值会把鼻侧/眼窝阴影判成非皮肤，美白后变成黑斑。
+/// BeautifyFace 肤色启发式改成软权重。硬阈值会把鼻侧/眼窝阴影判成非皮肤。
 static inline float beautySkinDetect(float3 c) {
     float r = c.r;
     float g = c.g;
@@ -368,43 +368,6 @@ static inline float beautySkinDetect(float3 c) {
     float rg = smoothstep(-0.05, 0.02, r - g);
     float ch = smoothstep(0.01, 0.05, chroma);
     return tone * warm * rg * ch;
-}
-
-/// 同一套亮度曲线，再按风格偏色。阴影也抬，避免眼窝相对脸颊变成灰块。
-/// - style: 0 暖白  1 冷白  2 粉白
-static inline float3 beautyWhiten(float3 rgb, float whiteW, float style) {
-    float luma = rec709Luma(rgb);
-    float lo = mix(0.70, 1.0, smoothstep(0.04, 0.22, luma));
-    float hi = 1.0 - smoothstep(0.84, 0.97, luma);
-    float targetY = min(0.97, luma + whiteW * 0.10 * lo * hi);
-    float3 c = rgb * (targetY / max(luma, 1e-4));
-    float yellow = max(0.0, (c.r + c.g) * 0.5 - c.b);
-    float shadow = 1.0 - smoothstep(0.10, 0.34, luma);
-    float mid = smoothstep(0.16, 0.40, luma) * (1.0 - smoothstep(0.72, 0.92, luma));
-    if (style < 0.5) {
-        // 暖白：提亮、黄桃底留下；R/G 对称收潮红，避免偏大红
-        float flush = max(0.0, c.r - c.g - 0.05);
-        c.r -= flush * 0.20 * whiteW;
-        c += float3(0.010, 0.007, -0.004) * whiteW;
-        c += float3(0.012, 0.008, 0.002) * shadow * whiteW;
-    } else if (style < 1.5) {
-        // 冷白：去黄到中性瓷白；R/G 同比减黄。阴影补一点色度，不要死灰
-        c.r -= yellow * 0.24 * whiteW;
-        c.g -= yellow * 0.24 * whiteW;
-        c.b += yellow * 0.05 * whiteW;
-        float flush = max(0.0, c.r - c.g);
-        c.r -= flush * 0.14 * whiteW;
-        c += float3(0.006, 0.006, 0.010) * shadow * whiteW;
-    } else {
-        // 粉白：去黄后中灰加品红（+R +B），并压掉原有潮红，避免整脸过红
-        c.r -= yellow * 0.16 * whiteW;
-        c.g -= yellow * 0.16 * whiteW;
-        c += float3(0.008, 0.000, 0.010) * whiteW * mid;
-        float flush = max(0.0, c.r - c.g - 0.02);
-        c.r -= flush * 0.28 * whiteW;
-        c += float3(0.006, 0.002, 0.008) * shadow * whiteW;
-    }
-    return c;
 }
 
 /// 3×3 Sobel 边缘强度，替代完整 Canny
@@ -503,10 +466,12 @@ kernel void beautyBilateralV(texture2d<float, access::read> srcTexture [[texture
 
 /// 按遮罩合成。磨皮对齐 BeautifyFace CombinationFilter：弱边缘且肤色才 mix 双边；
 /// 再按残差幅度回加高频，避免高档磨皮把毛孔一起抹平。
+/// 美肤：texture4 为冷白/暖白/粉嫩 LUT，whitening 只做 mix。
 kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)]],
                         texture2d<float, access::sample> blurTexture [[texture(1)]],
                         texture2d<float, access::sample> maskTexture [[texture(2)]],
                         texture2d<float, access::write> destTexture [[texture(3)]],
+                        texture2d<float, access::read> lutTexture [[texture(4)]],
                         constant uint *size [[ buffer(0) ]],
                         constant BeautyParams &p [[ buffer(1) ]],
                         const uint2 gid [[thread_position_in_grid]])
@@ -543,22 +508,10 @@ kernel void beautyApply(texture2d<float, access::read> videoTexture [[texture(0)
         rgb += residual * poreGate * texW;
     }
     
-    // 3. 美白只打在皮肤：脸上跟椭圆遮罩；脖子/手臂必须贴近采样肤色，检测不再保底 0.55
-    float bodySkin = 0.0;
-    if (p.skinValid > 0.5) {
-        float3 ref = float3(p.skinR, p.skinG, p.skinB);
-        float y = rec709Luma(origin);
-        float refY = rec709Luma(ref);
-        float dChroma = length(float2((origin.b - y) - (ref.b - refY), (origin.r - y) - (ref.r - refY)));
-        float dY = abs(y - refY);
-        float match = (1.0 - smoothstep(0.04, 0.10, dChroma)) * (1.0 - smoothstep(0.18, 0.38, dY));
-        bodySkin = detect * match;
-    }
-    float skinW = max(skinMask, bodySkin);
-    skinW *= (1.0 - eyeMask) * (1.0 - teethMask);
-    float whiteW = p.whitening * skinW;
-    if (whiteW > 0.01) {
-        rgb = beautyWhiten(rgb, whiteW, p.whiteStyle);
+    // 3. 美肤：冷白/暖白/粉嫩 LUT 查表后按滑杆与当前色 mix，不再做肤色检测着色
+    if (p.whitening > 0.01) {
+        float3 mapped = sampleColorLUT(lutTexture, rgb);
+        rgb = mix(rgb, mapped, p.whitening);
     }
     
     // 4. 亮眼：眼白明显提亮，虹膜略提；皮肤/眼皮偏暖则跳过
@@ -765,5 +718,98 @@ kernel void cartoonComposite(texture2d<float, access::sample> originalTexture [[
 
     // 4. 细节回加：全图轻度，脸上更强
     color += detail * params[2] * (0.28 + 0.72 * face);
+    destTexture.write(float4(saturate(color), 1.0), gid);
+}
+
+/// 把源纹理逐像素拷到目标，用于冻结转场「从」画面。
+kernel void copyTexture2D(texture2d<float, access::read> src [[texture(0)]],
+                          texture2d<float, access::write> dst [[texture(1)]],
+                          const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= dst.get_width() || gid.y >= dst.get_height()) {
+        return;
+    }
+    dst.write(src.read(gid), gid);
+}
+
+/// 场景转场：from 是冻结的旧画面，to 是当前直播帧。
+/// params[0]=模版 type（与 OFTransitionStyle.rawValue 一致），params[1]=进度 0…1。
+kernel void sceneTransition(texture2d<float, access::sample> fromTex [[texture(0)]],
+                            texture2d<float, access::sample> toTex [[texture(1)]],
+                            texture2d<float, access::write> destTexture [[texture(2)]],
+                            constant uint *size [[buffer(0)]],
+                            constant float *params [[buffer(1)]],
+                            const uint2 gid [[thread_position_in_grid]])
+{
+    if (gid.x >= size[0] || gid.y >= size[1]) {
+        return;
+    }
+
+    constexpr sampler lin(coord::normalized, address::clamp_to_edge, filter::linear);
+    float2 uv = (float2(gid) + 0.5) / float2(size[0], size[1]);
+    int type = int(params[0] + 0.5);
+    float t = clamp(params[1], 0.0, 1.0);
+    // 两端停住、中间加速，擦除边缘更干净
+    float e = t * t * (3.0 - 2.0 * t);
+    float4 fromC = fromTex.sample(lin, uv);
+    float4 toC = toTex.sample(lin, uv);
+    float3 color = toC.rgb;
+    float edge = 0.06;
+
+    if (type == 1) {
+        color = mix(fromC.rgb, toC.rgb, e);
+    } else if (type == 2) {
+        float mask = smoothstep(e - edge, e + edge, uv.x);
+        color = mix(toC.rgb, fromC.rgb, mask);
+    } else if (type == 3) {
+        float mask = smoothstep(e - edge, e + edge, 1.0 - uv.x);
+        color = mix(toC.rgb, fromC.rgb, mask);
+    } else if (type == 4) {
+        float mask = smoothstep(e - edge, e + edge, uv.y);
+        color = mix(toC.rgb, fromC.rgb, mask);
+    } else if (type == 5) {
+        float mask = smoothstep(e - edge, e + edge, 1.0 - uv.y);
+        color = mix(toC.rgb, fromC.rgb, mask);
+    } else if (type == 6) {
+        float d = distance(uv, float2(0.5));
+        float r = e * 0.78;
+        float mask = smoothstep(r - 0.05, r + 0.05, d);
+        color = mix(toC.rgb, fromC.rgb, mask);
+    } else if (type == 7) {
+        // 中段半径最大，两端接近清晰
+        float radius = 10.0 * e * (1.0 - e);
+        float2 texel = 1.0 / float2(size[0], size[1]);
+        float3 blurFrom = float3(0.0);
+        float3 blurTo = float3(0.0);
+        for (int y = -2; y <= 2; y++) {
+            for (int x = -2; x <= 2; x++) {
+                float2 off = float2(x, y) * texel * radius;
+                blurFrom += fromTex.sample(lin, uv + off).rgb;
+                blurTo += toTex.sample(lin, uv + off).rgb;
+            }
+        }
+        blurFrom *= (1.0 / 25.0);
+        blurTo *= (1.0 / 25.0);
+        color = mix(blurFrom, blurTo, e);
+    } else if (type == 8) {
+        float flash = 1.0 - abs(e * 2.0 - 1.0);
+        color = mix(fromC.rgb, toC.rgb, e);
+        color = mix(color, float3(1.0), pow(flash, 1.35) * 0.92);
+    } else if (type == 9) {
+        float fromScale = mix(1.0, 1.32, e);
+        float toScale = mix(1.18, 1.0, e);
+        float3 fromZ = fromTex.sample(lin, 0.5 + (uv - 0.5) / fromScale).rgb;
+        float3 toZ = toTex.sample(lin, 0.5 + (uv - 0.5) / toScale).rgb;
+        color = mix(fromZ, toZ, e);
+    } else if (type == 10) {
+        float2 fromUV = uv - float2(e, 0.0);
+        float2 toUV = uv + float2(1.0 - e, 0.0);
+        if (fromUV.x >= 0.0 && fromUV.x <= 1.0) {
+            color = fromTex.sample(lin, fromUV).rgb;
+        } else {
+            color = toTex.sample(lin, toUV).rgb;
+        }
+    }
+
     destTexture.write(float4(saturate(color), 1.0), gid);
 }

@@ -3,7 +3,7 @@
 //  LiveStreaming
 //
 //  美颜卡片内容：横向图标、单滑杆。对比按钮在设置卡片外由外壳放置。
-//  磨皮 / 美白 / 亮眼 / 白牙用滑杆；点美白进入暖白/冷白/粉白二级页；一键与手动互斥。
+//  磨皮 / 美肤 / 亮眼 / 白牙用滑杆；点美肤进入冷白/暖白/粉嫩二级页；一键与手动互斥。
 //
 
 import UIKit
@@ -16,7 +16,7 @@ protocol OFBeautyEditorViewDelegate: AnyObject {
     func beautyEditorDidToggleMesh(_ editor: OFBeautyEditorView)
     /// 点面部重塑
     func beautyEditorDidTapReshape(_ editor: OFBeautyEditorView)
-    /// 点美白，进入风格二级页
+    /// 点美肤，进入滤镜二级页
     func beautyEditorDidTapWhiteningStyle(_ editor: OFBeautyEditorView)
     /// 点一键美颜
     func beautyEditorDidToggleOneClick(_ editor: OFBeautyEditorView)

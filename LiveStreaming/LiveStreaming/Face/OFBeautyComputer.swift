@@ -2,10 +2,10 @@
 //  OFBeautyComputer.swift
 //  LiveStreaming
 //
-//  美颜节点：磨皮、美白、亮眼、白牙。
+//  美颜节点：磨皮、美肤 LUT、亮眼、白牙。
 //  磨皮对齐 BeautifyFaceDemo：半分辨率可分离双边 + Sobel 保边 + 肤色检测。
 //  合成后再加 origin−双边 的小幅残差，把毛孔量级质感贴回，斑点大幅残差仍丢掉。
-//  美白：脸上跟皮肤遮罩走；脖子/手臂仅当色度贴近脸区采样肤色才提亮，避免整图发白。
+//  美肤：冷白 / 暖白 / 粉嫩三张 3D LUT，滑杆只控制原图与滤镜色的 mix。
 //
 
 import Foundation
@@ -26,26 +26,22 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     private var blurVPipeline: MTLComputePipelineState?
     /// 按遮罩合成四项效果
     private var applyPipeline: MTLComputePipelineState?
-    /// 与 Metal BeautyParams 对齐：四项强度 + 肤色 RGB + skinValid + 美白风格
+    /// 与 Metal BeautyParams 对齐：磨皮 / 美肤强度 / 亮眼 / 白牙
     private var paramsBuffer: MTLBuffer?
     /// 当前档位强度
     private var smooth: Float = 0
-    /// 美白强度 0…1
+    /// 美肤 LUT 混合 0…1
     private var whitening: Float = 0
-    /// 美白风格：0 暖白 1 冷白 2 粉白
-    private var whiteStyle: Float = 0
     /// 亮眼强度 0…1
     private var brightEyes: Float = 0
     /// 白牙强度 0…1
     private var whiteTeeth: Float = 0
-    /// 从脸颊/额区估出的肤色 R，给全图美白匹配用
-    private var skinRefR: Float = 0.72
-    /// 肤色 G
-    private var skinRefG: Float = 0.55
-    /// 肤色 B
-    private var skinRefB: Float = 0.48
-    /// 1 表示本趟采样有效；0 则 shader 只靠启发式肤色检测
-    private var skinValid: Float = 0
+    /// 当前美肤 LUT；风格切换后替换
+    private var skinLutTexture: MTLTexture?
+    /// 已加载的 LUT 资源名，避免重复读 PNG
+    private var loadedLutName: String?
+    /// 无人脸时给 shader 的空遮罩（全 0）
+    private var emptyMask: MTLTexture?
     /// 总开关
     private var masterEnabled = false
     /// 按住对比时为 true，节点跳过但参数保留
@@ -81,7 +77,9 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     override init() {
         super.init()
         regionMask = OFFaceRegionMask(device: defalutMetal.device)
+        makeEmptyMask()
         setupMetal()
+        loadSkinLUT(named: OFWhiteningStyle.warm.lutFileName)
         syncParamsBuffer()
     }
     
@@ -92,9 +90,9 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         masterEnabled = settings.isEnabled
         smooth = OFBeautySettings.toneGpuStrength(settings.smooth, key: .smooth)
         whitening = OFBeautySettings.toneGpuStrength(settings.whitening, key: .whitening)
-        whiteStyle = settings.whiteningStyle.gpuValue
         brightEyes = OFBeautySettings.toneGpuStrength(settings.brightEyes, key: .brightEyes)
         whiteTeeth = OFBeautySettings.toneGpuStrength(settings.whiteTeeth, key: .whiteTeeth)
+        loadSkinLUT(named: settings.whiteningStyle.lutFileName)
         syncParamsBuffer()
         lock.unlock()
     }
@@ -128,6 +126,37 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         }
     }
     
+    /// 1×1 全 0 遮罩，无人脸时磨皮/亮眼/白牙权重为 0，美肤 LUT 仍可全图 mix
+    private func makeEmptyMask() {
+        let desc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .bgra8Unorm,
+            width: 1,
+            height: 1,
+            mipmapped: false
+        )
+        desc.usage = [.shaderRead]
+        desc.storageMode = .shared
+        emptyMask = defalutMetal.device?.makeTexture(descriptor: desc)
+        var pixel: UInt32 = 0
+        emptyMask?.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &pixel, bytesPerRow: 4)
+    }
+    
+    /// 按风格加载美肤色表；同名则跳过
+    /// - Parameter name: Bundle 中 PNG 名
+    private func loadSkinLUT(named name: String) {
+        if loadedLutName == name, skinLutTexture != nil {
+            return
+        }
+        guard let device = defalutMetal.device else {
+            return
+        }
+        skinLutTexture = OFLUTLoader.loadTexture(named: name, device: device)
+        loadedLutName = name
+        if skinLutTexture == nil {
+            DDLogError("skin LUT load failed: \(name)")
+        }
+    }
+    
     /// 调用方已持有 lock
     private func isIdentityLocked() -> Bool {
         return smooth < 0.001 && whitening < 0.001 && brightEyes < 0.001 && whiteTeeth < 0.001
@@ -135,7 +164,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
     
     /// 把 BeautyParams 写进已有 GPU buffer，避免每帧重新分配
     private func syncParamsBuffer() {
-        let packed: [Float] = [smooth, whitening, brightEyes, whiteTeeth, skinRefR, skinRefG, skinRefB, skinValid, whiteStyle]
+        let packed: [Float] = [smooth, whitening, brightEyes, whiteTeeth]
         let byteCount = packed.count * MemoryLayout<Float>.size
         if paramsBuffer == nil || (paramsBuffer?.length ?? 0) < byteCount {
             paramsBuffer = defalutMetal.device?.makeBuffer(length: byteCount, options: .storageModeShared)
@@ -222,99 +251,38 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         return false
     }
     
-    /// 脸颊/鼻翼旁/眉心，避开唇眼，用来估当前肤色
-    private static let skinSampleIndices = [50, 101, 116, 117, 187, 205, 280, 330, 346, 347, 411, 425, 151]
-    
-    /// 在人脸关键点邻域采样 BGRA，得到当前肤色中心。跟遮罩同频，避免每帧锁 buffer。
-    /// - Parameters:
-    ///   - face: 归一化关键点
-    ///   - pixelBuffer: 当前帧，BGRA
-    private func sampleFaceSkin(face: [CGPoint], pixelBuffer: CVPixelBuffer) {
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-        guard width > 8, height > 8, face.count >= 426 else {
-            return
-        }
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        defer {
-            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
-        }
-        guard let base = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-            return
-        }
-        let stride = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        let ptr = base.assumingMemoryBound(to: UInt8.self)
-        var sumR: Float = 0
-        var sumG: Float = 0
-        var sumB: Float = 0
-        var count: Float = 0
-        for index in Self.skinSampleIndices {
-            let px = Int((face[index].x * CGFloat(width)).rounded())
-            let py = Int((face[index].y * CGFloat(height)).rounded())
-            for dy in -2...2 {
-                for dx in -2...2 {
-                    let x = min(max(px + dx, 0), width - 1)
-                    let y = min(max(py + dy, 0), height - 1)
-                    let offset = y * stride + x * 4
-                    let b = Float(ptr[offset]) / 255.0
-                    let g = Float(ptr[offset + 1]) / 255.0
-                    let r = Float(ptr[offset + 2]) / 255.0
-                    let luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
-                    // 1. 丢掉过暗过亮（阴影、高光、头发）
-                    if luma < 0.14 || luma > 0.90 {
-                        continue
-                    }
-                    // 2. 只要偏暖的像素，避免采到衣服/背景
-                    if r + 0.02 < b || r + 0.03 < g {
-                        continue
-                    }
-                    sumR += r
-                    sumG += g
-                    sumB += b
-                    count += 1
-                }
-            }
-        }
-        guard count > 24 else {
-            return
-        }
-        let meanR = sumR / count
-        let meanG = sumG / count
-        let meanB = sumB / count
-        lock.lock()
-        // 3. 指数平滑，灯光抖动时肤色中心不跳
-        let alpha: Float = skinValid > 0.5 ? 0.28 : 1.0
-        skinRefR = skinRefR * (1.0 - alpha) + meanR * alpha
-        skinRefG = skinRefG * (1.0 - alpha) + meanG * alpha
-        skinRefB = skinRefB * (1.0 - alpha) + meanB * alpha
-        skinValid = 1
-        syncParamsBuffer()
-        lock.unlock()
-    }
-    
-    /// 有人脸时按遮罩做磨皮/美白/亮眼/白牙
+    /// 磨皮/亮眼/白牙跟人脸遮罩；美肤 LUT 无人脸也可以全图 mix
     /// - Parameter frame: 原地替换 pixelBuffer / texture
     func process(_ frame: VideoFrame) {
         lock.lock()
         let needBlur = smooth > 0.001
         let needWhite = whitening > 0.001
+        let lut = skinLutTexture
         lock.unlock()
         guard let applyPipeline = applyPipeline, let paramsBuffer = paramsBuffer else {
             return
         }
-        let faces = landmarker?.copyLatestFaces() ?? []
-        guard let face = faces.first else {
+        guard needWhite == false || lut != nil else {
+            DDLogError("skin LUT missing, skip beauty frame")
             return
         }
-        if shouldRebuildMask(face: face) {
-            guard regionMask?.update(face: face) == true else {
-                return
-            }
-            if needWhite {
-                sampleFaceSkin(face: face, pixelBuffer: frame.pixelBuffer)
-            }
+        
+        let faces = landmarker?.copyLatestFaces() ?? []
+        let face = faces.first
+        if face == nil && !needWhite {
+            return
         }
-        guard let maskTexture = regionMask?.texture else {
+        var maskTexture: MTLTexture?
+        if let face = face {
+            if shouldRebuildMask(face: face) {
+                _ = regionMask?.update(face: face)
+            }
+            maskTexture = regionMask?.texture
+        }
+        if maskTexture == nil {
+            maskTexture = emptyMask
+        }
+        guard let maskTexture = maskTexture else {
             return
         }
         
@@ -369,7 +337,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
             blurTexture = blurTemp
         }
         
-        // 2. 全分辨率按遮罩合成
+        // 2. 全分辨率按遮罩合成；texture4 为当前美肤 LUT
         guard let encoder = commandBuffer.makeComputeCommandEncoder(),
               let threadgroups = defalutMetal.numTreadGroups,
               let threadsPerGroup = defalutMetal.threadsPerGroup else {
@@ -380,6 +348,7 @@ class OFBeautyComputer: NSObject, OFProcessNode {
         encoder.setTexture(blurTexture, index: 1)
         encoder.setTexture(maskTexture, index: 2)
         encoder.setTexture(outPair.1, index: 3)
+        encoder.setTexture(lut ?? maskTexture, index: 4)
         encoder.setBuffer(defalutMetal.sizeBuffer, offset: 0, index: 0)
         encoder.setBuffer(paramsBuffer, offset: 0, index: 1)
         encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)

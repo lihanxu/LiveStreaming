@@ -3,7 +3,7 @@
 //  LiveStreaming
 //
 //  根据 MediaPipe 478 点网格，在小纹理上栅格化皮肤 / 眼睛 / 牙齿遮罩。
-//  R=皮肤（磨皮、美白），G=眼睛（亮眼），B=牙齿（白牙）。
+//  R=皮肤（磨皮），G=眼睛（亮眼），B=牙齿（白牙）。
 //  对齐 self-beauty-core 无分割模型时的降级：FACE_OVAL 作面部皮肤，
 //  眉毛/嘴唇从皮肤抠掉；眼裂用 MediaPipe 眼轮廓写 G、不挖皮肤；张嘴才填牙齿。
 //  眼睑软边靠 GPU 线性采样，不在 CPU 上羽化，以免拖垮采集线程。
@@ -68,7 +68,7 @@ class OFFaceRegionMask {
             // 3. 眉毛从皮肤抠掉，避免磨皮糊成一条
             fillPolygon(Self.leftBrow(from: face), width: w, height: h, rgba: base, channel: 0, value: 0, clearChannel: nil)
             fillPolygon(Self.rightBrow(from: face), width: w, height: h, rgba: base, channel: 0, value: 0, clearChannel: nil)
-            // 4. 亮眼用关键点眼裂填 G，不从皮肤挖洞，眼皮仍走磨皮/美白
+            // 4. 亮眼用关键点眼裂填 G，不从皮肤挖洞，眼皮仍走磨皮
             fillPolygon(Self.leftEyeOpening(from: face), width: w, height: h, rgba: base, channel: 1, value: 255, clearChannel: nil)
             fillPolygon(Self.rightEyeOpening(from: face), width: w, height: h, rgba: base, channel: 1, value: 255, clearChannel: nil)
             // 5. 外唇从皮肤抠掉

@@ -45,6 +45,8 @@ class OFSettingsController {
             return makeFaceReshapePage()
         case .colorAdjust:
             return makeColorAdjustPage()
+        case .transition:
+            return makeTransitionPage()
         }
     }
     
@@ -54,6 +56,7 @@ class OFSettingsController {
     func performTap(_ id: OFSettingID) -> OFSettingsTapResult {
         switch id {
         case .camera:
+            tools.playArmedTransition()
             _ = inputDevice?.switchCameraPosition()
             DDLogInfo("settings camera -> \(cameraValueText())")
             return .reload
@@ -89,6 +92,11 @@ class OFSettingsController {
             return .push(.colorAdjust)
         case .colorParam:
             return .reload
+        case .transition:
+            return .push(.transition)
+        case .transitionPreset(let index):
+            tools.applyTransition(at: index)
+            return .reload
         case .beautyMaster:
             beauty.isEnabled.toggle()
             tools.applyBeautySettings(beauty)
@@ -111,6 +119,7 @@ class OFSettingsController {
             OFSettingItem(id: .singleColor, title: "单色", valueText: tools.singleColorValueText, interaction: .cycle),
             OFSettingItem(id: .gaussianBlur, title: "高斯模糊", valueText: tools.isGaussianBlurEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .edgeDetection, title: "描边", valueText: tools.isPeakEnabled ? "开" : "关", interaction: .toggle),
+            OFSettingItem(id: .transition, title: "转场", valueText: tools.transitionValueText, interaction: .drillIn(.transition)),
             OFSettingItem(id: .beauty, title: "美颜", valueText: beauty.summaryText, interaction: .drillIn(.beauty)),
             OFSettingItem(id: .colorAdjust, title: "调色", valueText: tools.colorAdjustSummary, interaction: .drillIn(.colorAdjust)),
         ]
@@ -149,7 +158,7 @@ class OFSettingsController {
         return OFSettingsPage(id: .cartoon, title: "漫画风", items: items)
     }
     
-    /// 美颜二级页：横向图标 + 滑杆；美白点进去选风格
+    /// 美颜二级页：横向图标 + 滑杆；点美肤进入滤镜二级页
     /// - Returns: 美颜页
     private func makeBeautyPage() -> OFSettingsPage {
         return OFSettingsPage(
@@ -159,15 +168,15 @@ class OFSettingsController {
         )
     }
     
-    /// 美白风格页：暖白 / 冷白 / 粉白 + 灵敏度，对齐调色
-    /// - Returns: 美白页
+    /// 美肤滤镜页：冷白 / 暖白 / 粉嫩 + 灵敏度，对齐 LUT 页
+    /// - Returns: 美肤页
     private func makeWhiteningStylePage() -> OFSettingsPage {
         let options = OFWhiteningStyle.allCases.map { style in
             OFOptionSliderRow(id: style.rawValue, title: style.title)
         }
         return OFSettingsPage(
             id: .whiteningStyle,
-            title: "美白",
+            title: "美肤",
             optionSlider: OFOptionSliderPage(
                 options: options,
                 selectedID: beauty.whiteningStyle.rawValue,
@@ -187,6 +196,26 @@ class OFSettingsController {
     /// - Returns: 滑杆页
     private func makeColorAdjustPage() -> OFSettingsPage {
         return OFSettingsPage(id: .colorAdjust, title: "调色", sliders: tools.colorAdjustSliderRows())
+    }
+    
+    /// 转场二级页：横向模版 + 时长滑杆
+    /// - Returns: 转场页
+    private func makeTransitionPage() -> OFSettingsPage {
+        let current = tools.currentTransitionIndex
+        let options = OFTransitionPreset.all.enumerated().map { index, preset in
+            OFOptionSliderRow(id: index, title: preset.displayName)
+        }
+        let enabled = OFTransitionPreset.all.indices.contains(current) && OFTransitionPreset.all[current].style != nil
+        return OFSettingsPage(
+            id: .transition,
+            title: "转场",
+            optionSlider: OFOptionSliderPage(
+                options: options,
+                selectedID: current,
+                intensity: tools.transitionDurationSlider,
+                intensityEnabled: enabled
+            )
+        )
     }
     
     /// 选中 LUT 预设；从关切到有色表时若灵敏度为 0 则拉满，避免看起来没效果
@@ -210,7 +239,28 @@ class OFSettingsController {
         tools.setLUTIntensity(100)
     }
     
-    /// 选中美白风格；强度为 0 时给默认 50，避免只换风格看不见变化
+    /// 选中转场模版并预览；从关切到有模版时若时长为 0 则拉到默认
+    /// - Parameter id: 预设下标
+    func selectTransitionOption(_ id: Int) {
+        tools.applyTransition(at: id)
+        let hasStyle = OFTransitionPreset.all.indices.contains(id) && OFTransitionPreset.all[id].style != nil
+        if hasStyle, tools.transitionDurationSlider < 0.5 {
+            tools.setTransitionDuration(50)
+        }
+    }
+    
+    /// 拖动转场时长
+    /// - Parameter value: 0…100
+    func updateTransitionDuration(_ value: Float) {
+        tools.setTransitionDuration(value)
+    }
+    
+    /// 时长滑杆回到默认
+    func resetTransitionDuration() {
+        tools.resetTransitionDuration()
+    }
+    
+    /// 选中美肤滤镜；强度为 0 时给默认 50，避免只换风格看不见变化
     /// - Parameter id: 风格 rawValue
     func selectWhiteningOption(_ id: Int) {
         beauty.leaveOneClickKeepingValues()
@@ -221,7 +271,7 @@ class OFSettingsController {
         syncBeautyMaster()
     }
     
-    /// 拖动美白灵敏度
+    /// 拖动美肤灵敏度
     /// - Parameter value: 0…100
     func updateWhiteningIntensity(_ value: Float) {
         beauty.leaveOneClickKeepingValues()
@@ -229,7 +279,7 @@ class OFSettingsController {
         syncBeautyMaster()
     }
     
-    /// 美白灵敏度归零
+    /// 美肤灵敏度归零
     func resetWhiteningIntensity() {
         beauty.leaveOneClickKeepingValues()
         beauty.setToneValue(0, for: .whitening)
@@ -253,7 +303,7 @@ class OFSettingsController {
         syncBeautyMaster()
     }
     
-    /// 拖动磨皮 / 美白 / 亮眼 / 白牙
+    /// 拖动磨皮 / 美肤 / 亮眼 / 白牙
     /// - Parameters:
     ///   - key: 着色项
     ///   - value: 0…100

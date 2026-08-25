@@ -5,7 +5,7 @@
 //  Created by anker on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
-//  默认链路：Source → FaceLandmarker → Beauty → FaceReshape → ColorAdjust → LUT → Cartoon → SingleColor → GaussianBlur → Peak → Sink
+//  默认链路：Source → FaceLandmarker → Beauty → FaceReshape → ColorAdjust → LUT → Cartoon → SingleColor → GaussianBlur → Peak → Transition → Sink
 //
 
 import Foundation
@@ -50,7 +50,7 @@ class OFAuxiliaryTools: NSObject {
         return OFFaceLandmarkerComputer()
     }()
     
-    /// 美颜：磨皮、美白、亮眼、白牙
+    /// 美颜：磨皮、美肤 LUT、亮眼、白牙
     private lazy var beauty: OFBeautyComputer = {
         let node = OFBeautyComputer()
         node.landmarker = faceLandmarker
@@ -67,6 +67,11 @@ class OFAuxiliaryTools: NSObject {
     /// 全局调色节点（曝光、对比、色温等）
     private lazy var colorAdjust: OFColorAdjustComputer = {
         return OFColorAdjustComputer()
+    }()
+    
+    /// 场景转场：冻结旧画面再按模版混入当前帧
+    private lazy var transition: OFTransitionComputer = {
+        return OFTransitionComputer()
     }()
     
     /// 美颜总开关（与档位一起写入 GPU）
@@ -92,6 +97,7 @@ class OFAuxiliaryTools: NSObject {
         processGraph.addNode(.singleColor, processor: singleColor)
         processGraph.addNode(.gaussianBlur, processor: gaussianBlur)
         processGraph.addNode(.peak, processor: peak)
+        processGraph.addNode(.transition, processor: transition)
         processGraph.addNode(.sink)
         
         processGraph.addEdge(from: .source, to: .faceLandmarker)
@@ -103,7 +109,8 @@ class OFAuxiliaryTools: NSObject {
         processGraph.addEdge(from: .cartoon, to: .singleColor)
         processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
         processGraph.addEdge(from: .gaussianBlur, to: .peak)
-        processGraph.addEdge(from: .peak, to: .sink)
+        processGraph.addEdge(from: .peak, to: .transition)
+        processGraph.addEdge(from: .transition, to: .sink)
     }
     
     /// 采集回调入口：把一帧送进图里按拓扑序处理
@@ -304,7 +311,7 @@ class OFAuxiliaryTools: NSObject {
     }
     
     /// 按住对比按钮时旁路美颜着色
-    /// - Parameter bypassed: true 看未磨皮美白的画面
+    /// - Parameter bypassed: true 看未磨皮美肤的画面
     func setBeautyToneBypassed(_ bypassed: Bool) {
         beauty.setBypassed(bypassed)
     }
@@ -313,5 +320,42 @@ class OFAuxiliaryTools: NSObject {
     /// - Parameter bypassed: true 看未变形的脸
     func setFaceReshapeBypassed(_ bypassed: Bool) {
         faceReshape.setBypassed(bypassed)
+    }
+    
+    /// 设置页转场当前值
+    var transitionValueText: String {
+        return transition.currentPreset.displayName
+    }
+    
+    /// 当前转场预设下标
+    var currentTransitionIndex: Int {
+        return transition.currentPresetIndex
+    }
+    
+    /// 选中转场模版并预览一次
+    /// - Parameter index: `OFTransitionPreset.all` 下标
+    func applyTransition(at index: Int) {
+        transition.applyPreset(at: index)
+    }
+    
+    /// 切摄像头前：已选模版则冻结下一帧再播
+    func playArmedTransition() {
+        transition.playIfArmed()
+    }
+    
+    /// 转场时长滑杆 0…100
+    var transitionDurationSlider: Float {
+        return transition.durationSliderValue
+    }
+    
+    /// 写入转场时长
+    /// - Parameter value: 0…100
+    func setTransitionDuration(_ value: Float) {
+        transition.setDurationSlider(value)
+    }
+    
+    /// 时长滑杆回到默认
+    func resetTransitionDuration() {
+        transition.resetDurationSlider()
     }
 }

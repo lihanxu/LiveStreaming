@@ -2,7 +2,7 @@
 //  OFOptionSliderEditorView.swift
 //  LiveStreaming
 //
-//  LUT / 美白风格：横向互斥选项 + 一条灵敏度滑杆，布局对齐调色页。
+//  LUT / 美肤滤镜：横向互斥选项 + 一条灵敏度滑杆，布局对齐调色页。
 //
 
 import UIKit

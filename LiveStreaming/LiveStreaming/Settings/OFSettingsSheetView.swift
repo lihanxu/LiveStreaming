@@ -42,7 +42,7 @@ class OFSettingsSheetView: UIView {
     private let reshapeEditor = OFFaceReshapeEditorView()
     /// 美颜着色：横向图标 + 滑杆
     private let beautyEditor = OFBeautyEditorView()
-    /// LUT / 美白风格：互斥选项 + 灵敏度
+    /// LUT / 美肤滤镜：互斥选项 + 灵敏度
     private let optionEditor = OFOptionSliderEditorView()
     /// 对比原图；放在卡片上方，不挡预览也不挤占栏内空间
     private let compareButton = UIButton(type: .custom)
@@ -302,6 +302,8 @@ class OFSettingsSheetView: UIView {
             controller.resetBeautyTone()
         } else if pageStack.last == .lut {
             controller.resetLUTIntensity()
+        } else if pageStack.last == .transition {
+            controller.resetTransitionDuration()
         } else if pageStack.last == .whiteningStyle {
             controller.resetWhiteningIntensity()
         }
@@ -409,12 +411,12 @@ class OFSettingsSheetView: UIView {
         return 8 + headerHeight + editorHeight + 12 + 5 + 10 + bottomSafe
     }
     
-    /// 美颜 / 美白风格 / 重塑 / 调色页在卡片上方放对比
+    /// 美颜 / 美肤滤镜 / 重塑 / 调色页在卡片上方放对比
     private var showsCompareButton: Bool {
         switch pageStack.last ?? .root {
         case .beauty, .whiteningStyle, .faceReshape, .colorAdjust, .lut:
             return true
-        case .root, .cartoon:
+        case .root, .cartoon, .transition:
             return false
         }
     }
@@ -438,7 +440,7 @@ class OFSettingsSheetView: UIView {
             controller.setColorAdjustCompareHolding(true)
         case .lut:
             controller.setLUTBypassed(true)
-        case .root, .cartoon:
+        case .root, .cartoon, .transition:
             break
         }
     }
@@ -502,12 +504,14 @@ extension OFSettingsSheetView: UICollectionViewDataSource, UICollectionViewDeleg
 }
 
 extension OFSettingsSheetView: OFOptionSliderEditorViewDelegate {
-    /// 点 LUT 预设或美白风格
+    /// 点 LUT 预设或美肤滤镜
     func optionSliderEditor(_ editor: OFOptionSliderEditorView, didSelect id: Int) {
         if pageStack.last == .lut {
             controller.selectLUTOption(id)
         } else if pageStack.last == .whiteningStyle {
             controller.selectWhiteningOption(id)
+        } else if pageStack.last == .transition {
+            controller.selectTransitionOption(id)
         }
         reloadCurrentPage()
     }
@@ -518,6 +522,8 @@ extension OFSettingsSheetView: OFOptionSliderEditorViewDelegate {
             controller.updateLUTIntensity(value)
         } else if pageStack.last == .whiteningStyle {
             controller.updateWhiteningIntensity(value)
+        } else if pageStack.last == .transition {
+            controller.updateTransitionDuration(value)
         }
     }
 }
@@ -542,7 +548,7 @@ extension OFSettingsSheetView: OFBeautyEditorViewDelegate {
         controller.updateBeautyTone(key: key, value: value)
     }
     
-    /// 进入美白风格页
+    /// 进入美肤滤镜页
     func beautyEditorDidTapWhiteningStyle(_ editor: OFBeautyEditorView) {
         pageStack.append(.whiteningStyle)
         reloadCurrentPage()

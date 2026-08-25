@@ -17,12 +17,14 @@ enum OFSettingsPageID: Equatable {
     case cartoon
     /// 美颜参数；人脸网格已接入 Face Landmarker
     case beauty
-    /// 美白风格：暖白 / 冷白 / 粉白
+    /// 美肤滤镜：冷白 / 暖白 / 粉嫩
     case whiteningStyle
     /// 面部重塑：瘦脸 / 大眼 / 瘦鼻 / 嘴巴 / 发际线 / 下颌
     case faceReshape
     /// 调色滑杆页
     case colorAdjust
+    /// 转场模版 + 时长
+    case transition
 }
 
 /// 一项设置的稳定 ID，后续扩展只加 case，不要靠下标。
@@ -45,7 +47,7 @@ enum OFSettingID: Equatable {
     case edgeDetection
     /// 主页上的美颜入口
     case beauty
-    /// 美白风格页里选中某一档
+    /// 美肤页里选中某一档滤镜
     case whiteningStylePreset(OFWhiteningStyle)
     /// 美颜总开关
     case beautyMaster
@@ -57,6 +59,10 @@ enum OFSettingID: Equatable {
     case colorAdjust
     /// 调色滑杆
     case colorParam(OFColorAdjustKey)
+    /// 主页上的转场入口
+    case transition
+    /// 二级页里选中某个转场模版
+    case transitionPreset(Int)
 }
 
 /// 点击格子后的行为。
@@ -81,7 +87,7 @@ struct OFSettingItem {
     let interaction: OFSettingInteraction
 }
 
-/// 互斥选项 + 一条灵敏度滑杆（LUT、美白风格）。
+/// 互斥选项 + 一条灵敏度滑杆（LUT、美肤滤镜）。
 struct OFOptionSliderPage {
     /// 横向图标
     let options: [OFOptionSliderRow]
@@ -95,7 +101,7 @@ struct OFOptionSliderPage {
 
 /// 互斥选项里的一项。
 struct OFOptionSliderRow {
-    /// 稳定 id：LUT 用预设下标，美白用风格 rawValue
+    /// 稳定 id：LUT 用预设下标，美肤用风格 rawValue
     let id: Int
     /// 图标下标题
     let title: String
@@ -115,7 +121,7 @@ struct OFSettingsPage {
     let reshapeSliders: [OFFaceReshapeSliderRow]
     /// 美颜着色滑杆；空表示不用美颜编辑器
     let beautySliders: [OFBeautySliderRow]
-    /// LUT / 美白风格：互斥选项 + 一条灵敏度滑杆
+    /// LUT / 美肤滤镜：互斥选项 + 一条灵敏度滑杆
     let optionSlider: OFOptionSliderPage?
     
     /// 网格页
@@ -178,7 +184,7 @@ struct OFSettingsPage {
         self.optionSlider = nil
     }
     
-    /// LUT / 美白：横向互斥选项 + 灵敏度滑杆，对齐调色页
+    /// LUT / 美肤：横向互斥选项 + 灵敏度滑杆，对齐调色页
     /// - Parameters:
     ///   - id: 页 ID
     ///   - title: 标题
@@ -199,27 +205,31 @@ struct OFSettingsPage {
     }
 }
 
-/// 美白风格，对应参考图的暖白 / 冷白 / 粉白。
+/// 美肤滤镜：冷白 / 暖白 / 粉嫩，对应 Resource/LUT 下三张色表。
 enum OFWhiteningStyle: Int, CaseIterable {
-    /// 自然暖白：提亮，保留黄桃底
+    /// 暖白：提亮并保留黄桃底
     case warm = 0
-    /// 冷白：去黄、偏瓷白中性
+    /// 冷白：去黄、偏瓷白
     case cold = 1
-    /// 粉白：中灰加很轻的品红，不推大红
+    /// 粉嫩：中灰加很轻的品红
     case pink = 2
     
-    /// 分段控件标题
+    /// 二级页按钮标题
     var title: String {
         switch self {
         case .warm: return "暖白"
         case .cold: return "冷白"
-        case .pink: return "粉白"
+        case .pink: return "粉嫩"
         }
     }
     
-    /// 写入 BeautyParams.whiteStyle
-    var gpuValue: Float {
-        return Float(rawValue)
+    /// Bundle 中 512×512 LUT PNG 名（不含扩展名）
+    var lutFileName: String {
+        switch self {
+        case .warm: return "SkinWarmWhite"
+        case .cold: return "SkinCoolWhite"
+        case .pink: return "SkinPink"
+        }
     }
 }
 
@@ -227,7 +237,7 @@ enum OFWhiteningStyle: Int, CaseIterable {
 enum OFBeautyToneKey: String, CaseIterable {
     /// 磨皮
     case smooth
-    /// 美白
+    /// 美肤（LUT 混合）
     case whitening
     /// 亮眼
     case brightEyes
@@ -238,7 +248,7 @@ enum OFBeautyToneKey: String, CaseIterable {
     var title: String {
         switch self {
         case .smooth: return "磨皮"
-        case .whitening: return "美白"
+        case .whitening: return "美肤"
         case .brightEyes: return "亮眼"
         case .whiteTeeth: return "白牙"
         }
@@ -255,7 +265,7 @@ enum OFBeautyPanelKey: String, CaseIterable {
     case faceReshape
     /// 磨皮
     case smooth
-    /// 美白
+    /// 美肤（LUT 混合）
     case whitening
     /// 亮眼
     case brightEyes
@@ -267,7 +277,7 @@ enum OFBeautyPanelKey: String, CaseIterable {
         switch self {
         case .oneClick: return "一键"
         case .smooth: return "磨皮"
-        case .whitening: return "美白"
+        case .whitening: return "美肤"
         case .brightEyes: return "亮眼"
         case .whiteTeeth: return "白牙"
         case .faceMesh: return "网格"
@@ -325,9 +335,9 @@ class OFBeautySettings {
     var isEnabled = false
     /// 磨皮，滑杆 0…100
     var smooth: Float = 0
-    /// 美白，滑杆 0…100
+    /// 美肤强度，滑杆 0…100，写入 GPU 后作为 LUT mix
     var whitening: Float = 0
-    /// 美白风格；强度为 0 时不生效
+    /// 当前美肤滤镜；强度为 0 时不套色表
     var whiteningStyle: OFWhiteningStyle = .warm
     /// 亮眼，滑杆 0…100；写入 GPU 时再乘 1.5
     var brightEyes: Float = 0
@@ -349,9 +359,9 @@ class OFBeautySettings {
     var oneClickEnabled = false
     /// 打开一键前的着色备份，关掉一键时还原
     private var backupSmooth: Float = 0
-    /// 打开一键前的美白备份
+    /// 打开一键前的美肤强度备份
     private var backupWhitening: Float = 0
-    /// 打开一键前的美白风格备份
+    /// 打开一键前的美肤滤镜备份
     private var backupWhiteningStyle: OFWhiteningStyle = .warm
     /// 打开一键前的亮眼备份
     private var backupBrightEyes: Float = 0
@@ -398,7 +408,7 @@ class OFBeautySettings {
             && abs(jaw) < 0.5
     }
     
-    /// 着色滑杆写成 GPU 强度。美白与滑杆 1:1；亮眼/白牙上限加半。
+    /// 着色滑杆写成 GPU 强度。美肤与滑杆 1:1；亮眼/白牙上限加半。
     /// - Parameters:
     ///   - slider: 0…100
     ///   - key: 着色项
@@ -561,7 +571,7 @@ class OFBeautySettings {
         oneClickEnabled = false
     }
     
-    /// 直播向的中等预设：磨皮明显、美白克制、轻量形变
+    /// 直播向的中等预设：磨皮明显、美肤克制、轻量形变
     private func applyOneClickPreset() {
         smooth = 55
         whitening = 38
