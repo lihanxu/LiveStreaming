@@ -24,6 +24,8 @@
 	<string>Live Streaming</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Live Streaming</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于在相册页浏览你的照片和视频</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
