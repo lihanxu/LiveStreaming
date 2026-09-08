@@ -9,6 +9,7 @@
 import AVFoundation
 import Foundation
 import CocoaLumberjack
+import OFFilterKit
 
 /// 设置页使用场景：直播含摄像头/转场，相册只保留静态媒体可用的滤镜。
 enum OFSettingsContext {

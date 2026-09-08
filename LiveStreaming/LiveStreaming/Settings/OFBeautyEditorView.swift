@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import OFFilterKit
 
 /// 美颜编辑器回调。
 protocol OFBeautyEditorViewDelegate: AnyObject {

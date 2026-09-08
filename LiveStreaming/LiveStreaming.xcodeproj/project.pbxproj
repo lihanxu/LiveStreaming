@@ -7,24 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		601FF0803034326500E1DF59 /* NegativeClassic.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0763034326500E1DF59 /* NegativeClassic.png */; };
-		601FF0813034326500E1DF59 /* Monochrome.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0753034326500E1DF59 /* Monochrome.png */; };
-		601FF0823034326500E1DF59 /* Soft.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF07B3034326500E1DF59 /* Soft.png */; };
-		601FF0833034326500E1DF59 /* Night.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0773034326500E1DF59 /* Night.png */; };
-		601FF0843034326500E1DF59 /* Vintage.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF07E3034326500E1DF59 /* Vintage.png */; };
-		601FF0853034326500E1DF59 /* Portrait.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0793034326500E1DF59 /* Portrait.png */; };
-		601FF0863034326500E1DF59 /* Urban.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF07D3034326500E1DF59 /* Urban.png */; };
-		601FF0873034326500E1DF59 /* Warm.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF07F3034326500E1DF59 /* Warm.png */; };
-		601FF0883034326500E1DF59 /* TealOrange.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF07C3034326500E1DF59 /* TealOrange.png */; };
-		601FF0893034326500E1DF59 /* ProMovie.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF07A3034326500E1DF59 /* ProMovie.png */; };
-		601FF08A3034326500E1DF59 /* Ocean.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0783034326500E1DF59 /* Ocean.png */; };
-		601FF08B3034326500E1DF5A /* SkinWarmWhite.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF08E3034326500E1DF5A /* SkinWarmWhite.png */; };
-		601FF08C3034326500E1DF5A /* SkinCoolWhite.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF08F3034326500E1DF5A /* SkinCoolWhite.png */; };
-		601FF08D3034326500E1DF5A /* SkinPink.png in Resources */ = {isa = PBXBuildFile; fileRef = 601FF0903034326500E1DF5A /* SkinPink.png */; };
-		60A20001275E000100000001 /* OFProcessNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10001275E000100000001 /* OFProcessNode.swift */; };
-		60A20002275E000100000002 /* OFProcessGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10002275E000100000002 /* OFProcessGraph.swift */; };
-		60A20003275E000100000003 /* OFLUTLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10003275E000100000003 /* OFLUTLoader.swift */; };
-		60A20004275E000100000004 /* OFLUTComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A10004275E000100000004 /* OFLUTComputer.swift */; };
 		60A30002275E000100000032 /* OFLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A30001275E000100000031 /* OFLogger.swift */; };
 		60A40011275E000100000051 /* OFSettingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40001275E000100000041 /* OFSettingItem.swift */; };
 		60A40012275E000100000052 /* OFSettingsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40002275E000100000042 /* OFSettingsController.swift */; };
@@ -32,18 +14,7 @@
 		60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */; };
 		60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40005275E000100000045 /* OFBeautyEditorView.swift */; };
 		60A40016275E000100000056 /* OFOptionSliderEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40006275E000100000046 /* OFOptionSliderEditorView.swift */; };
-		60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */; };
-		60A50012275E000100000072 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 60A50002275E000100000062 /* face_landmarker.task */; };
-		60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60001275E000100000101 /* OFColorAdjustParams.swift */; };
-		60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60002275E000100000102 /* OFColorAdjustComputer.swift */; };
 		60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60003275E000100000103 /* OFColorAdjustEditorView.swift */; };
-		60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70001275E000100000201 /* OFFaceRegionMask.swift */; };
-		60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70002275E000100000202 /* OFBeautyComputer.swift */; };
-		60A70013275E000100000213 /* OFFaceReshapeComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70003275E000100000203 /* OFFaceReshapeComputer.swift */; };
-		60A80011275E000100000311 /* OFCartoonComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A80001275E000100000301 /* OFCartoonComputer.swift */; };
-		60A80012275E000100000312 /* AnimeGANv3_Hayao_36.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = 60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */; };
-		60A80013275E000100000313 /* AnimeGANv3_Shinkai_37.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = 60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */; };
-		60A90011275E000100000411 /* OFTransitionComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A90001275E000100000401 /* OFTransitionComputer.swift */; };
 		60B00011275E000100000511 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00001275E000100000501 /* HomeViewController.swift */; };
 		60B00012275E000100000512 /* AlbumViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00002275E000100000502 /* AlbumViewController.swift */; };
 		60B00013275E000100000513 /* AlbumMediaConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00003275E000100000503 /* AlbumMediaConverter.swift */; };
@@ -57,28 +28,15 @@
 		9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */; };
 		9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDB2273A46D20045F456 /* SCGLView.swift */; };
 		9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBA273A76350045F456 /* FrameBuffer.m */; };
-		9A16DDBF273A76350045F456 /* Frame.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBB273A76350045F456 /* Frame.m */; };
 		9A1E73C527F197F90012CCC5 /* AudioMagician.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1E73C427F197F90012CCC5 /* AudioMagician.swift */; };
 		9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C627F198920012CCC5 /* fascinated.mp3 */; };
 		9A1E73CA27F198920012CCC5 /* fascinated.aac in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C727F198920012CCC5 /* fascinated.aac */; };
 		9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C827F198920012CCC5 /* fascinated.pcm */; };
-		9A44789E275E143B0021226B /* AuxiliaryTool.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789D275E143B0021226B /* AuxiliaryTool.metal */; };
 		9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789F275E382A0021226B /* OFButtonsView.swift */; };
 		9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A2275E3B670021226B /* OFMetalFuntions.swift */; };
-		9A4478A6275E62130021226B /* OFPeakComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A5275E62130021226B /* OFPeakComputer.swift */; };
-		9A4478A8275EFBBB0021226B /* OFGaussianBlurComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A7275EFBBB0021226B /* OFGaussianBlurComputer.swift */; };
 		9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA1275DED6900568A6B /* SCLinkedList.swift */; };
-		9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA2275DED6900568A6B /* SCQueue.swift */; };
-		9A552AAC275DED6900568A6B /* SCGraphEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA4275DED6900568A6B /* SCGraphEdge.swift */; };
-		9A552AAD275DED6900568A6B /* SCGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA5275DED6900568A6B /* SCGraph.swift */; };
-		9A552AAE275DED6900568A6B /* SCGraphVertex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA6275DED6900568A6B /* SCGraphVertex.swift */; };
-		9A552AAF275DED6900568A6B /* SCListGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA7275DED6900568A6B /* SCListGraph.swift */; };
 		9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA8275DED6900568A6B /* SCBufferQueue.swift */; };
 		9A552AB1275DED6900568A6B /* SCStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA9275DED6900568A6B /* SCStack.swift */; };
-		9A552AB5275DEFC200568A6B /* OFDefalutMetal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB4275DEFC200568A6B /* OFDefalutMetal.swift */; };
-		9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB6275DF73E00568A6B /* OFSingleColorMetalComputer.swift */; };
-		9A552AB9275DF79F00568A6B /* OFAuxiliaryTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */; };
-		9A552ABB275DFF7B00568A6B /* OFPixelBufferTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */; };
 		9AC47C1E27E41CFE00A588A3 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */; };
 		9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */; };
 		9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */; };
@@ -94,24 +52,6 @@
 
 /* Begin PBXFileReference section */
 		57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LiveStreaming.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		601FF0753034326500E1DF59 /* Monochrome.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Monochrome.png; sourceTree = "<group>"; };
-		601FF0763034326500E1DF59 /* NegativeClassic.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = NegativeClassic.png; sourceTree = "<group>"; };
-		601FF0773034326500E1DF59 /* Night.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Night.png; sourceTree = "<group>"; };
-		601FF0783034326500E1DF59 /* Ocean.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Ocean.png; sourceTree = "<group>"; };
-		601FF0793034326500E1DF59 /* Portrait.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Portrait.png; sourceTree = "<group>"; };
-		601FF07A3034326500E1DF59 /* ProMovie.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ProMovie.png; sourceTree = "<group>"; };
-		601FF07B3034326500E1DF59 /* Soft.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Soft.png; sourceTree = "<group>"; };
-		601FF07C3034326500E1DF59 /* TealOrange.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TealOrange.png; sourceTree = "<group>"; };
-		601FF07D3034326500E1DF59 /* Urban.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Urban.png; sourceTree = "<group>"; };
-		601FF07E3034326500E1DF59 /* Vintage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Vintage.png; sourceTree = "<group>"; };
-		601FF07F3034326500E1DF59 /* Warm.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Warm.png; sourceTree = "<group>"; };
-		601FF08E3034326500E1DF5A /* SkinWarmWhite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = SkinWarmWhite.png; sourceTree = "<group>"; };
-		601FF08F3034326500E1DF5A /* SkinCoolWhite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = SkinCoolWhite.png; sourceTree = "<group>"; };
-		601FF0903034326500E1DF5A /* SkinPink.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = SkinPink.png; sourceTree = "<group>"; };
-		60A10001275E000100000001 /* OFProcessNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessNode.swift; sourceTree = "<group>"; };
-		60A10002275E000100000002 /* OFProcessGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFProcessGraph.swift; sourceTree = "<group>"; };
-		60A10003275E000100000003 /* OFLUTLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTLoader.swift; sourceTree = "<group>"; };
-		60A10004275E000100000004 /* OFLUTComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLUTComputer.swift; sourceTree = "<group>"; };
 		60A30001275E000100000031 /* OFLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLogger.swift; sourceTree = "<group>"; };
 		60A40001275E000100000041 /* OFSettingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingItem.swift; sourceTree = "<group>"; };
 		60A40002275E000100000042 /* OFSettingsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsController.swift; sourceTree = "<group>"; };
@@ -119,18 +59,7 @@
 		60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeEditorView.swift; sourceTree = "<group>"; };
 		60A40005275E000100000045 /* OFBeautyEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyEditorView.swift; sourceTree = "<group>"; };
 		60A40006275E000100000046 /* OFOptionSliderEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFOptionSliderEditorView.swift; sourceTree = "<group>"; };
-		60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceLandmarkerComputer.swift; sourceTree = "<group>"; };
-		60A50002275E000100000062 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
-		60A60001275E000100000101 /* OFColorAdjustParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustParams.swift; sourceTree = "<group>"; };
-		60A60002275E000100000102 /* OFColorAdjustComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustComputer.swift; sourceTree = "<group>"; };
 		60A60003275E000100000103 /* OFColorAdjustEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustEditorView.swift; sourceTree = "<group>"; };
-		60A70001275E000100000201 /* OFFaceRegionMask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceRegionMask.swift; sourceTree = "<group>"; };
-		60A70002275E000100000202 /* OFBeautyComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyComputer.swift; sourceTree = "<group>"; };
-		60A70003275E000100000203 /* OFFaceReshapeComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeComputer.swift; sourceTree = "<group>"; };
-		60A80001275E000100000301 /* OFCartoonComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFCartoonComputer.swift; sourceTree = "<group>"; };
-		60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Hayao_36.mlmodel; sourceTree = "<group>"; };
-		60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Shinkai_37.mlmodel; sourceTree = "<group>"; };
-		60A90001275E000100000401 /* OFTransitionComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFTransitionComputer.swift; sourceTree = "<group>"; };
 		60B00001275E000100000501 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		60B00002275E000100000502 /* AlbumViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumViewController.swift; sourceTree = "<group>"; };
 		60B00003275E000100000503 /* AlbumMediaConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumMediaConverter.swift; sourceTree = "<group>"; };
@@ -146,30 +75,16 @@
 		9A16DDB2273A46D20045F456 /* SCGLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCGLView.swift; sourceTree = "<group>"; };
 		9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LiveStreaming-Bridging-Header.h"; sourceTree = "<group>"; };
 		9A16DDBA273A76350045F456 /* FrameBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FrameBuffer.m; sourceTree = "<group>"; };
-		9A16DDBB273A76350045F456 /* Frame.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Frame.m; sourceTree = "<group>"; };
 		9A16DDBC273A76350045F456 /* FrameBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameBuffer.h; sourceTree = "<group>"; };
-		9A16DDBD273A76350045F456 /* Frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Frame.h; sourceTree = "<group>"; };
 		9A1E73C427F197F90012CCC5 /* AudioMagician.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioMagician.swift; sourceTree = "<group>"; };
 		9A1E73C627F198920012CCC5 /* fascinated.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = fascinated.mp3; sourceTree = "<group>"; };
 		9A1E73C727F198920012CCC5 /* fascinated.aac */ = {isa = PBXFileReference; lastKnownFileType = file; path = fascinated.aac; sourceTree = "<group>"; };
 		9A1E73C827F198920012CCC5 /* fascinated.pcm */ = {isa = PBXFileReference; lastKnownFileType = file; path = fascinated.pcm; sourceTree = "<group>"; };
-		9A44789D275E143B0021226B /* AuxiliaryTool.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = AuxiliaryTool.metal; sourceTree = "<group>"; };
 		9A44789F275E382A0021226B /* OFButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFButtonsView.swift; sourceTree = "<group>"; };
 		9A4478A2275E3B670021226B /* OFMetalFuntions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFMetalFuntions.swift; sourceTree = "<group>"; };
-		9A4478A5275E62130021226B /* OFPeakComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFPeakComputer.swift; sourceTree = "<group>"; };
-		9A4478A7275EFBBB0021226B /* OFGaussianBlurComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFGaussianBlurComputer.swift; sourceTree = "<group>"; };
 		9A552AA1275DED6900568A6B /* SCLinkedList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCLinkedList.swift; sourceTree = "<group>"; };
-		9A552AA2275DED6900568A6B /* SCQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCQueue.swift; sourceTree = "<group>"; };
-		9A552AA4275DED6900568A6B /* SCGraphEdge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraphEdge.swift; sourceTree = "<group>"; };
-		9A552AA5275DED6900568A6B /* SCGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraph.swift; sourceTree = "<group>"; };
-		9A552AA6275DED6900568A6B /* SCGraphVertex.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCGraphVertex.swift; sourceTree = "<group>"; };
-		9A552AA7275DED6900568A6B /* SCListGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCListGraph.swift; sourceTree = "<group>"; };
 		9A552AA8275DED6900568A6B /* SCBufferQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCBufferQueue.swift; sourceTree = "<group>"; };
 		9A552AA9275DED6900568A6B /* SCStack.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCStack.swift; sourceTree = "<group>"; };
-		9A552AB4275DEFC200568A6B /* OFDefalutMetal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFDefalutMetal.swift; sourceTree = "<group>"; };
-		9A552AB6275DF73E00568A6B /* OFSingleColorMetalComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSingleColorMetalComputer.swift; sourceTree = "<group>"; };
-		9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFAuxiliaryTools.swift; sourceTree = "<group>"; };
-		9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFPixelBufferTool.swift; sourceTree = "<group>"; };
 		9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFiPhoneInputDevice.swift; sourceTree = "<group>"; };
@@ -217,8 +132,6 @@
 		60A10020275E000100000020 /* Process */ = {
 			isa = PBXGroup;
 			children = (
-				60A10001275E000100000001 /* OFProcessNode.swift */,
-				60A10002275E000100000002 /* OFProcessGraph.swift */,
 			);
 			path = Process;
 			sourceTree = "<group>";
@@ -226,8 +139,6 @@
 		60A10021275E000100000021 /* LUT */ = {
 			isa = PBXGroup;
 			children = (
-				60A10003275E000100000003 /* OFLUTLoader.swift */,
-				60A10004275E000100000004 /* OFLUTComputer.swift */,
 			);
 			path = LUT;
 			sourceTree = "<group>";
@@ -235,20 +146,6 @@
 		60A10022275E000100000022 /* LUT */ = {
 			isa = PBXGroup;
 			children = (
-				601FF0753034326500E1DF59 /* Monochrome.png */,
-				601FF0763034326500E1DF59 /* NegativeClassic.png */,
-				601FF0773034326500E1DF59 /* Night.png */,
-				601FF0783034326500E1DF59 /* Ocean.png */,
-				601FF0793034326500E1DF59 /* Portrait.png */,
-				601FF07A3034326500E1DF59 /* ProMovie.png */,
-				601FF07B3034326500E1DF59 /* Soft.png */,
-				601FF07C3034326500E1DF59 /* TealOrange.png */,
-				601FF07D3034326500E1DF59 /* Urban.png */,
-				601FF07E3034326500E1DF59 /* Vintage.png */,
-				601FF07F3034326500E1DF59 /* Warm.png */,
-				601FF08E3034326500E1DF5A /* SkinWarmWhite.png */,
-				601FF08F3034326500E1DF5A /* SkinCoolWhite.png */,
-				601FF0903034326500E1DF5A /* SkinPink.png */,
 			);
 			path = LUT;
 			sourceTree = "<group>";
@@ -269,10 +166,6 @@
 		60A50020275E000100000081 /* Face */ = {
 			isa = PBXGroup;
 			children = (
-				60A50001275E000100000061 /* OFFaceLandmarkerComputer.swift */,
-				60A70001275E000100000201 /* OFFaceRegionMask.swift */,
-				60A70002275E000100000202 /* OFBeautyComputer.swift */,
-				60A70003275E000100000203 /* OFFaceReshapeComputer.swift */,
 			);
 			path = Face;
 			sourceTree = "<group>";
@@ -280,7 +173,6 @@
 		60A50021275E000100000082 /* FaceLandmarker */ = {
 			isa = PBXGroup;
 			children = (
-				60A50002275E000100000062 /* face_landmarker.task */,
 			);
 			path = FaceLandmarker;
 			sourceTree = "<group>";
@@ -288,8 +180,6 @@
 		60A60020275E000100000120 /* ColorAdjust */ = {
 			isa = PBXGroup;
 			children = (
-				60A60001275E000100000101 /* OFColorAdjustParams.swift */,
-				60A60002275E000100000102 /* OFColorAdjustComputer.swift */,
 				60A60003275E000100000103 /* OFColorAdjustEditorView.swift */,
 			);
 			path = ColorAdjust;
@@ -298,7 +188,6 @@
 		60A80020275E000100000320 /* Cartoon */ = {
 			isa = PBXGroup;
 			children = (
-				60A80001275E000100000301 /* OFCartoonComputer.swift */,
 			);
 			path = Cartoon;
 			sourceTree = "<group>";
@@ -306,8 +195,6 @@
 		60A80021275E000100000321 /* Cartoon */ = {
 			isa = PBXGroup;
 			children = (
-				60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */,
-				60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */,
 			);
 			path = Cartoon;
 			sourceTree = "<group>";
@@ -315,7 +202,6 @@
 		60A90020275E000100000420 /* Transition */ = {
 			isa = PBXGroup;
 			children = (
-				60A90001275E000100000401 /* OFTransitionComputer.swift */,
 			);
 			path = Transition;
 			sourceTree = "<group>";
@@ -344,7 +230,6 @@
 		9A4478A4275E5C2B0021226B /* Metal */ = {
 			isa = PBXGroup;
 			children = (
-				9A44789D275E143B0021226B /* AuxiliaryTool.metal */,
 			);
 			path = Metal;
 			sourceTree = "<group>";
@@ -354,7 +239,6 @@
 			children = (
 				9A552AA3275DED6900568A6B /* Graph */,
 				9A552AA1275DED6900568A6B /* SCLinkedList.swift */,
-				9A552AA2275DED6900568A6B /* SCQueue.swift */,
 				9A552AA8275DED6900568A6B /* SCBufferQueue.swift */,
 				9A552AA9275DED6900568A6B /* SCStack.swift */,
 			);
@@ -364,10 +248,6 @@
 		9A552AA3275DED6900568A6B /* Graph */ = {
 			isa = PBXGroup;
 			children = (
-				9A552AA4275DED6900568A6B /* SCGraphEdge.swift */,
-				9A552AA5275DED6900568A6B /* SCGraph.swift */,
-				9A552AA6275DED6900568A6B /* SCGraphVertex.swift */,
-				9A552AA7275DED6900568A6B /* SCListGraph.swift */,
 			);
 			path = Graph;
 			sourceTree = "<group>";
@@ -390,13 +270,7 @@
 			isa = PBXGroup;
 			children = (
 				9A4478A4275E5C2B0021226B /* Metal */,
-				9A552AB4275DEFC200568A6B /* OFDefalutMetal.swift */,
-				9A552ABA275DFF7B00568A6B /* OFPixelBufferTool.swift */,
 				9A4478A2275E3B670021226B /* OFMetalFuntions.swift */,
-				9A552AB8275DF79F00568A6B /* OFAuxiliaryTools.swift */,
-				9A552AB6275DF73E00568A6B /* OFSingleColorMetalComputer.swift */,
-				9A4478A5275E62130021226B /* OFPeakComputer.swift */,
-				9A4478A7275EFBBB0021226B /* OFGaussianBlurComputer.swift */,
 			);
 			path = Metal;
 			sourceTree = "<group>";
@@ -476,8 +350,6 @@
 		9AFFCBA02739703100161747 /* Frame */ = {
 			isa = PBXGroup;
 			children = (
-				9A16DDBD273A76350045F456 /* Frame.h */,
-				9A16DDBB273A76350045F456 /* Frame.m */,
 				9A16DDBC273A76350045F456 /* FrameBuffer.h */,
 				9A16DDBA273A76350045F456 /* FrameBuffer.m */,
 				9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */,
@@ -497,6 +369,7 @@
 				9AFFCB782738C1C200161747 /* Frameworks */,
 				9AFFCB792738C1C200161747 /* Resources */,
 				F6F727846303B850F6C982CF /* [CP] Embed Pods Frameworks */,
+				4A0722CD0AE152A49F26D2C4 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -545,9 +418,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				60A50012275E000100000072 /* face_landmarker.task in Resources */,
-				60A80012275E000100000312 /* AnimeGANv3_Hayao_36.mlmodel in Resources */,
-				60A80013275E000100000313 /* AnimeGANv3_Shinkai_37.mlmodel in Resources */,
 				9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */,
 				9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */,
 				9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */,
@@ -555,20 +425,6 @@
 				9A1E73CA27F198920012CCC5 /* fascinated.aac in Resources */,
 				9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */,
 				9AFFCB862738C1C200161747 /* Main.storyboard in Resources */,
-				601FF0803034326500E1DF59 /* NegativeClassic.png in Resources */,
-				601FF0813034326500E1DF59 /* Monochrome.png in Resources */,
-				601FF0823034326500E1DF59 /* Soft.png in Resources */,
-				601FF0833034326500E1DF59 /* Night.png in Resources */,
-				601FF0843034326500E1DF59 /* Vintage.png in Resources */,
-				601FF0853034326500E1DF59 /* Portrait.png in Resources */,
-				601FF0863034326500E1DF59 /* Urban.png in Resources */,
-				601FF0873034326500E1DF59 /* Warm.png in Resources */,
-				601FF0883034326500E1DF59 /* TealOrange.png in Resources */,
-				601FF0893034326500E1DF59 /* ProMovie.png in Resources */,
-				601FF08A3034326500E1DF59 /* Ocean.png in Resources */,
-				601FF08B3034326500E1DF5A /* SkinWarmWhite.png in Resources */,
-				601FF08C3034326500E1DF5A /* SkinCoolWhite.png in Resources */,
-				601FF08D3034326500E1DF5A /* SkinPink.png in Resources */,
 				9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */,
 				9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */,
 			);
@@ -577,6 +433,23 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		4A0722CD0AE152A49F26D2C4 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		6AC54506480BBDF5D5FCF841 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -607,13 +480,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -627,12 +496,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				60A20001275E000100000001 /* OFProcessNode.swift in Sources */,
-				60A20002275E000100000002 /* OFProcessGraph.swift in Sources */,
-				60A20003275E000100000003 /* OFLUTLoader.swift in Sources */,
-				60A20004275E000100000004 /* OFLUTComputer.swift in Sources */,
-				60A80011275E000100000311 /* OFCartoonComputer.swift in Sources */,
-				60A90011275E000100000411 /* OFTransitionComputer.swift in Sources */,
 				60A30002275E000100000032 /* OFLogger.swift in Sources */,
 				60A40011275E000100000051 /* OFSettingItem.swift in Sources */,
 				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,
@@ -640,18 +503,9 @@
 				60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */,
 				60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */,
 				60A40016275E000100000056 /* OFOptionSliderEditorView.swift in Sources */,
-				60A50011275E000100000071 /* OFFaceLandmarkerComputer.swift in Sources */,
-				60A70011275E000100000211 /* OFFaceRegionMask.swift in Sources */,
-				60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */,
-				60A70013275E000100000213 /* OFFaceReshapeComputer.swift in Sources */,
-				60A60011275E000100000111 /* OFColorAdjustParams.swift in Sources */,
-				60A60012275E000100000112 /* OFColorAdjustComputer.swift in Sources */,
 				60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */,
 				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
-				9A552AB7275DF73E00568A6B /* OFSingleColorMetalComputer.swift in Sources */,
 				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,
-				9A4478A6275E62130021226B /* OFPeakComputer.swift in Sources */,
-				9A552AAD275DED6900568A6B /* SCGraph.swift in Sources */,
 				9A1E73C527F197F90012CCC5 /* AudioMagician.swift in Sources */,
 				9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */,
 				60B00011275E000100000511 /* HomeViewController.swift in Sources */,
@@ -664,22 +518,12 @@
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
 				9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */,
 				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
-				9A552AAE275DED6900568A6B /* SCGraphVertex.swift in Sources */,
-				9A552AAB275DED6900568A6B /* SCQueue.swift in Sources */,
-				9A552AAF275DED6900568A6B /* SCListGraph.swift in Sources */,
 				9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */,
-				9A4478A8275EFBBB0021226B /* OFGaussianBlurComputer.swift in Sources */,
 				9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */,
 				9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */,
 				9A552AB1275DED6900568A6B /* SCStack.swift in Sources */,
-				9A552AB9275DF79F00568A6B /* OFAuxiliaryTools.swift in Sources */,
-				9A552ABB275DFF7B00568A6B /* OFPixelBufferTool.swift in Sources */,
 				9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */,
 				9AC47C1E27E41CFE00A588A3 /* AudioManager.swift in Sources */,
-				9A44789E275E143B0021226B /* AuxiliaryTool.metal in Sources */,
-				9A16DDBF273A76350045F456 /* Frame.m in Sources */,
-				9A552AB5275DEFC200568A6B /* OFDefalutMetal.swift in Sources */,
-				9A552AAC275DED6900568A6B /* SCGraphEdge.swift in Sources */,
 				9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */,
 				60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */,
 				9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */,

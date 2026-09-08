@@ -5,10 +5,13 @@ PODS:
   - MediaPipeTasksCommon (0.10.21)
   - MediaPipeTasksVision (0.10.21):
     - MediaPipeTasksCommon (= 0.10.21)
+  - OFFilterKit (0.1.0):
+    - CocoaLumberjack/Swift
+    - MediaPipeTasksVision
 
 DEPENDENCIES:
   - CocoaLumberjack/Swift
-  - MediaPipeTasksVision
+  - OFFilterKit (from `../OFFilterKit`)
 
 SPEC REPOS:
   trunk:
@@ -16,11 +19,16 @@ SPEC REPOS:
     - MediaPipeTasksCommon
     - MediaPipeTasksVision
 
+EXTERNAL SOURCES:
+  OFFilterKit:
+    :path: "../OFFilterKit"
+
 SPEC CHECKSUMS:
   CocoaLumberjack: 6a459bc897d6d80bd1b8c78482ec7ad05dffc3f0
   MediaPipeTasksCommon: 6cfa29170d4900f04d250ad95ec058f14a741f38
   MediaPipeTasksVision: 7b1c0f5a5820e87e9d96926f5e65d8cd3744fac2
+  OFFilterKit: c41ef7f2dffbd521d9b6de74cea669e7a5288aae
 
-PODFILE CHECKSUM: 90fbd4a5c98bb78b0f387ce34ad7666fca5c5492
+PODFILE CHECKSUM: fa4921be7ddfacfd7f2ca3297f9323d946861dde
 
 COCOAPODS: 1.16.2

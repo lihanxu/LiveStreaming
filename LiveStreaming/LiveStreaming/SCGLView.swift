@@ -11,6 +11,7 @@
 import UIKit
 import GLKit
 import CocoaLumberjack
+import OFFilterKit
 
 /// OpenGL ES 预览协议：入帧、启停、清屏。
 protocol SCGLViewProtocol: NSObjectProtocol {

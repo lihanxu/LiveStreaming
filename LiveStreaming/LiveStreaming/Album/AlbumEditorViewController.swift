@@ -9,6 +9,7 @@ import UIKit
 import Photos
 import AVFoundation
 import CocoaLumberjack
+import OFFilterKit
 
 /// 相册单资源编辑：OpenGL 预览 + 设置卡片 + 导出。
 class AlbumEditorViewController: UIViewController {
@@ -218,7 +219,8 @@ class AlbumEditorViewController: UIViewController {
         } else {
             AlbumMediaConverter.loadPhotoBuffer(
                 asset: asset,
-                maxLongEdge: AlbumMediaConverter.previewMaxLongEdge
+                maxLongEdge: AlbumMediaConverter.previewMaxLongEdge,
+                pool: session.tools.pixelBufferPool
             ) { [weak self] buffer in
                 guard let self = self else { return }
                 self.activityIndicator.stopAnimating()
@@ -312,7 +314,8 @@ class AlbumEditorViewController: UIViewController {
             guard let self = self else { return }
             AlbumMediaConverter.loadPhotoBuffer(
                 asset: self.asset,
-                maxLongEdge: AlbumMediaConverter.photoExportMaxLongEdge
+                maxLongEdge: AlbumMediaConverter.photoExportMaxLongEdge,
+                pool: self.session.tools.pixelBufferPool
             ) { buffer in
                 guard let buffer = buffer else {
                     self.finishExport(success: false, message: "无法读取原图", resumeVideo: false)

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import OFFilterKit
 
 /// 从底部弹出的设置面板。
 class OFSettingsSheetView: UIView {

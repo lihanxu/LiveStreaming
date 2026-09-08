@@ -11,18 +11,18 @@ App 启动后进入首页，两个入口：
 | 实时流预览 | `ViewController`（Storyboard id: `LivePreviewViewController`） | 摄像头采集 → 滤镜处理图 → OpenGL 预览；顺带 H.264 编码与耳返 |
 | 相册 | `AlbumViewController` → `AlbumEditorViewController` | 浏览系统相册；对照片/视频套同一套 LUT/美颜，预览并可导出回相册 |
 
-滤镜实现只维护一份（`OFAuxiliaryTools` + `OFProcessGraph`）。直播与相册各自持有独立门面实例，参数互不串扰。
+滤镜实现只维护一份，在开发源 Pod **OFFilterKit**（`OFAuxiliaryTools` + `OFProcessGraph`）。直播与相册各自持有独立门面实例，参数互不串扰。
 
 ## 2. 技术栈与依赖
 
-- 语言：Swift + 少量 Objective-C（`VideoFrame` / `FrameBuffer`）
+- 语言：Swift + 少量 Objective-C（`VideoFrame` 在 OFFilterKit；`FrameBuffer` 在 App）
 - UI：UIKit，无 SceneDelegate；`AppDelegate.window` + `Main.storyboard`
 - 采集：AVFoundation `AVCaptureSession`（32BGRA + PCM）
-- GPU：滤镜走 Metal Compute；预览走 OpenGL ES 3（`SCGLView`），通过 IOSurface / `CVPixelBuffer` 共享像素
-- 人脸：MediaPipe Tasks Vision（`face_landmarker.task`）
-- 漫画风：Core ML `AnimeGANv3_*.mlmodel`
+- GPU：滤镜走 Metal Compute（OFFilterKit）；预览走 OpenGL ES 3（`SCGLView`），通过 IOSurface / `CVPixelBuffer` 共享像素
+- 人脸：MediaPipe Tasks Vision（由 OFFilterKit 引入；`face_landmarker.task` 在 Pod resource bundle）
+- 漫画风：Core ML `AnimeGANv3_*.mlmodel`（同样在 Pod bundle，编成 `mlmodelc`）
 - 日志：CocoaLumberjack（TTY stderr + os_log + 按天文件）
-- 最低系统：iOS 12.0（CocoaPods 见 `LiveStreaming/Podfile`）
+- 最低系统：iOS 12.0。App `Podfile` 依赖 `OFFilterKit`（`:path => '../OFFilterKit'`）与 Lumberjack；MediaPipe 由内核 Pod 带入。
 
 权限（`Info.plist`）：相机、麦克风、相册读写、写入相册。
 
@@ -48,6 +48,7 @@ Main.storyboard
 
 ```
                     ┌─────────────────────────────────────┐
+                    │         OFFilterKit                 │
                     │         OFAuxiliaryTools            │
                     │              │                      │
   像素源 ──────────►│         OFProcessGraph              │──► VideoFrame.pixelBuffer
@@ -66,11 +67,16 @@ Main.storyboard
 
 音频直播走 `AudioManager` / `AudioPlayer` 耳返；相册视频预览音频由 `AVPlayer` 播放，导出时 PCM 转 AAC 写入 mp4。
 
-## 5. 处理图（滤镜 DAG）
+## 5. 滤镜在 OFFilterKit
 
-门面：`Metal/OFAuxiliaryTools.swift`  
-调度：`Process/OFProcessGraph.swift`（拓扑序缓存，未启用的节点透传）  
-节点协议：`OFProcessNode`（`isEnabled` + 原地改 `pixelBuffer` / `texture`）
+内核是仓库根目录开发源 Pod [`OFFilterKit/`](../OFFilterKit/)，不发 spec。App 只负责采集、预览、相册和设置 UI。专文见 [`OFAuxiliaryTools.md`](OFAuxiliaryTools.md)。
+
+- 门面：`OFFilterKit/Sources/Metal/OFAuxiliaryTools.swift`
+- 调度：`OFProcessGraph`（拓扑序缓存，未启用的节点透传）
+- 节点协议：`OFProcessNode`（`isEnabled` + 原地改 `pixelBuffer` / `texture`）
+- GPU 资源：每门面一份 `OFFilterContext`（`OFDefalutMetal` + `OFPixelBufferTool`）
+- 资源：`OFFilterKit.bundle`（LUT PNG、`face_landmarker.task`、`mlmodelc`、`default.metallib`）
+- App 引用：`import OFFilterKit`；`FrameBuffer.h` 使用 `#import <OFFilterKit/Frame.h>`
 
 默认链路（与代码注释一致）：
 
@@ -100,9 +106,9 @@ Source
 | SingleColor / GaussianBlur / Peak | Metal | 单色、模糊、描边 |
 | Transition | Metal | 切镜冻结帧混合；**仅直播设置页露出** |
 
-节点会原地替换 `CVPixelBuffer`。因此相册**照片**必须从原始 `sourceBuffer` 拷贝后再跑图，不能在已滤镜的结果上叠第二次。
+节点会原地替换 `CVPixelBuffer`。因此相册**照片**必须从原始 `sourceBuffer` 拷贝后再跑图，不能在已滤镜的结果上叠第二次。拷贝走 `AlbumMediaConverter` 传入的 `session.tools.pixelBufferPool`。
 
-像素池：`OFPixelBufferTool.sharedInstance`。尺寸变化会重建池；直播与相册不要同时跑采集/导出。相册内部靠 `AlbumEditSession` 串行队列避免并发抢池。
+像素池按 `OFFilterContext` 实例隔离，不再用进程单例。直播与相册仍不要同时 `inputFrame` 抢同一 GPU；相册内部靠 `AlbumEditSession` 串行队列。
 
 ## 6. 实时流模块
 
@@ -153,7 +159,96 @@ AlbumEditSession
 
 设置：`OFSettingsController(context: .album)`，隐藏摄像头与转场；`onPipelineChanged` 驱动照片从 source 重算。
 
-## 8. 设置 UI
+## 8. 相册剪辑层（规划）
+
+本节是后续剪辑能力的架构规划，**尚未落地**。当前实现仍以第 7 节为准。剪辑改的是坐标系和时间轴，滤镜改的是逐帧着色；二者分开，滤镜 DAG 拓扑不改。`OFAuxiliaryTools` 只吃已经正放的画面，人脸关键点才与预览/导出一致。
+
+### 8.1 处理顺序
+
+```
+源像素（照片 buffer / 视频解码帧）
+  → 画幅（旋转 / 翻转 / 自由角 / 比例裁切）
+  → 时间线（保留区间、变速映射）   // 仅视频
+  → OFAuxiliaryTools / OFProcessGraph
+  → 预览 SCGLView 或 导出 Writer 或 截图
+```
+
+几何必须在滤镜之前：先裁切再美颜，关键点落在最终画幅上。不把旋转、裁剪、变速做成 `OFProcessGraph` 节点。
+
+### 8.2 能力边界
+
+| 资源 | 画幅 | 剪辑 | 变速 | 截图 |
+|------|------|------|------|------|
+| 照片 | 有 | 无 | 无 | 当前画幅 + 滤镜后的静图 |
+| 视频 | 有 | 收尾 / 多段保留 | 整段或分段 | 静图；实况为播放头附近短片 + 封面 |
+
+滤镜参数仍只存在于 `OFAuxiliaryTools`，不进入剪辑文档。
+
+### 8.3 运行时分层
+
+| 层 | 职责 | 落点（落地时） |
+|----|------|------|
+| Document | 画幅 + 时间线纯数据；预览/导出只读 | 相册目录下独立文档 |
+| TimeMapper | 播放头 ↔ 源时间、段查找、导出 PTS | 时间映射模块 |
+| GeometryKernel | 单帧 BGRA 旋转/翻转/仿射/裁切 | Core Image / Metal；后台禁用 UIKit 绘图 |
+| Session | 串行 GPU：几何 → 滤镜；导出独占 | 扩展 `AlbumEditSession` |
+| PreviewClock | 按播放时间取源帧，不再假设 1x 线性播放 | 演进 `AlbumVideoPlayer` |
+| Exporter | 按段读源、几何、滤镜、写盘 | 演进 `AlbumVideoExporter` |
+| Snapshot | 当前合成结果出静图 / 实况 | 截图模块 |
+| UI | 画幅 / 剪辑 / 变速 / 截图入口，与设置卡片并列 | `AlbumEditorViewController` + 底部工具条 |
+
+```
+PHAsset
+  → Document（画幅 + 时间线）
+Player / Reader
+  → TimeMapper（仅视频）
+  → GeometryKernel
+  → AlbumEditSession → OFAuxiliaryTools
+        ├─ SCGLView（预览）
+        ├─ AlbumVideoExporter（导出）
+        └─ Snapshot（截图）
+```
+
+时间一律用源媒体时间。变速只存在于「源时间 ↔ 播放时间」映射：段播放时长 = 段源时长 / speed；播放头落在某段时，源时间 = 段起点 + (播放时间 − 段播放起点) × speed。
+
+约定：收尾裁剪改单段起止；多段按顺序拼接、中间区间丢掉；整段变速即各段同一 speed；speed 必须 > 0。正交旋转与翻转无损；自由角 + 比例裁切会改输出尺寸，导出时偶数对齐。
+
+### 8.4 预览
+
+**照片**：source buffer → 几何 → 拷贝 → 滤镜 → `SCGLView`。改画幅或滤镜都从 source 重跑。
+
+**视频**：线性 `AVPlayer` 无法表达多段删除和分段变速。预览仍用 `AVPlayerItemVideoOutput` 取帧，由会话按播放时钟计算源时间再 seek / copy。多段跳跃时 seek 到下一段起点。音频能跟则跟，跟不上则以画面为准。导出必须音画共用同一 mapper。
+
+`SCGLView` 继续 `holdsLastFrame` + `isAspectFitEnabled`。画幅由几何层输出已裁切 buffer，预览只 letterbox 到屏幕。
+
+### 8.5 导出
+
+**照片**：高分辨率 source → 几何 → 滤镜 → `UIImage` 入库。
+
+**视频**：按时间线保留段顺序循环：Reader 限在该段源区间；帧 PTS 经 mapper 转为输出时间戳；几何 → 滤镜；Writer 尺寸为几何后的偶数宽高，transform 为 identity。同一段内 PTS 按 `1/speed` 拉伸；多段之间输出时间轴连续。第一期变速同时变调。
+
+### 8.6 截图
+
+截图与导出共用同一套 GPU 独占队列。
+
+| 类型 | 含义 | 做法 |
+|------|------|------|
+| 静图 | 当前画幅 + 当前滤镜 | 从 source / 当前源帧即时重跑 → 写入相册 |
+| 实况 | 视频播放头附近短片 + 封面 | 封面 = 当前帧静图；视频 = 播放头前后约 1.5s 源时间，再经几何 + 滤镜 + 当前段变速 |
+
+iOS 14+ 可用配对资源写入 Live Photo；iOS 12/13 降级为「静图 + 短视频」两条资源。
+
+### 8.7 与设置 UI 的关系
+
+底部「设置」只管滤镜。剪辑用另一组入口（工具条：画幅 / 剪辑 / 变速 / 截图），不塞进 `OFSettingsController` 网格。照片只显示画幅 + 截图；视频四个都显示。编辑页只绑文档变更 → session 重跑，不在 VC 里算矩阵。
+
+### 8.8 分期与风险
+
+落地顺序：画幅预览/导出 → 视频单段收尾 → 多段拼接 → 整段变速再分段变速 → 静图再实况。
+
+风险：自由旋转后的空白需在画幅 UI 决定黑边或放大铺满；MediaPipe 必须吃 bake 后的帧；分段变速 + AAC 有时间戳累积误差；iOS 12 实况写入必须有降级路径。
+
+## 9. 设置 UI
 
 | 类型 | 职责 |
 |------|------|
@@ -163,30 +258,37 @@ AlbumEditSession
 
 `OFSettingsContext`：`.live` / `.album`。
 
-## 9. 预览（SCGLView）
+## 10. 预览（SCGLView）
 
 - Layer：`CAEAGLLayer`，`contentsScale` 对齐屏幕，布局变化时重建 FBO
 - 环形队列：`FrameBuffer`（ObjC），直播持续入帧；相册静图需 `holdsLastFrame`
 - `inputFrame` 在未 `start()` 时丢弃
 - 直播铺满；相册等比留边
 
-## 10. 目录对照
+## 11. 目录对照
 
 ```
-LiveStreaming/LiveStreaming/
+OFFilterKit/                          滤镜内核开发源 Pod
+  OFFilterKit.podspec
+  Sources/
+    Metal/                            门面、Context、像素池、部分滤镜、.metal
+    Process/ Face/ LUT/ ColorAdjust/ Cartoon/ Transition/
+    Frame/                            VideoFrame（public header）
+    Graph/                            SCListGraph / SCQueue
+  Resources/                          LUT PNG、mlmodel、face_landmarker.task
+
+LiveStreaming/LiveStreaming/          App
   AppDelegate.swift / HomeViewController.swift / ViewController.swift
   AlbumViewController.swift
-  Album/                    相册编辑会话、转换、播放、导出
-  Settings/                 设置数据与底部面板
-  Process/                  DAG 调度
-  Metal/                    门面、像素池、部分滤镜
-  Face/ LUT/ ColorAdjust/ Cartoon/ Transition/
-  Audio/ Video/ Frame/ Shader/
-  structure/                图与队列等基础结构
-  Resource/                 LUT PNG、mlmodel、face_landmarker.task
+  Album/                              相册编辑会话、转换、播放、导出
+  Settings/                           设置数据与底部面板
+  ColorAdjust/                        仅 OFColorAdjustEditorView
+  Metal/                              仅 OFMetalFuntions（摄像头 UI 枚举）
+  Audio/ Video/ Frame/ Shader/        FrameBuffer 预览队列；采集/编码
+  structure/                          App 侧其余结构（不含已进 Pod 的图）
 ```
 
-## 11. 日志
+## 12. 日志
 
 `OFLogger.setup()`：
 
@@ -196,15 +298,15 @@ LiveStreaming/LiveStreaming/
 
 相册导出关键字：`album export`。Cursor 终端不会出现真机运行日志，需在 Xcode 控制台查看。
 
-## 12. 已知边界
+## 13. 已知边界
 
 - `VideoEncoder` 只写裸 H.264，不能直接存相册；相册视频必须走 `AlbumVideoExporter`。
 - 漫画风 + 人脸在接近屏像素时较重；导出长视频会逐帧跑检测，耗时属预期。
-- 全局像素池仍是进程单例；靠「直播与相册不同时占用」和相册串行队列约束。
+- 像素池按门面实例隔离；直播与相册仍不要同时 `inputFrame` 抢同一 GPU，相册内部靠串行队列。
 - 视频预览（`AVPlayerItemVideoOutput`）与导出（`AVAssetReader`）解码路径仍可能在朝向上有差异；若预览/导出脸歪，需统一 bake（原方案 D）。
 
-## 13. 扩展建议
+## 14. 扩展建议
 
-- 新滤镜：实现 `OFProcessNode`，在 `OFAuxiliaryTools.setupProcessGraph` 加顶点与边，并在设置页加项。
+- 新滤镜：在 OFFilterKit 实现 `OFProcessNode`，在 `OFAuxiliaryTools.setupProcessGraph` 加顶点与边，并在 App 设置页加项。
 - 新采集源：继承 `OFInputDevice`，输出 32BGRA `CMSampleBuffer`。
 - 推流：在直播 `ViewController` 编码出口接封装/网络，不必改处理图。

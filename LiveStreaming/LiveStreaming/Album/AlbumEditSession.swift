@@ -7,6 +7,7 @@
 
 import AVFoundation
 import UIKit
+import OFFilterKit
 
 /// 相册编辑会话：预览与导出共用一份 `OFAuxiliaryTools`，但 never 并发访问。
 class AlbumEditSession {
@@ -141,11 +142,12 @@ class AlbumEditSession {
             let srcWidth = CVPixelBufferGetWidth(pixelBuffer)
             let srcHeight = CVPixelBufferGetHeight(pixelBuffer)
             if srcWidth == targetWidth && srcHeight == targetHeight {
-                workingBuffer = AlbumMediaConverter.copyPixelBuffer(pixelBuffer) ?? pixelBuffer
+                workingBuffer = AlbumMediaConverter.copyPixelBuffer(pixelBuffer, pool: tools.pixelBufferPool) ?? pixelBuffer
             } else if let scaled = AlbumMediaConverter.scaledPixelBuffer(
                 pixelBuffer,
                 targetWidth: targetWidth,
-                targetHeight: targetHeight
+                targetHeight: targetHeight,
+                pool: tools.pixelBufferPool
             ) {
                 workingBuffer = scaled
             } else {
@@ -164,7 +166,7 @@ class AlbumEditSession {
     /// - Parameter pixelBuffer: 源 BGRA
     /// - Returns: 处理后 buffer；失败 nil
     private func processCopiedBuffer(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer? {
-        guard let copy = AlbumMediaConverter.copyPixelBuffer(pixelBuffer) else {
+        guard let copy = AlbumMediaConverter.copyPixelBuffer(pixelBuffer, pool: tools.pixelBufferPool) else {
             return nil
         }
         let frame = AlbumMediaConverter.makeVideoFrame(from: copy)

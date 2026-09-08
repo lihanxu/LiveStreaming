@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import OFFilterKit
 
 /// 调色编辑器回调。
 protocol OFColorAdjustEditorViewDelegate: AnyObject {

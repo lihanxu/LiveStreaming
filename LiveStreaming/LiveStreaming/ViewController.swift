@@ -11,6 +11,7 @@
 import UIKit
 import AVFoundation
 import CocoaLumberjack
+import OFFilterKit
 
 /// 直播预览页：把采集、滤镜、预览、编码、耳返串起来。
 class ViewController: UIViewController {

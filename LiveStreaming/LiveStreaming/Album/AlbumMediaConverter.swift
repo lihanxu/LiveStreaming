@@ -9,6 +9,7 @@ import UIKit
 import AVFoundation
 import Photos
 import CoreVideo
+import OFFilterKit
 
 /// 相册媒体 ↔ VideoFrame / PixelBuffer 工具；与采集链路统一 32BGRA。
 enum AlbumMediaConverter {
@@ -62,12 +63,12 @@ enum AlbumMediaConverter {
     /// 深拷贝 PixelBuffer（处理图会原地改 buffer，照片需从 source 重跑）
     /// - Parameter source: 原始 BGRA
     /// - Returns: 独立副本；失败为 nil
-    static func copyPixelBuffer(_ source: CVPixelBuffer) -> CVPixelBuffer? {
+    static func copyPixelBuffer(_ source: CVPixelBuffer, pool: OFPixelBufferTool) -> CVPixelBuffer? {
         let width = CVPixelBufferGetWidth(source)
         let height = CVPixelBufferGetHeight(source)
         let format = CVPixelBufferGetPixelFormatType(source)
-        OFPixelBufferTool.sharedInstance.update(width: UInt32(width), height: UInt32(height), pixelFormat: format)
-        guard let destination = OFPixelBufferTool.sharedInstance.createPixelBuffer() else {
+        pool.update(width: UInt32(width), height: UInt32(height), pixelFormat: format)
+        guard let destination = pool.createPixelBuffer() else {
             return nil
         }
         CVPixelBufferLockBaseAddress(source, .readOnly)
@@ -94,11 +95,11 @@ enum AlbumMediaConverter {
     ///   - image: 系统相册返回的图
     ///   - maxLongEdge: 长边上限
     /// - Returns: 可进处理图的 buffer
-    static func pixelBuffer(from image: UIImage, maxLongEdge: CGFloat) -> CVPixelBuffer? {
+    static func pixelBuffer(from image: UIImage, maxLongEdge: CGFloat, pool: OFPixelBufferTool) -> CVPixelBuffer? {
         guard let cgImage = normalizedCGImage(from: image, maxLongEdge: maxLongEdge) else {
             return nil
         }
-        return pixelBuffer(from: cgImage)
+        return pixelBuffer(from: cgImage, pool: pool)
     }
 
     /// 烘焙方向并按长边缩放；必须用像素宽高，不能用 size（点）否则 Retina 图会被压糊
@@ -134,15 +135,15 @@ enum AlbumMediaConverter {
     /// CGImage 写入新 BGRA buffer
     /// - Parameter cgImage: 已烘焙方向的图
     /// - Returns: Metal/GLES 兼容 buffer
-    static func pixelBuffer(from cgImage: CGImage) -> CVPixelBuffer? {
+    static func pixelBuffer(from cgImage: CGImage, pool: OFPixelBufferTool) -> CVPixelBuffer? {
         let width = cgImage.width
         let height = cgImage.height
-        OFPixelBufferTool.sharedInstance.update(
+        pool.update(
             width: UInt32(width),
             height: UInt32(height),
             pixelFormat: kCVPixelFormatType_32BGRA
         )
-        guard let buffer = OFPixelBufferTool.sharedInstance.createPixelBuffer() else {
+        guard let buffer = pool.createPixelBuffer() else {
             return nil
         }
         CVPixelBufferLockBaseAddress(buffer, [])
@@ -194,21 +195,21 @@ enum AlbumMediaConverter {
     ///   - targetWidth: 目标宽
     ///   - targetHeight: 目标高
     /// - Returns: 缩放后的新 buffer
-    static func scaledPixelBuffer(_ source: CVPixelBuffer, targetWidth: Int, targetHeight: Int) -> CVPixelBuffer? {
+    static func scaledPixelBuffer(_ source: CVPixelBuffer, targetWidth: Int, targetHeight: Int, pool: OFPixelBufferTool) -> CVPixelBuffer? {
         let srcWidth = CVPixelBufferGetWidth(source)
         let srcHeight = CVPixelBufferGetHeight(source)
         if srcWidth == targetWidth && srcHeight == targetHeight {
-            return copyPixelBuffer(source)
+            return copyPixelBuffer(source, pool: pool)
         }
         guard let cgImage = cgImage(from: source) else {
             return nil
         }
-        OFPixelBufferTool.sharedInstance.update(
+        pool.update(
             width: UInt32(targetWidth),
             height: UInt32(targetHeight),
             pixelFormat: kCVPixelFormatType_32BGRA
         )
-        guard let buffer = OFPixelBufferTool.sharedInstance.createPixelBuffer() else {
+        guard let buffer = pool.createPixelBuffer() else {
             return nil
         }
         CVPixelBufferLockBaseAddress(buffer, [])
@@ -262,6 +263,7 @@ enum AlbumMediaConverter {
     static func loadPhotoBuffer(
         asset: PHAsset,
         maxLongEdge: CGFloat,
+        pool: OFPixelBufferTool,
         completion: @escaping (CVPixelBuffer?) -> Void
     ) {
         let (targetWidth, targetHeight) = scaledSize(
@@ -289,7 +291,7 @@ enum AlbumMediaConverter {
                     completion(nil)
                     return
                 }
-                completion(pixelBuffer(from: image, maxLongEdge: maxLongEdge))
+                completion(pixelBuffer(from: image, maxLongEdge: maxLongEdge, pool: pool))
             }
         }
     }

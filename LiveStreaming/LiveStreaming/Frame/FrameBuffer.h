@@ -9,7 +9,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "Frame.h"
+#import <OFFilterKit/Frame.h>
 
 /// 默认容量
 #define DefaultBufferSize  (10)

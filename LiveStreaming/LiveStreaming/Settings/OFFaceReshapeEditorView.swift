@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import OFFilterKit
 
 /// 面部重塑编辑器回调。
 protocol OFFaceReshapeEditorViewDelegate: AnyObject {
