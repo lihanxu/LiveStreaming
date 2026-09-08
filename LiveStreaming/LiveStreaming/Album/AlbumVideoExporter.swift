@@ -2,7 +2,7 @@
 //  AlbumVideoExporter.swift
 //  LiveStreaming
 //
-//  离线导出：Reader 解码 → Session 串行 GPU 处理 → Writer 写 mp4 → 相册。
+//  离线导出：Reader 解码 → 几何 → Session 串行 GPU 处理 → Writer 写 mp4 → 相册。
 //
 
 import AVFoundation
@@ -38,28 +38,47 @@ enum AlbumVideoExporter {
     /// - Parameters:
     ///   - asset: 源视频
     ///   - session: 编辑会话
+    ///   - geometry: 导出开始时拍下的画幅
+    ///   - timeline: 导出开始时拍下的时间线
     ///   - progress: 进度回调（内部会切主线程）
     /// - Returns: 临时 mp4 URL
     static func exportSynchronously(
         asset: AVAsset,
         session: AlbumEditSession,
+        geometry: AlbumGeometryEdit,
+        timeline: AlbumTimelineEdit,
         progress: @escaping (Float) -> Void
     ) throws -> URL {
         guard let videoTrack = asset.tracks(withMediaType: .video).first else {
             throw AlbumExportError.missingVideoTrack
         }
-        // 用编码尺寸而不是 transform 后的显示尺寸，避免和 writer.transform 叠两次
         let codedWidth = max(2, Int(videoTrack.naturalSize.width.rounded()))
         let codedHeight = max(2, Int(videoTrack.naturalSize.height.rounded()))
+        let trackTransform = videoTrack.preferredTransform
+        let geometrySize = AlbumGeometryKernel.outputPixelSize(
+            sourceWidth: codedWidth,
+            sourceHeight: codedHeight,
+            geometry: geometry,
+            preferredTransform: trackTransform
+        )
         let scaled = AlbumMediaConverter.scaledSize(
-            originalWidth: codedWidth,
-            originalHeight: codedHeight,
+            originalWidth: geometrySize.0,
+            originalHeight: geometrySize.1,
             maxLongEdge: AlbumMediaConverter.videoExportMaxLongEdge
         )
         let (outputWidth, outputHeight) = AlbumMediaConverter.evenSize(width: scaled.0, height: scaled.1)
-        DDLogInfo("album export start \(codedWidth)x\(codedHeight) -> \(outputWidth)x\(outputHeight) duration=\(CMTimeGetSeconds(asset.duration))")
+        let segment = timeline.resolvedSegment(sourceDuration: asset.duration)
+        var timeRange = CMTimeRange(start: segment.sourceStart, end: segment.sourceEnd)
+        timeRange = timeRange.intersection(CMTimeRange(start: .zero, duration: asset.duration))
+        if !timeRange.duration.isValid || CMTimeGetSeconds(timeRange.duration) < 0.05 {
+            timeRange = CMTimeRange(start: .zero, duration: asset.duration)
+        }
+        DDLogInfo(
+            "album export start \(codedWidth)x\(codedHeight) geo=\(geometrySize.0)x\(geometrySize.1) -> \(outputWidth)x\(outputHeight) trim=\(CMTimeGetSeconds(timeRange.start))-\(CMTimeGetSeconds(timeRange.end))"
+        )
 
         let reader = try AVAssetReader(asset: asset)
+        reader.timeRange = timeRange
         let videoReaderSettings: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
@@ -111,7 +130,8 @@ enum AlbumVideoExporter {
         ]
         let videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoWriterSettings)
         videoWriterInput.expectsMediaDataInRealTime = false
-        videoWriterInput.transform = videoTrack.preferredTransform
+        // 朝向已 bake 进像素，禁止再写 preferredTransform
+        videoWriterInput.transform = .identity
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
             assetWriterInput: videoWriterInput,
             sourcePixelBufferAttributes: [
@@ -157,7 +177,8 @@ enum AlbumVideoExporter {
             throw AlbumExportError.setupFailed(message)
         }
 
-        let durationSeconds = max(CMTimeGetSeconds(asset.duration), 0.001)
+        let durationSeconds = max(CMTimeGetSeconds(timeRange.duration), 0.001)
+        let trimStart = timeRange.start
         var sessionStarted = false
         var videoFinished = false
         var audioFinished = audioWriterInput == nil
@@ -176,8 +197,10 @@ enum AlbumVideoExporter {
                         DDLogInfo("album export session at \(CMTimeGetSeconds(presentationTime))")
                     }
                     autoreleasepool {
-                        let processedBuffer = session.processPixelBufferSync(
+                        let processedBuffer = session.processVideoFrameSync(
                             imageBuffer,
+                            geometry: geometry,
+                            preferredTransform: trackTransform,
                             targetWidth: outputWidth,
                             targetHeight: outputHeight
                         )
@@ -190,7 +213,8 @@ enum AlbumVideoExporter {
                     if frameIndex == 1 || frameIndex % 30 == 0 {
                         DDLogInfo("album export frame \(frameIndex) t=\(CMTimeGetSeconds(presentationTime))")
                     }
-                    progress(min(1, Float(CMTimeGetSeconds(presentationTime) / durationSeconds)))
+                    let elapsedSeconds = max(0.0, CMTimeGetSeconds(CMTimeSubtract(presentationTime, trimStart)))
+                    progress(min(1.0, Float(elapsedSeconds / durationSeconds)))
                     didWork = true
                 } else {
                     videoWriterInput.markAsFinished()

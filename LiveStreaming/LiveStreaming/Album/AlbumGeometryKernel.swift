@@ -17,7 +17,7 @@ enum AlbumGeometryKernel {
 
     /// 把源帧变成正放、铺满、已裁切的 BGRA。
     /// - Parameters:
-    ///   - source: 输入 32BGRA；照片已 bake 朝向，视频阶段 2 起传编码朝向
+    ///   - source: 输入 32BGRA；照片已 bake 朝向，视频传编码朝向
     ///   - geometry: 用户画幅
     ///   - preferredTransform: 视频轨朝向；照片传 identity
     ///   - pool: 输出池
@@ -93,6 +93,68 @@ enum AlbumGeometryKernel {
             colorSpace: CGColorSpaceCreateDeviceRGB()
         )
         return destination
+    }
+
+    /// 几何后像素宽高，供导出 Writer 先定画布；与 `apply` 的裁切顺序一致。
+    /// - Parameters:
+    ///   - sourceWidth: 编码宽
+    ///   - sourceHeight: 编码高
+    ///   - geometry: 用户画幅
+    ///   - preferredTransform: 视频轨朝向；照片传 identity
+    /// - Returns: 未做 1920/偶数对齐的几何输出尺寸
+    static func outputPixelSize(
+        sourceWidth: Int,
+        sourceHeight: Int,
+        geometry: AlbumGeometryEdit,
+        preferredTransform: CGAffineTransform = .identity
+    ) -> (Int, Int) {
+        var width = CGFloat(max(1, sourceWidth))
+        var height = CGFloat(max(1, sourceHeight))
+        // 1. 片源朝向：EXIF 90/270 互换宽高；对不齐的仿射取包围盒
+        if let orientation = AlbumMediaConverter.cgImageOrientation(from: preferredTransform) {
+            switch orientation {
+            case .left, .leftMirrored, .right, .rightMirrored:
+                swap(&width, &height)
+            default:
+                break
+            }
+        } else if !preferredTransform.isIdentity {
+            let corners = [
+                CGPoint(x: 0, y: 0),
+                CGPoint(x: width, y: 0),
+                CGPoint(x: 0, y: height),
+                CGPoint(x: width, y: height),
+            ].map { $0.applying(preferredTransform) }
+            let minX = corners.map { $0.x }.min() ?? 0
+            let maxX = corners.map { $0.x }.max() ?? width
+            let minY = corners.map { $0.y }.min() ?? 0
+            let maxY = corners.map { $0.y }.max() ?? height
+            width = max(1, abs(maxX - minX))
+            height = max(1, abs(maxY - minY))
+        }
+        // 2. 正交 90°：奇数次互换宽高；翻转/自由角 cover 后仍是该矩形
+        if geometry.normalizedQuarterTurns % 2 == 1 {
+            swap(&width, &height)
+        }
+        // 3. 比例居中裁切，extent.integral 与 apply 对齐
+        if let aspect = geometry.aspect.aspectRatio, aspect > 0 {
+            let sourceAspect = width / max(height, 0.001)
+            var crop = CGRect(x: 0, y: 0, width: width, height: height)
+            if sourceAspect > aspect {
+                let newWidth = height * aspect
+                crop.origin.x = (width - newWidth) / 2
+                crop.size.width = newWidth
+            } else if sourceAspect < aspect {
+                let newHeight = width / aspect
+                crop.origin.y = (height - newHeight) / 2
+                crop.size.height = newHeight
+            }
+            crop = crop.integral
+            width = max(1, crop.width)
+            height = max(1, crop.height)
+        }
+        let extent = CGRect(x: 0, y: 0, width: width, height: height).integral
+        return (max(1, Int(extent.width)), max(1, Int(extent.height)))
     }
 
     /// 把 extent 原点拉回 (0,0)，否则 render 会画出空白

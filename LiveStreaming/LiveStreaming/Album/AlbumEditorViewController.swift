@@ -45,10 +45,16 @@ class AlbumEditorViewController: UIViewController {
     private let exportButton = UIButton(type: .system)
     /// 视频播放/暂停
     private let playButton = UIButton(type: .system)
-    /// 照片画幅入口；视频隐藏
+    /// 画幅入口；照片与视频都显示
     private let geometryButton = UIButton(type: .system)
+    /// 视频单段收尾入口；照片隐藏
+    private let trimButton = UIButton(type: .system)
+    /// 底部工具条：照片仅画幅，视频为画幅 / 播放 / 剪辑
+    private let bottomBar = UIStackView()
     /// 画幅底部面板
     private let geometryPanel = AlbumGeometryPanelView()
+    /// 视频收尾底部面板
+    private let trimPanel = AlbumTrimPanelView()
     /// 加载中
     private let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .whiteLarge)
@@ -127,8 +133,6 @@ class AlbumEditorViewController: UIViewController {
         playButton.layer.cornerRadius = 18
         playButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
         playButton.addTarget(self, action: #selector(handlePlayTap), for: .touchUpInside)
-        playButton.isHidden = asset.mediaType != .video
-        view.addSubview(playButton)
 
         geometryButton.setTitle("画幅", for: .normal)
         geometryButton.setTitleColor(.white, for: .normal)
@@ -137,12 +141,33 @@ class AlbumEditorViewController: UIViewController {
         geometryButton.layer.cornerRadius = 18
         geometryButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
         geometryButton.addTarget(self, action: #selector(handleGeometryTap), for: .touchUpInside)
-        geometryButton.isHidden = asset.mediaType != .image
-        view.addSubview(geometryButton)
+
+        trimButton.setTitle("剪辑", for: .normal)
+        trimButton.setTitleColor(.white, for: .normal)
+        trimButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        trimButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
+        trimButton.layer.cornerRadius = 18
+        trimButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
+        trimButton.addTarget(self, action: #selector(handleTrimTap), for: .touchUpInside)
+
+        bottomBar.axis = .horizontal
+        bottomBar.alignment = .center
+        bottomBar.spacing = 12
+        bottomBar.distribution = .fill
+        bottomBar.addArrangedSubview(geometryButton)
+        if asset.mediaType == .video {
+            bottomBar.addArrangedSubview(playButton)
+            bottomBar.addArrangedSubview(trimButton)
+        }
+        view.addSubview(bottomBar)
 
         geometryPanel.delegate = self
         geometryPanel.isHidden = true
         view.addSubview(geometryPanel)
+
+        trimPanel.delegate = self
+        trimPanel.isHidden = true
+        view.addSubview(trimPanel)
 
         activityIndicator.color = .white
         activityIndicator.hidesWhenStopped = true
@@ -161,6 +186,7 @@ class AlbumEditorViewController: UIViewController {
         settingsSheet = OFSettingsSheetView(controller: settingsController)
         view.addSubview(settingsSheet)
         view.bringSubviewToFront(geometryPanel)
+        view.bringSubviewToFront(trimPanel)
     }
 
     /// 统一顶部按钮样式
@@ -173,7 +199,7 @@ class AlbumEditorViewController: UIViewController {
         button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
     }
 
-    /// 预览铺满；按钮贴安全区；设置/画幅面板盖住全屏做蒙层
+    /// 预览铺满；底部工具条贴安全区；设置/画幅/剪辑面板盖住全屏做蒙层
     private func initLayout() {
         previewView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -186,15 +212,16 @@ class AlbumEditorViewController: UIViewController {
             make.top.equalTo(settingsButton)
             make.trailing.equalTo(settingsButton.snp.leading).offset(-8)
         }
-        playButton.snp.makeConstraints { make in
+        bottomBar.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-16)
-        }
-        geometryButton.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-16)
+            make.leading.greaterThanOrEqualToSuperview().offset(16)
+            make.trailing.lessThanOrEqualToSuperview().offset(-16)
         }
         geometryPanel.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        trimPanel.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         activityIndicator.snp.makeConstraints { make in
@@ -202,7 +229,7 @@ class AlbumEditorViewController: UIViewController {
         }
         exportProgressView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(32)
-            make.bottom.equalTo(playButton.snp.top).offset(-16)
+            make.bottom.equalTo(bottomBar.snp.top).offset(-16)
         }
         exportProgressLabel.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
@@ -226,7 +253,7 @@ class AlbumEditorViewController: UIViewController {
                     return
                 }
                 self.videoAsset = avAsset
-                self.videoPlayer.configure(with: avAsset)
+                self.configureVideoPlayer()
                 self.exportButton.isEnabled = true
                 if self.isViewLoaded && self.view.window != nil && !self.isExporting {
                     self.videoPlayer.play()
@@ -252,10 +279,12 @@ class AlbumEditorViewController: UIViewController {
         }
     }
 
-    /// 设置变更：照片重跑 source
+    /// 设置变更：照片从 source 重跑；视频刷新当前帧
     private func handlePipelineChanged() {
         if asset.mediaType == .image {
             reprocessPhotoPreview()
+        } else {
+            videoPlayer.refreshCurrentFrame()
         }
     }
 
@@ -267,10 +296,22 @@ class AlbumEditorViewController: UIViewController {
         }
     }
 
+    /// 按文档收尾区间重建播放器
+    private func configureVideoPlayer() {
+        guard let videoAsset = videoAsset else { return }
+        let segment = session.document.timeline.resolvedSegment(sourceDuration: videoAsset.duration)
+        videoPlayer.configure(
+            with: videoAsset,
+            trimStart: segment.sourceStart,
+            trimEnd: segment.sourceEnd
+        )
+    }
+
     /// 进入导出独占：停播放器（释放 AVAsset，避免和 Reader 抢同一份资源）
     /// - Parameter work: 主线程；在 session 标记 isExporting 后执行
     private func enterExportMode(work: @escaping () -> Void) {
         geometryPanel.dismiss()
+        trimPanel.dismiss()
         videoPlayer.teardown()
         updatePlayButtonTitle()
         previewView.stop()
@@ -285,8 +326,8 @@ class AlbumEditorViewController: UIViewController {
         session.endExport { [weak self] in
             guard let self = self else { return }
             self.previewView.start()
-            if resumeVideo, self.asset.mediaType == .video, let videoAsset = self.videoAsset {
-                self.videoPlayer.configure(with: videoAsset)
+            if resumeVideo, self.asset.mediaType == .video, self.videoAsset != nil {
+                self.configureVideoPlayer()
                 self.videoPlayer.play()
                 self.updatePlayButtonTitle()
             }
@@ -297,16 +338,30 @@ class AlbumEditorViewController: UIViewController {
     /// 弹出设置
     @objc private func handleSettingsTap() {
         geometryPanel.dismiss()
+        trimPanel.dismiss()
         view.bringSubviewToFront(settingsSheet)
         settingsSheet.present()
     }
 
     /// 弹出画幅面板
     @objc private func handleGeometryTap() {
-        guard !isExporting, asset.mediaType == .image else { return }
+        guard !isExporting else { return }
+        trimPanel.dismiss()
         geometryPanel.geometry = session.document.geometry
         view.bringSubviewToFront(geometryPanel)
         geometryPanel.present()
+    }
+
+    /// 弹出视频收尾面板；在 1x 源时间下改入出点
+    @objc private func handleTrimTap() {
+        guard !isExporting, let videoAsset = videoAsset else { return }
+        geometryPanel.dismiss()
+        videoPlayer.pause()
+        updatePlayButtonTitle()
+        let duration = videoAsset.duration
+        let segment = session.document.timeline.resolvedSegment(sourceDuration: duration)
+        view.bringSubviewToFront(trimPanel)
+        trimPanel.present(asset: videoAsset, start: segment.sourceStart, end: segment.sourceEnd)
     }
 
     /// 播放/暂停视频
@@ -379,6 +434,8 @@ class AlbumEditorViewController: UIViewController {
         setExportUI(visible: true, progress: 0, text: "导出中 0%")
         exportButton.isEnabled = false
         playButton.isEnabled = false
+        geometryButton.isEnabled = false
+        trimButton.isEnabled = false
 
         enterExportMode { [weak self] in
             guard let self = self else { return }
@@ -425,6 +482,7 @@ class AlbumEditorViewController: UIViewController {
             self.exportButton.isEnabled = true
             self.playButton.isEnabled = true
             self.geometryButton.isEnabled = true
+            self.trimButton.isEnabled = true
             self.setExportUI(visible: false, progress: 0, text: "")
             self.showAlert(title: success ? "导出成功" : "导出失败", message: message)
         }
@@ -449,9 +507,34 @@ extension AlbumEditorViewController: AlbumVideoPlayerDelegate {
 }
 
 extension AlbumEditorViewController: AlbumGeometryPanelViewDelegate {
-    /// 画幅文档变更：从 source 重跑几何 + 滤镜
+    /// 画幅文档变更：照片从 source 重跑；视频刷新当前帧
     func geometryPanel(_ panel: AlbumGeometryPanelView, didChange geometry: AlbumGeometryEdit) {
         session.document.geometry = geometry
-        reprocessPhotoPreview()
+        if asset.mediaType == .image {
+            reprocessPhotoPreview()
+        } else {
+            videoPlayer.refreshCurrentFrame()
+        }
+    }
+}
+
+extension AlbumEditorViewController: AlbumTrimPanelViewDelegate {
+    /// 收尾写入文档并限制播放区间；拖动手柄时 seek 到该端
+    func trimPanel(
+        _ panel: AlbumTrimPanelView,
+        didChangeStart start: CMTime,
+        end: CMTime,
+        previewTime: CMTime
+    ) {
+        guard let videoAsset = videoAsset else { return }
+        session.document.timeline = session.document.timeline.applyingSingleTrim(
+            start: start,
+            end: end,
+            sourceDuration: videoAsset.duration
+        )
+        videoPlayer.updateTrim(start: start, end: end)
+        videoPlayer.pause()
+        updatePlayButtonTitle()
+        videoPlayer.scrub(to: previewTime)
     }
 }

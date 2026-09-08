@@ -63,7 +63,7 @@ class AlbumEditSession {
         }
     }
 
-    /// 视频预览帧：先按轨朝向转正，再过处理图；主线程只负责送 SCGLView
+    /// 视频预览帧：几何（含轨朝向）后再过处理图；主线程只负责送 SCGLView
     /// - Parameters:
     ///   - pixelBuffer: VideoOutput 当前帧（编码朝向）
     ///   - preferredTransform: 视频轨 `preferredTransform`
@@ -73,23 +73,18 @@ class AlbumEditSession {
         preferredTransform: CGAffineTransform,
         completion: @escaping (VideoFrame) -> Void
     ) {
+        let geometry = document.geometry
         processingQueue.async {
             guard !self.isExporting else { return }
-            // 1. 有朝向则 bake 成正放独立 buffer；否则拷一份，避免滤镜改 VideoOutput 的帧
-            let working: CVPixelBuffer
-            if let baked = AlbumMediaConverter.orientedPixelBuffer(
-                pixelBuffer,
-                transform: preferredTransform,
+            guard let geometried = AlbumGeometryKernel.apply(
+                source: pixelBuffer,
+                geometry: geometry,
+                preferredTransform: preferredTransform,
                 pool: self.tools.pixelBufferPool
-            ) {
-                working = baked
-            } else if let copy = AlbumMediaConverter.copyPixelBuffer(pixelBuffer, pool: self.tools.pixelBufferPool) {
-                working = copy
-            } else {
+            ) else {
                 return
             }
-            // 2. 原地滤镜，主线程只负责把同一 VideoFrame 丢给预览
-            let frame = AlbumMediaConverter.makeVideoFrame(from: working)
+            let frame = AlbumMediaConverter.makeVideoFrame(from: geometried)
             self.tools.inputFrame(frame)
             DispatchQueue.main.async {
                 completion(frame)
@@ -117,7 +112,7 @@ class AlbumEditSession {
         }
     }
 
-    /// 导出视频：整段 Reader/Writer 在 processingQueue 上跑
+    /// 导出视频：整段或单段收尾；几何 bake 进像素后 Writer transform 为 identity
     /// - Parameters:
     ///   - asset: 相册 AVAsset
     ///   - progress: 主线程进度 0…1
@@ -127,11 +122,15 @@ class AlbumEditSession {
         progress: @escaping (Float) -> Void,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
+        let geometry = document.geometry
+        let timeline = document.timeline
         processingQueue.async {
             do {
                 let url = try AlbumVideoExporter.exportSynchronously(
                     asset: asset,
                     session: self,
+                    geometry: geometry,
+                    timeline: timeline,
                     progress: { value in
                         DispatchQueue.main.async {
                             progress(value)
@@ -149,40 +148,43 @@ class AlbumEditSession {
         }
     }
 
-    /// 同步过处理图；**必须**在 processingQueue 上调用
+    /// 视频导出一帧：几何 → 缩到 Writer 尺寸 → 滤镜。**必须**在 processingQueue 上调用。
     /// - Parameters:
-    ///   - pixelBuffer: 输入 BGRA
-    ///   - targetWidth: 非 nil 时先缩放到导出尺寸
-    ///   - targetHeight: 与 targetWidth 成对
-    /// - Returns: 处理后 BGRA
-    func processPixelBufferSync(
+    ///   - pixelBuffer: Reader 出的编码朝向 BGRA
+    ///   - geometry: 导出开始时拍下的画幅
+    ///   - preferredTransform: 视频轨朝向
+    ///   - targetWidth: Writer 宽
+    ///   - targetHeight: Writer 高
+    /// - Returns: 处理后 BGRA；失败则尽力返回几何或原帧
+    func processVideoFrameSync(
         _ pixelBuffer: CVPixelBuffer,
-        targetWidth: Int? = nil,
-        targetHeight: Int? = nil
+        geometry: AlbumGeometryEdit,
+        preferredTransform: CGAffineTransform,
+        targetWidth: Int,
+        targetHeight: Int
     ) -> CVPixelBuffer {
-        let workingBuffer: CVPixelBuffer
-        if let targetWidth = targetWidth, let targetHeight = targetHeight {
-            let srcWidth = CVPixelBufferGetWidth(pixelBuffer)
-            let srcHeight = CVPixelBufferGetHeight(pixelBuffer)
-            if srcWidth == targetWidth && srcHeight == targetHeight {
-                workingBuffer = AlbumMediaConverter.copyPixelBuffer(pixelBuffer, pool: tools.pixelBufferPool) ?? pixelBuffer
-            } else if let scaled = AlbumMediaConverter.scaledPixelBuffer(
-                pixelBuffer,
+        guard let geometried = AlbumGeometryKernel.apply(
+            source: pixelBuffer,
+            geometry: geometry,
+            preferredTransform: preferredTransform,
+            pool: tools.pixelBufferPool
+        ) else {
+            return pixelBuffer
+        }
+        var working = geometried
+        let width = CVPixelBufferGetWidth(working)
+        let height = CVPixelBufferGetHeight(working)
+        if width != targetWidth || height != targetHeight {
+            working = AlbumMediaConverter.scaledPixelBuffer(
+                geometried,
                 targetWidth: targetWidth,
                 targetHeight: targetHeight,
                 pool: tools.pixelBufferPool
-            ) {
-                workingBuffer = scaled
-            } else {
-                workingBuffer = pixelBuffer
-            }
-        } else {
-            workingBuffer = pixelBuffer
+            ) ?? geometried
         }
-        guard let processed = processCopiedBuffer(workingBuffer) else {
-            return workingBuffer
-        }
-        return processed
+        let frame = AlbumMediaConverter.makeVideoFrame(from: working)
+        tools.inputFrame(frame)
+        return frame.pixelBuffer
     }
 
     /// 照片：几何产出独立 buffer 再进处理图（滤镜会原地改）
@@ -200,18 +202,6 @@ class AlbumEditSession {
             return nil
         }
         let frame = AlbumMediaConverter.makeVideoFrame(from: geometried)
-        tools.inputFrame(frame)
-        return frame.pixelBuffer
-    }
-
-    /// 拷贝 input 再过处理图（视频导出仍走此路径，阶段 2 再并入几何）
-    /// - Parameter pixelBuffer: 源 BGRA
-    /// - Returns: 处理后 buffer；失败 nil
-    private func processCopiedBuffer(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer? {
-        guard let copy = AlbumMediaConverter.copyPixelBuffer(pixelBuffer, pool: tools.pixelBufferPool) else {
-            return nil
-        }
-        let frame = AlbumMediaConverter.makeVideoFrame(from: copy)
         tools.inputFrame(frame)
         return frame.pixelBuffer
     }
