@@ -44,6 +44,10 @@ class AlbumEditorViewController: UIViewController {
     private let exportButton = UIButton(type: .system)
     /// 视频播放/暂停
     private let playButton = UIButton(type: .system)
+    /// 照片画幅入口；视频隐藏
+    private let geometryButton = UIButton(type: .system)
+    /// 画幅底部面板
+    private let geometryPanel = AlbumGeometryPanelView()
     /// 加载中
     private let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .whiteLarge)
@@ -125,6 +129,20 @@ class AlbumEditorViewController: UIViewController {
         playButton.isHidden = asset.mediaType != .video
         view.addSubview(playButton)
 
+        geometryButton.setTitle("画幅", for: .normal)
+        geometryButton.setTitleColor(.white, for: .normal)
+        geometryButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        geometryButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
+        geometryButton.layer.cornerRadius = 18
+        geometryButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
+        geometryButton.addTarget(self, action: #selector(handleGeometryTap), for: .touchUpInside)
+        geometryButton.isHidden = asset.mediaType != .image
+        view.addSubview(geometryButton)
+
+        geometryPanel.delegate = self
+        geometryPanel.isHidden = true
+        view.addSubview(geometryPanel)
+
         activityIndicator.color = .white
         activityIndicator.hidesWhenStopped = true
         view.addSubview(activityIndicator)
@@ -141,6 +159,7 @@ class AlbumEditorViewController: UIViewController {
 
         settingsSheet = OFSettingsSheetView(controller: settingsController)
         view.addSubview(settingsSheet)
+        view.bringSubviewToFront(geometryPanel)
     }
 
     /// 统一顶部按钮样式
@@ -159,6 +178,8 @@ class AlbumEditorViewController: UIViewController {
         settingsButton.translatesAutoresizingMaskIntoConstraints = false
         exportButton.translatesAutoresizingMaskIntoConstraints = false
         playButton.translatesAutoresizingMaskIntoConstraints = false
+        geometryButton.translatesAutoresizingMaskIntoConstraints = false
+        geometryPanel.translatesAutoresizingMaskIntoConstraints = false
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
         exportProgressView.translatesAutoresizingMaskIntoConstraints = false
         exportProgressLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -178,6 +199,14 @@ class AlbumEditorViewController: UIViewController {
 
             playButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             playButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+
+            geometryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            geometryButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+
+            geometryPanel.topAnchor.constraint(equalTo: view.topAnchor),
+            geometryPanel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            geometryPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            geometryPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -253,6 +282,7 @@ class AlbumEditorViewController: UIViewController {
     /// 进入导出独占：停播放器（释放 AVAsset，避免和 Reader 抢同一份资源）
     /// - Parameter work: 主线程；在 session 标记 isExporting 后执行
     private func enterExportMode(work: @escaping () -> Void) {
+        geometryPanel.dismiss()
         videoPlayer.teardown()
         updatePlayButtonTitle()
         previewView.stop()
@@ -278,8 +308,17 @@ class AlbumEditorViewController: UIViewController {
 
     /// 弹出设置
     @objc private func handleSettingsTap() {
+        geometryPanel.dismiss()
         view.bringSubviewToFront(settingsSheet)
         settingsSheet.present()
+    }
+
+    /// 弹出画幅面板
+    @objc private func handleGeometryTap() {
+        guard !isExporting, asset.mediaType == .image else { return }
+        geometryPanel.geometry = session.document.geometry
+        view.bringSubviewToFront(geometryPanel)
+        geometryPanel.present()
     }
 
     /// 播放/暂停视频
@@ -309,6 +348,7 @@ class AlbumEditorViewController: UIViewController {
         isExporting = true
         setExportUI(visible: true, progress: 0, text: "准备导出…")
         exportButton.isEnabled = false
+        geometryButton.isEnabled = false
 
         enterExportMode { [weak self] in
             guard let self = self else { return }
@@ -396,6 +436,7 @@ class AlbumEditorViewController: UIViewController {
             self.isExporting = false
             self.exportButton.isEnabled = true
             self.playButton.isEnabled = true
+            self.geometryButton.isEnabled = true
             self.setExportUI(visible: false, progress: 0, text: "")
             self.showAlert(title: success ? "导出成功" : "导出失败", message: message)
         }
@@ -416,5 +457,13 @@ extension AlbumEditorViewController: AlbumVideoPlayerDelegate {
         session.processVideoPreviewFrame(pixelBuffer, preferredTransform: player.preferredTransform) { [weak self] frame in
             self?.previewView.inputFrame(frame)
         }
+    }
+}
+
+extension AlbumEditorViewController: AlbumGeometryPanelViewDelegate {
+    /// 画幅文档变更：从 source 重跑几何 + 滤镜
+    func geometryPanel(_ panel: AlbumGeometryPanelView, didChange geometry: AlbumGeometryEdit) {
+        session.document.geometry = geometry
+        reprocessPhotoPreview()
     }
 }

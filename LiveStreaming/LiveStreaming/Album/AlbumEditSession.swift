@@ -13,6 +13,8 @@ import OFFilterKit
 class AlbumEditSession {
     /// 滤镜门面；设置页绑定此实例
     let tools: OFAuxiliaryTools
+    /// 画幅 + 时间线；预览/导出只读
+    var document = AlbumEditDocument()
     /// 所有 Metal / MediaPipe 处理必须在此串行队列执行
     private let processingQueue = DispatchQueue(label: "com.oldface.LiveStreaming.album.gpu", qos: .userInitiated)
     /// 导出中为 true 时丢弃预览帧
@@ -45,14 +47,15 @@ class AlbumEditSession {
         }
     }
 
-    /// 照片：从 source 拷贝并重跑处理图，结果回主线程送预览
+    /// 照片：几何后再跑处理图，结果回主线程送预览
     /// - Parameters:
-    ///   - source: 预览用原始 BGRA
+    ///   - source: 预览用原始 BGRA（已 bake 朝向）
     ///   - completion: 主线程回调处理后的 VideoFrame
     func reprocessPhotoPreview(source: CVPixelBuffer, completion: @escaping (VideoFrame) -> Void) {
+        let geometry = document.geometry
         processingQueue.async {
             guard !self.isExporting else { return }
-            guard let processed = self.processCopiedBuffer(source) else { return }
+            guard let processed = self.processPhotoBuffer(source, geometry: geometry) else { return }
             let frame = AlbumMediaConverter.makeVideoFrame(from: processed)
             DispatchQueue.main.async {
                 completion(frame)
@@ -99,8 +102,9 @@ class AlbumEditSession {
     ///   - source: 导出分辨率 BGRA
     ///   - completion: 主线程返回 UIImage 或错误
     func exportPhoto(from source: CVPixelBuffer, completion: @escaping (Result<UIImage, Error>) -> Void) {
+        let geometry = document.geometry
         processingQueue.async {
-            let processed = self.processPixelBufferSync(source)
+            let processed = self.processPhotoBuffer(source, geometry: geometry) ?? source
             guard let image = AlbumMediaConverter.uiImage(from: processed) else {
                 DispatchQueue.main.async {
                     completion(.failure(AlbumExportError.processingFailed("图像转换失败")))
@@ -181,7 +185,26 @@ class AlbumEditSession {
         return processed
     }
 
-    /// 拷贝 input 再过处理图
+    /// 照片：几何产出独立 buffer 再进处理图（滤镜会原地改）
+    /// - Parameters:
+    ///   - pixelBuffer: 原始 BGRA
+    ///   - geometry: 调用前在主线程拍下的画幅快照
+    /// - Returns: 几何 + 滤镜后的 buffer；失败 nil
+    private func processPhotoBuffer(_ pixelBuffer: CVPixelBuffer, geometry: AlbumGeometryEdit) -> CVPixelBuffer? {
+        guard let geometried = AlbumGeometryKernel.apply(
+            source: pixelBuffer,
+            geometry: geometry,
+            preferredTransform: .identity,
+            pool: tools.pixelBufferPool
+        ) else {
+            return nil
+        }
+        let frame = AlbumMediaConverter.makeVideoFrame(from: geometried)
+        tools.inputFrame(frame)
+        return frame.pixelBuffer
+    }
+
+    /// 拷贝 input 再过处理图（视频导出仍走此路径，阶段 2 再并入几何）
     /// - Parameter pixelBuffer: 源 BGRA
     /// - Returns: 处理后 buffer；失败 nil
     private func processCopiedBuffer(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer? {

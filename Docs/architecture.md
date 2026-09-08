@@ -159,94 +159,96 @@ AlbumEditSession
 
 设置：`OFSettingsController(context: .album)`，隐藏摄像头与转场；`onPipelineChanged` 驱动照片从 source 重算。
 
-## 8. 相册剪辑层（规划）
+## 8. 相册剪辑层
 
-本节是后续剪辑能力的架构规划，**尚未落地**。当前实现仍以第 7 节为准。剪辑改的是坐标系和时间轴，滤镜改的是逐帧着色；二者分开，滤镜 DAG 拓扑不改。`OFAuxiliaryTools` 只吃已经正放的画面，人脸关键点才与预览/导出一致。
+剪辑改坐标系和时间轴，滤镜改逐帧着色；二者分开，滤镜 DAG 拓扑不改。`OFAuxiliaryTools` 只吃已经正放且铺满的画面，人脸关键点才与预览/导出一致。没有美摄 `NvsTimeline`：用 `AlbumEditDocument` + TimeMapper + `AlbumGeometryKernel` 表达同一套语义。
 
-### 8.1 处理顺序
+**落地进度**：阶段 1 已接入照片画幅（文档 + 几何内核 + 预览/导出）。视频画幅、剪辑、变速、截图仍按第 7 节现状，见 8.8。
+
+### 8.1 两层并行，不是上下游
+
+时间线不处理像素，只决定解哪一帧。几何挂在每一帧像素上。
 
 ```
-源像素（照片 buffer / 视频解码帧）
-  → 画幅（旋转 / 翻转 / 自由角 / 比例裁切）
-  → 时间线（保留区间、变速映射）   // 仅视频
-  → OFAuxiliaryTools / OFProcessGraph
-  → 预览 SCGLView 或 导出 Writer 或 截图
+EditDocument
+  ├─ Geometry ──► GeometryKernel ──► AlbumEditSession → OFAuxiliaryTools
+  └─ Timeline ──► TimeMapper（仅视频）
+时钟 / Reader ──► TimeMapper ──► 源帧 ──► GeometryKernel
+                                                      ├─ SCGLView
+                                                      ├─ Exporter
+                                                      └─ Snapshot
 ```
 
-几何必须在滤镜之前：先裁切再美颜，关键点落在最终画幅上。不把旋转、裁剪、变速做成 `OFProcessGraph` 节点。
+几何必须在滤镜之前。不把旋转、裁切、变速做成 `OFProcessGraph` 节点。
+
+`GeometryKernel` 第一次变换是片源 `preferredTransform`（照片加载时已 bake，等价 identity），再叠用户 90° / 翻转 / 自由角 / 比例，**一次** CI render。cover 铺满裁切框，黑边不得进 MediaPipe。确认后的输出尺寸即会话画布；视频导出 `writer.transform = identity`（阶段 2）。`SCGLView` 只对屏幕 letterbox，不再裁一次。
 
 ### 8.2 能力边界
 
 | 资源 | 画幅 | 剪辑 | 变速 | 截图 |
 |------|------|------|------|------|
-| 照片 | 有 | 无 | 无 | 当前画幅 + 滤镜后的静图 |
-| 视频 | 有 | 收尾 / 多段保留 | 整段或分段 | 静图；实况为播放头附近短片 + 封面 |
+| 照片 | 阶段 1：90° / 翻转 / 角度 / 比例（居中 cover） | 无 | 无 | 阶段 5：画幅 + 滤镜后静图 |
+| 视频 | 阶段 2 | 收尾（阶段 2）/ 多段（阶段 3） | 整段再分段（阶段 4） | 静图；实况为播放头 ±1.5s 播放时间 + 封面（阶段 5） |
 
-滤镜参数仍只存在于 `OFAuxiliaryTools`，不进入剪辑文档。
+滤镜参数只存在于 `OFAuxiliaryTools`。预览 / 导出 / 截图只读同一份 `AlbumEditDocument`。
+
+时间一律用源媒体时间。段播放时长 = 段源时长 / speed；播放头落在某段时，源时间 = 段起点 + (播放时间 − 段播放起点) × speed。收尾改单段起止；多段按序拼接、播放轴无缺口；整段变速即各段同一 speed；speed > 0。
 
 ### 8.3 运行时分层
 
-| 层 | 职责 | 落点（落地时） |
+| 层 | 职责 | 落点 |
 |----|------|------|
-| Document | 画幅 + 时间线纯数据；预览/导出只读 | 相册目录下独立文档 |
-| TimeMapper | 播放头 ↔ 源时间、段查找、导出 PTS | 时间映射模块 |
-| GeometryKernel | 单帧 BGRA 旋转/翻转/仿射/裁切 | Core Image / Metal；后台禁用 UIKit 绘图 |
-| Session | 串行 GPU：几何 → 滤镜；导出独占 | 扩展 `AlbumEditSession` |
-| PreviewClock | 按播放时间取源帧，不再假设 1x 线性播放 | 演进 `AlbumVideoPlayer` |
-| Exporter | 按段读源、几何、滤镜、写盘 | 演进 `AlbumVideoExporter` |
-| Snapshot | 当前合成结果出静图 / 实况 | 截图模块 |
-| UI | 画幅 / 剪辑 / 变速 / 截图入口，与设置卡片并列 | `AlbumEditorViewController` + 底部工具条 |
+| Document | 画幅 + 时间线纯数据 | `AlbumEditDocument` |
+| TimeMapper | 播放头 ↔ 源时间、导出 PTS、生成 Composition | 阶段 3 |
+| GeometryKernel | 单帧 BGRA：朝向 + 旋转/翻转/仿射/裁切 | `AlbumGeometryKernel`（CI；后台禁用 UIKit 绘图） |
+| Session | 串行 GPU：几何 → 滤镜；导出独占 | `AlbumEditSession` |
+| PreviewClock | 按播放时间取源帧 | 阶段 2 起演进 `AlbumVideoPlayer` |
+| Exporter | 按段读源、几何、滤镜、写盘 | 阶段 2 起演进 `AlbumVideoExporter` |
+| Snapshot | 合成结果出静图 / 实况 | 阶段 5 |
+| UI | 画幅入口与设置卡片并列 | `AlbumEditorViewController` + `AlbumGeometryPanelView` |
 
-```
-PHAsset
-  → Document（画幅 + 时间线）
-Player / Reader
-  → TimeMapper（仅视频）
-  → GeometryKernel
-  → AlbumEditSession → OFAuxiliaryTools
-        ├─ SCGLView（预览）
-        ├─ AlbumVideoExporter（导出）
-        └─ Snapshot（截图）
-```
-
-时间一律用源媒体时间。变速只存在于「源时间 ↔ 播放时间」映射：段播放时长 = 段源时长 / speed；播放头落在某段时，源时间 = 段起点 + (播放时间 − 段播放起点) × speed。
-
-约定：收尾裁剪改单段起止；多段按顺序拼接、中间区间丢掉；整段变速即各段同一 speed；speed 必须 > 0。正交旋转与翻转无损；自由角 + 比例裁切会改输出尺寸，导出时偶数对齐。
+几何参数分解存储、内核按固定顺序合成：片源朝向 → 正交旋转 + 翻转 → 自由角（cover 放大）→ 按比例居中裁切。
 
 ### 8.4 预览
 
-**照片**：source buffer → 几何 → 拷贝 → 滤镜 → `SCGLView`。改画幅或滤镜都从 source 重跑。
+**照片（阶段 1）**：source buffer → 几何 → 滤镜 → `SCGLView`。改画幅或滤镜都从 source 重跑。几何已产出独立 buffer，不必再拷一次。
 
-**视频**：线性 `AVPlayer` 无法表达多段删除和分段变速。预览仍用 `AVPlayerItemVideoOutput` 取帧，由会话按播放时钟计算源时间再 seek / copy。多段跳跃时 seek 到下一段起点。音频能跟则跟，跟不上则以画面为准。导出必须音画共用同一 mapper。
-
-`SCGLView` 继续 `holdsLastFrame` + `isAspectFitEnabled`。画幅由几何层输出已裁切 buffer，预览只 letterbox 到屏幕。
+**视频（阶段 2+）**：单段收尾 + 整段变速用 `AVPlayer` + `VideoOutput`（`seek` / `forwardPlaybackEndTime` / `rate`）。多段 / 分段变速由 TimeMapper 生成 `AVMutableComposition`，Player 对合成轴线性播放。禁止靠逐帧 seek 跳删除段。剪辑 UI 在 1x 源时间下编辑，进出时卸掉/打回变速。
 
 ### 8.5 导出
 
-**照片**：高分辨率 source → 几何 → 滤镜 → `UIImage` 入库。
+**照片（阶段 1）**：高分辨率 source → 几何 → 滤镜 → `UIImage` 入库；长边上限仍 4096。
 
-**视频**：按时间线保留段顺序循环：Reader 限在该段源区间；帧 PTS 经 mapper 转为输出时间戳；几何 → 滤镜；Writer 尺寸为几何后的偶数宽高，transform 为 identity。同一段内 PTS 按 `1/speed` 拉伸；多段之间输出时间轴连续。第一期变速同时变调。
+**视频（阶段 2+）**：按保留段循环 Reader；PTS 经 mapper 从 0 单调递增；几何后偶数宽高、transform 为 identity。第一期变速同时变调；音频按段重采样。
 
-### 8.6 截图
+### 8.6 截图（阶段 5）
 
-截图与导出共用同一套 GPU 独占队列。
+吃合成结果，不抓预览 View。与导出共用 GPU 独占队列。
 
-| 类型 | 含义 | 做法 |
-|------|------|------|
-| 静图 | 当前画幅 + 当前滤镜 | 从 source / 当前源帧即时重跑 → 写入相册 |
-| 实况 | 视频播放头附近短片 + 封面 | 封面 = 当前帧静图；视频 = 播放头前后约 1.5s 源时间，再经几何 + 滤镜 + 当前段变速 |
+| 类型 | 做法 |
+|------|------|
+| 静图 | 导出分辨率从 source / 该时刻源帧重跑几何 + 滤镜 |
+| 实况 | 封面 = 该静图；视频 = 播放头 ±1.5s **播放时间**，夹在 `[0, playDuration]` |
 
-iOS 14+ 可用配对资源写入 Live Photo；iOS 12/13 降级为「静图 + 短视频」两条资源。
+播放轴上删除段已不存在，短片可跨保留段但观感连续。Live Photo 写入需 JPEG/MOV 配对 content identifier；失败则降级为静图 + 短视频两条资源。
 
 ### 8.7 与设置 UI 的关系
 
-底部「设置」只管滤镜。剪辑用另一组入口（工具条：画幅 / 剪辑 / 变速 / 截图），不塞进 `OFSettingsController` 网格。照片只显示画幅 + 截图；视频四个都显示。编辑页只绑文档变更 → session 重跑，不在 VC 里算矩阵。
+底部「设置」只管滤镜。剪辑入口另开，不进 `OFSettingsController`。阶段 1 照片只显示画幅；视频画幅入口隐藏。编辑页只绑文档变更 → session 重跑，不在 VC 里算矩阵。
 
 ### 8.8 分期与风险
 
-落地顺序：画幅预览/导出 → 视频单段收尾 → 多段拼接 → 整段变速再分段变速 → 静图再实况。
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| 1 | 文档 + 几何内核 + 照片画幅预览/导出（居中 cover，无拖框） | 已落地 |
+| 2 | 视频并入几何（修朝向分裂）；单段收尾；可补裁切拖框 | 未做 |
+| 3 | 多段 Composition；导出按段 Reader | 未做 |
+| 4 | 整段变速，再分段变速 | 未做 |
+| 5 | 静图截图，再实况截图 | 未做 |
 
-风险：自由旋转后的空白需在画幅 UI 决定黑边或放大铺满；MediaPipe 必须吃 bake 后的帧；分段变速 + AAC 有时间戳累积误差；iOS 12 实况写入必须有降级路径。
+风险：自由角必须 cover，否则黑边进人脸检测；分段变速 + AAC 时间戳累积误差；iOS 12 实况写入必须有降级路径。
+
+美摄对照（Momenta）：学「草稿为真相、几何在滤镜前、多段播放轴无缺口、截图吃合成时间线」。不抄 `NvsTimeline` / `compileTimeline`。
 
 ## 9. 设置 UI
 
@@ -282,7 +284,7 @@ LiveStreaming/LiveStreaming/          App
   Live/                     LivePreviewViewController
   Capture/                  OFInputDevice / OFiPhoneInputDevice
   Preview/                  SCGLView、FrameBuffer、GLES shader
-  Album/                    网格、编辑会话、转换、播放、导出
+  Album/                    网格、编辑会话、画幅文档、几何内核、转换、播放、导出
   Settings/                 设置数据、底部面板、各 EditorView
   Audio/ Video/             耳返、H.264 编码
 ```
@@ -304,7 +306,7 @@ App 工程用 Xcode 文件夹自动同步（`PBXFileSystemSynchronizedRootGroup`
 - `VideoEncoder` 只写裸 H.264，不能直接存相册；相册视频必须走 `AlbumVideoExporter`。
 - 漫画风 + 人脸在接近屏像素时较重；导出长视频会逐帧跑检测，耗时属预期。
 - 像素池按门面实例隔离；直播与相册仍不要同时 `inputFrame` 抢同一 GPU，相册内部靠串行队列。
-- 视频预览（`AVPlayerItemVideoOutput`）与导出（`AVAssetReader`）解码路径仍可能在朝向上有差异；若预览/导出脸歪，需统一 bake（原方案 D）。
+- 视频预览（`AVPlayerItemVideoOutput`）会 bake `preferredTransform`，导出仍用编码尺寸 + `writer.transform`。阶段 2 把朝向并入 `GeometryKernel` 后，预览/导出都 bake，Writer 置 identity。
 
 ## 14. 扩展建议
 
