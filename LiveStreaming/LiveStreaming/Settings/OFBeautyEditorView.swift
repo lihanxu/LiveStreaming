@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SnapKit
 import OFFilterKit
 
 /// 美颜编辑器回调。
@@ -116,20 +117,16 @@ class OFBeautyEditorView: UIView {
         slider.addTarget(self, action: #selector(handleSlider), for: .valueChanged)
         addSubview(slider)
         
-        iconCollection.translatesAutoresizingMaskIntoConstraints = false
-        slider.translatesAutoresizingMaskIntoConstraints = false
-        
-        NSLayoutConstraint.activate([
-            iconCollection.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            iconCollection.leadingAnchor.constraint(equalTo: leadingAnchor),
-            iconCollection.trailingAnchor.constraint(equalTo: trailingAnchor),
-            iconCollection.heightAnchor.constraint(equalToConstant: iconRowHeight),
-            
-            slider.topAnchor.constraint(equalTo: iconCollection.bottomAnchor),
-            slider.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            slider.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
-            slider.heightAnchor.constraint(equalToConstant: sliderRowHeight),
-        ])
+        iconCollection.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(8)
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(iconRowHeight)
+        }
+        slider.snp.makeConstraints { make in
+            make.top.equalTo(iconCollection.snp.bottom)
+            make.leading.trailing.equalToSuperview().inset(20)
+            make.height.equalTo(sliderRowHeight)
+        }
     }
     
     /// 按选中着色项同步滑杆
@@ -246,18 +243,15 @@ class OFBeautyIconCell: UICollectionViewCell {
         titleLabel.numberOfLines = 2
         contentView.addSubview(iconView)
         contentView.addSubview(titleLabel)
-        iconView.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            iconView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            iconView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 36),
-            iconView.heightAnchor.constraint(equalToConstant: 36),
-            
-            titleLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 4),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 2),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -2),
-        ])
+        iconView.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(8)
+            make.centerX.equalToSuperview()
+            make.size.equalTo(36)
+        }
+        titleLabel.snp.makeConstraints { make in
+            make.top.equalTo(iconView.snp.bottom).offset(4)
+            make.leading.trailing.equalToSuperview().inset(2)
+        }
     }
     
     /// 不支持 Storyboard

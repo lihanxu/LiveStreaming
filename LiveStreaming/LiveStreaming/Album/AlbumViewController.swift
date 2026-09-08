@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SnapKit
 import Photos
 
 /// 相册网格页：申请 Photos 权限后拉取 PHAsset 缩略图。
@@ -81,23 +82,19 @@ class AlbumViewController: UIViewController {
 
     /// 集合视图贴安全区，提示居中
     private func initLayout() {
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        actionButton.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            statusLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            statusLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
-            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-
-            actionButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 12),
-            actionButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        ])
+        collectionView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
+        statusLabel.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview().offset(-20)
+            make.leading.trailing.equalToSuperview().inset(32)
+        }
+        actionButton.snp.makeConstraints { make in
+            make.top.equalTo(statusLabel.snp.bottom).offset(12)
+            make.centerX.equalToSuperview()
+        }
     }
 
     /// 按系统版本申请读相册权限，再刷新列表
@@ -290,18 +287,13 @@ class AlbumPhotoCell: UICollectionViewCell {
         badgeLabel.isHidden = true
         contentView.addSubview(badgeLabel)
 
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        badgeLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            badgeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-            badgeLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
-            badgeLabel.widthAnchor.constraint(equalToConstant: 32),
-            badgeLabel.heightAnchor.constraint(equalToConstant: 16),
-        ])
+        imageView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        badgeLabel.snp.makeConstraints { make in
+            make.trailing.bottom.equalToSuperview().inset(4)
+            make.size.equalTo(CGSize(width: 32, height: 16))
+        }
         badgeLabel.layer.cornerRadius = 3
         badgeLabel.clipsToBounds = true
     }

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SnapKit
 import Photos
 import AVFoundation
 import CocoaLumberjack
@@ -172,57 +173,44 @@ class AlbumEditorViewController: UIViewController {
         button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
     }
 
-    /// Auto Layout
+    /// 预览铺满；按钮贴安全区；设置/画幅面板盖住全屏做蒙层
     private func initLayout() {
-        previewView.translatesAutoresizingMaskIntoConstraints = false
-        settingsButton.translatesAutoresizingMaskIntoConstraints = false
-        exportButton.translatesAutoresizingMaskIntoConstraints = false
-        playButton.translatesAutoresizingMaskIntoConstraints = false
-        geometryButton.translatesAutoresizingMaskIntoConstraints = false
-        geometryPanel.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        exportProgressView.translatesAutoresizingMaskIntoConstraints = false
-        exportProgressLabel.translatesAutoresizingMaskIntoConstraints = false
-        settingsSheet.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            previewView.topAnchor.constraint(equalTo: view.topAnchor),
-            previewView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            previewView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            previewView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            settingsButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
-
-            exportButton.topAnchor.constraint(equalTo: settingsButton.topAnchor),
-            exportButton.trailingAnchor.constraint(equalTo: settingsButton.leadingAnchor, constant: -8),
-
-            playButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            playButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-
-            geometryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            geometryButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-
-            geometryPanel.topAnchor.constraint(equalTo: view.topAnchor),
-            geometryPanel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            geometryPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            geometryPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-
-            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-
-            exportProgressView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            exportProgressView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-            exportProgressView.bottomAnchor.constraint(equalTo: playButton.topAnchor, constant: -16),
-
-            exportProgressLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            exportProgressLabel.bottomAnchor.constraint(equalTo: exportProgressView.topAnchor, constant: -8),
-
-            settingsSheet.topAnchor.constraint(equalTo: view.topAnchor),
-            settingsSheet.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            settingsSheet.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            settingsSheet.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
+        previewView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        settingsButton.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
+            make.trailing.equalTo(view.safeAreaLayoutGuide).offset(-12)
+        }
+        exportButton.snp.makeConstraints { make in
+            make.top.equalTo(settingsButton)
+            make.trailing.equalTo(settingsButton.snp.leading).offset(-8)
+        }
+        playButton.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-16)
+        }
+        geometryButton.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-16)
+        }
+        geometryPanel.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        activityIndicator.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
+        exportProgressView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(32)
+            make.bottom.equalTo(playButton.snp.top).offset(-16)
+        }
+        exportProgressLabel.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(exportProgressView.snp.top).offset(-8)
+        }
+        settingsSheet.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
     }
 
     /// 按类型加载照片或视频

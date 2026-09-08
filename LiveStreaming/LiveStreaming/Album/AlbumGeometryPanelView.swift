@@ -2,10 +2,11 @@
 //  AlbumGeometryPanelView.swift
 //  LiveStreaming
 //
-//  照片画幅底部面板：90°、翻转、角度、比例预设。不在此算矩阵，只改 AlbumGeometryEdit。
+//  画幅底部面板：90°、翻转、角度、比例预设。不在此算矩阵，只改 AlbumGeometryEdit。
 //
 
 import UIKit
+import SnapKit
 
 /// 画幅面板回调
 protocol AlbumGeometryPanelViewDelegate: AnyObject {
@@ -53,8 +54,8 @@ class AlbumGeometryPanelView: UIView {
     private let angleSlider = UISlider()
     /// 比例预设
     private let aspectControl = UISegmentedControl(items: AlbumAspectMode.presets.map { $0.title })
-    /// 卡片贴底
-    private var cardBottomConstraint: NSLayoutConstraint?
+    /// 卡片贴底约束，弹出/收起时改 offset
+    private var cardBottomConstraint: Constraint?
 
     /// 搭建子视图；默认隐藏
     override init(frame: CGRect) {
@@ -72,7 +73,7 @@ class AlbumGeometryPanelView: UIView {
     func present() {
         isHidden = false
         layoutIfNeeded()
-        cardBottomConstraint?.constant = 0
+        cardBottomConstraint?.update(offset: 0)
         UIView.animate(withDuration: 0.25) {
             self.layoutIfNeeded()
         }
@@ -80,7 +81,7 @@ class AlbumGeometryPanelView: UIView {
 
     /// 收起面板
     func dismiss() {
-        cardBottomConstraint?.constant = 280
+        cardBottomConstraint?.update(offset: 280)
         UIView.animate(withDuration: 0.22, animations: {
             self.layoutIfNeeded()
         }, completion: { _ in
@@ -151,73 +152,61 @@ class AlbumGeometryPanelView: UIView {
         aspectControl.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
         cardView.addSubview(aspectControl)
 
-        dimmingView.translatesAutoresizingMaskIntoConstraints = false
-        cardView.translatesAutoresizingMaskIntoConstraints = false
-        blurView.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        resetButton.translatesAutoresizingMaskIntoConstraints = false
-        rotateButton.translatesAutoresizingMaskIntoConstraints = false
-        flipHButton.translatesAutoresizingMaskIntoConstraints = false
-        flipVButton.translatesAutoresizingMaskIntoConstraints = false
-        angleLabel.translatesAutoresizingMaskIntoConstraints = false
-        angleSlider.translatesAutoresizingMaskIntoConstraints = false
-        aspectControl.translatesAutoresizingMaskIntoConstraints = false
-
-        let cardBottom = cardView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: 280)
-        cardBottomConstraint = cardBottom
-
-        NSLayoutConstraint.activate([
-            dimmingView.topAnchor.constraint(equalTo: topAnchor),
-            dimmingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            dimmingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            dimmingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-
-            cardView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            cardView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            cardView.heightAnchor.constraint(equalToConstant: 260),
-            cardBottom,
-
-            blurView.topAnchor.constraint(equalTo: cardView.topAnchor),
-            blurView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            blurView.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
-
-            titleLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 14),
-            titleLabel.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
-
-            closeButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            closeButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
-
-            resetButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            resetButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
-
-            rotateButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 18),
-            rotateButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
-            flipHButton.topAnchor.constraint(equalTo: rotateButton.topAnchor),
-            flipHButton.leadingAnchor.constraint(equalTo: rotateButton.trailingAnchor, constant: 10),
-            flipVButton.topAnchor.constraint(equalTo: rotateButton.topAnchor),
-            flipVButton.leadingAnchor.constraint(equalTo: flipHButton.trailingAnchor, constant: 10),
-            flipVButton.trailingAnchor.constraint(lessThanOrEqualTo: cardView.trailingAnchor, constant: -16),
-            rotateButton.widthAnchor.constraint(equalTo: flipHButton.widthAnchor),
-            flipHButton.widthAnchor.constraint(equalTo: flipVButton.widthAnchor),
-            rotateButton.heightAnchor.constraint(equalToConstant: 36),
-            flipHButton.heightAnchor.constraint(equalTo: rotateButton.heightAnchor),
-            flipVButton.heightAnchor.constraint(equalTo: rotateButton.heightAnchor),
-
-            angleLabel.topAnchor.constraint(equalTo: rotateButton.bottomAnchor, constant: 16),
-            angleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
-            angleLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 72),
-
-            angleSlider.centerYAnchor.constraint(equalTo: angleLabel.centerYAnchor),
-            angleSlider.leadingAnchor.constraint(equalTo: angleLabel.trailingAnchor, constant: 12),
-            angleSlider.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
-
-            aspectControl.topAnchor.constraint(equalTo: angleSlider.bottomAnchor, constant: 20),
-            aspectControl.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
-            aspectControl.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
-            aspectControl.heightAnchor.constraint(equalToConstant: 32),
-        ])
+        dimmingView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        cardView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(260)
+            // 初始藏在屏幕下方，present 时把 offset 改为 0
+            cardBottomConstraint = make.bottom.equalToSuperview().offset(280).constraint
+        }
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        titleLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(14)
+            make.centerX.equalToSuperview()
+        }
+        closeButton.snp.makeConstraints { make in
+            make.centerY.equalTo(titleLabel)
+            make.trailing.equalToSuperview().offset(-16)
+        }
+        resetButton.snp.makeConstraints { make in
+            make.centerY.equalTo(titleLabel)
+            make.leading.equalToSuperview().offset(16)
+        }
+        rotateButton.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(18)
+            make.leading.equalToSuperview().offset(16)
+            make.height.equalTo(36)
+            make.width.equalTo(flipHButton)
+        }
+        flipHButton.snp.makeConstraints { make in
+            make.top.height.equalTo(rotateButton)
+            make.leading.equalTo(rotateButton.snp.trailing).offset(10)
+            make.width.equalTo(flipVButton)
+        }
+        flipVButton.snp.makeConstraints { make in
+            make.top.height.equalTo(rotateButton)
+            make.leading.equalTo(flipHButton.snp.trailing).offset(10)
+            make.trailing.lessThanOrEqualToSuperview().offset(-16)
+        }
+        angleLabel.snp.makeConstraints { make in
+            make.top.equalTo(rotateButton.snp.bottom).offset(16)
+            make.leading.equalToSuperview().offset(16)
+            make.width.greaterThanOrEqualTo(72)
+        }
+        angleSlider.snp.makeConstraints { make in
+            make.centerY.equalTo(angleLabel)
+            make.leading.equalTo(angleLabel.snp.trailing).offset(12)
+            make.trailing.equalToSuperview().offset(-16)
+        }
+        aspectControl.snp.makeConstraints { make in
+            make.top.equalTo(angleSlider.snp.bottom).offset(20)
+            make.leading.trailing.equalToSuperview().inset(16)
+            make.height.equalTo(32)
+        }
 
         refreshControls()
     }

@@ -9,6 +9,7 @@
 //
 
 import UIKit
+import SnapKit
 import AVFoundation
 import CocoaLumberjack
 import OFFilterKit
@@ -106,21 +107,17 @@ class LivePreviewViewController: UIViewController {
     
     /// 返回/设置贴安全区两侧，卡片铺满全屏做蒙层
     private func initLayout() {
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        settingsButton.translatesAutoresizingMaskIntoConstraints = false
-        settingsSheet.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            backButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
-
-            settingsButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
-            
-            settingsSheet.topAnchor.constraint(equalTo: view.topAnchor),
-            settingsSheet.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            settingsSheet.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            settingsSheet.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
+        backButton.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
+            make.leading.equalTo(view.safeAreaLayoutGuide).offset(12)
+        }
+        settingsButton.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
+            make.trailing.equalTo(view.safeAreaLayoutGuide).offset(-12)
+        }
+        settingsSheet.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
     }
     
     /// 退回首页

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SnapKit
 import OFFilterKit
 
 /// 从底部弹出的设置面板。
@@ -53,10 +54,10 @@ class OFSettingsSheetView: UIView {
     private var collectionView: UICollectionView!
     /// 底部横条，提示可下拉关闭
     private let homeIndicator = UIView()
-    /// 卡片高度约束，随行数变化
-    private var cardHeightConstraint: NSLayoutConstraint?
-    /// 卡片贴底约束，动画时改 constant
-    private var cardBottomConstraint: NSLayoutConstraint?
+    /// 卡片高度约束，随行数变化时改 offset
+    private var cardHeightConstraint: Constraint?
+    /// 卡片贴底约束，动画时改 offset
+    private var cardBottomConstraint: Constraint?
     
     /// - Parameter controller: 设置数据源
     init(controller: OFSettingsController) {
@@ -171,91 +172,57 @@ class OFSettingsSheetView: UIView {
         homeIndicator.layer.cornerRadius = 2.5
         cardView.addSubview(homeIndicator)
         
-        dimmingView.translatesAutoresizingMaskIntoConstraints = false
-        cardView.translatesAutoresizingMaskIntoConstraints = false
-        blurView.translatesAutoresizingMaskIntoConstraints = false
-        headerView.translatesAutoresizingMaskIntoConstraints = false
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        resetButton.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        homeIndicator.translatesAutoresizingMaskIntoConstraints = false
-        colorEditor.translatesAutoresizingMaskIntoConstraints = false
-        reshapeEditor.translatesAutoresizingMaskIntoConstraints = false
-        beautyEditor.translatesAutoresizingMaskIntoConstraints = false
-        optionEditor.translatesAutoresizingMaskIntoConstraints = false
-        compareButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        let cardHeight = cardHeightConstraint(forRowCount: 2)
-        cardHeightConstraint = cardHeight
-        let cardBottom = cardView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: 400)
-        cardBottomConstraint = cardBottom
-        
-        NSLayoutConstraint.activate([
-            dimmingView.topAnchor.constraint(equalTo: topAnchor),
-            dimmingView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            dimmingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            dimmingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            
-            cardView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            cardView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            cardBottom,
-            cardHeight,
-            
-            compareButton.bottomAnchor.constraint(equalTo: cardView.topAnchor, constant: -12),
-            compareButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            compareButton.widthAnchor.constraint(equalToConstant: compareSize),
-            compareButton.heightAnchor.constraint(equalToConstant: compareSize),
-            
-            blurView.topAnchor.constraint(equalTo: cardView.topAnchor),
-            blurView.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
-            blurView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            blurView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            
-            headerView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 8),
-            headerView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            headerView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: headerHeight),
-            
-            backButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
-            backButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            
-            titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            
-            resetButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
-            resetButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
-            
-            collectionView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
-            
-            colorEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            colorEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            colorEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            colorEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
-            
-            reshapeEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            reshapeEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            reshapeEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            reshapeEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
-            
-            beautyEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            beautyEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            beautyEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            beautyEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
-            
-            optionEditor.topAnchor.constraint(equalTo: headerView.bottomAnchor),
-            optionEditor.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-            optionEditor.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            optionEditor.bottomAnchor.constraint(equalTo: homeIndicator.topAnchor, constant: -12),
-            
-            homeIndicator.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
-            homeIndicator.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -10),
-            homeIndicator.widthAnchor.constraint(equalToConstant: 36),
-            homeIndicator.heightAnchor.constraint(equalToConstant: 5),
-        ])
+        dimmingView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        cardView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview()
+            // 初始藏在屏幕下方，present 时把 offset 改为 0
+            cardBottomConstraint = make.bottom.equalToSuperview().offset(400).constraint
+            cardHeightConstraint = make.height.equalTo(cardHeightValue(forRowCount: 2)).constraint
+        }
+        compareButton.snp.makeConstraints { make in
+            make.bottom.equalTo(cardView.snp.top).offset(-12)
+            make.trailing.equalToSuperview().offset(-16)
+            make.size.equalTo(compareSize)
+        }
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        headerView.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(8)
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(headerHeight)
+        }
+        backButton.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(16)
+            make.centerY.equalToSuperview()
+        }
+        titleLabel.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
+        resetButton.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().offset(-16)
+            make.centerY.equalToSuperview()
+        }
+        collectionView.snp.makeConstraints { make in
+            make.top.equalTo(headerView.snp.bottom)
+            make.leading.trailing.equalToSuperview()
+            make.bottom.equalTo(homeIndicator.snp.top).offset(-12)
+        }
+        // 调色 / 重塑 / 美颜 / 选项编辑器与网格共用同一块内容区
+        [colorEditor, reshapeEditor, beautyEditor, optionEditor].forEach { editor in
+            editor.snp.makeConstraints { make in
+                make.top.equalTo(headerView.snp.bottom)
+                make.leading.trailing.equalToSuperview()
+                make.bottom.equalTo(homeIndicator.snp.top).offset(-12)
+            }
+        }
+        homeIndicator.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalToSuperview().offset(-10)
+            make.size.equalTo(CGSize(width: 36, height: 5))
+        }
         
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
         headerView.addGestureRecognizer(pan)
@@ -267,7 +234,7 @@ class OFSettingsSheetView: UIView {
         reloadCurrentPage()
         isHidden = false
         layoutIfNeeded()
-        cardBottomConstraint?.constant = 0
+        cardBottomConstraint?.update(offset: 0)
         UIView.animate(withDuration: 0.28, delay: 0, options: [.curveEaseOut], animations: {
             self.layoutIfNeeded()
         })
@@ -279,7 +246,7 @@ class OFSettingsSheetView: UIView {
             controller.confirmColorAdjustEditing()
         }
         releaseCompareHolding()
-        cardBottomConstraint?.constant = 420
+        cardBottomConstraint?.update(offset: 420)
         UIView.animate(withDuration: 0.24, delay: 0, options: [.curveEaseIn], animations: {
             self.layoutIfNeeded()
         }, completion: { _ in
@@ -330,12 +297,12 @@ class OFSettingsSheetView: UIView {
         let translation = gesture.translation(in: self)
         switch gesture.state {
         case .changed:
-            cardBottomConstraint?.constant = max(0, translation.y)
+            cardBottomConstraint?.update(offset: max(0, translation.y))
         case .ended, .cancelled:
             if translation.y > 80 {
                 dismiss()
             } else {
-                cardBottomConstraint?.constant = 0
+                cardBottomConstraint?.update(offset: 0)
                 UIView.animate(withDuration: 0.2) {
                     self.layoutIfNeeded()
                 }
@@ -365,35 +332,28 @@ class OFSettingsSheetView: UIView {
         cardView.isHidden = false
         dimmingView.isUserInteractionEnabled = true
         if isColor {
-            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: colorEditor.contentHeight())
+            cardHeightConstraint?.update(offset: cardHeightValue(forColorEditor: colorEditor.contentHeight()))
             colorEditor.reload(rows: page.sliders)
         } else if isReshape {
-            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: reshapeEditor.contentHeight())
+            cardHeightConstraint?.update(offset: cardHeightValue(forColorEditor: reshapeEditor.contentHeight()))
             reshapeEditor.reload(rows: page.reshapeSliders)
         } else if isBeauty {
-            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: beautyEditor.contentHeight())
+            cardHeightConstraint?.update(offset: cardHeightValue(forColorEditor: beautyEditor.contentHeight()))
             beautyEditor.reload(
                 rows: page.beautySliders,
                 meshOn: controller.isFaceMeshOverlayEnabled,
                 oneClickOn: controller.isBeautyOneClickEnabled
             )
         } else if isOption, let option = page.optionSlider {
-            cardHeightConstraint?.constant = cardHeightValue(forColorEditor: optionEditor.contentHeight())
+            cardHeightConstraint?.update(offset: cardHeightValue(forColorEditor: optionEditor.contentHeight()))
             optionEditor.reload(page: option)
         } else {
             let rows = max(1, Int(ceil(Double(page.items.count) / Double(columns))))
-            cardHeightConstraint?.constant = cardHeightValue(forRowCount: rows)
+            cardHeightConstraint?.update(offset: cardHeightValue(forRowCount: rows))
             collectionView.collectionViewLayout.invalidateLayout()
             collectionView.reloadData()
         }
         layoutIfNeeded()
-    }
-    
-    /// 计算卡片高度约束
-    /// - Parameter rowCount: 网格行数
-    /// - Returns: 已激活的高度约束（仅创建时使用）
-    private func cardHeightConstraint(forRowCount rowCount: Int) -> NSLayoutConstraint {
-        return cardView.heightAnchor.constraint(equalToConstant: cardHeightValue(forRowCount: rowCount))
     }
     
     /// 顶栏 + 网格 + 底部指示条
@@ -612,32 +572,27 @@ class OFSettingsGridCell: UICollectionViewCell {
         contentView.addSubview(rightLine)
         contentView.addSubview(bottomLine)
         
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        rightLine.translatesAutoresizingMaskIntoConstraints = false
-        bottomLine.translatesAutoresizingMaskIntoConstraints = false
         let hairline = 1.0 / UIScreen.main.scale
-        NSLayoutConstraint.activate([
-            titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor, constant: -10),
-            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 4),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -4),
-            
-            valueLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            valueLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 4),
-            valueLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -4),
-            
-            rightLine.topAnchor.constraint(equalTo: contentView.topAnchor),
-            rightLine.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            rightLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            rightLine.widthAnchor.constraint(equalToConstant: hairline),
-            
-            bottomLine.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            bottomLine.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            bottomLine.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            bottomLine.heightAnchor.constraint(equalToConstant: hairline),
-        ])
+        titleLabel.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview().offset(-10)
+            make.leading.greaterThanOrEqualToSuperview().offset(4)
+            make.trailing.lessThanOrEqualToSuperview().offset(-4)
+        }
+        valueLabel.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(4)
+            make.centerX.equalToSuperview()
+            make.leading.greaterThanOrEqualToSuperview().offset(4)
+            make.trailing.lessThanOrEqualToSuperview().offset(-4)
+        }
+        rightLine.snp.makeConstraints { make in
+            make.top.bottom.trailing.equalToSuperview()
+            make.width.equalTo(hairline)
+        }
+        bottomLine.snp.makeConstraints { make in
+            make.leading.trailing.bottom.equalToSuperview()
+            make.height.equalTo(hairline)
+        }
     }
     
     /// 不支持 Storyboard

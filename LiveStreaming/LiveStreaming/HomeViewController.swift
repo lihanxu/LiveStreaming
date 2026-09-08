@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SnapKit
 
 /// 首页。只负责导航，不持有采集或相册资源。
 class HomeViewController: UIViewController {
@@ -44,14 +45,16 @@ class HomeViewController: UIViewController {
 
     /// 入口按钮水平居中，宽度随屏宽留边
     private func initLayout() {
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            stackView.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
-            stackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 32),
-            stackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -32),
-            liveButton.heightAnchor.constraint(equalToConstant: 56),
-            albumButton.heightAnchor.constraint(equalToConstant: 56),
-        ])
+        stackView.snp.makeConstraints { make in
+            make.centerY.equalTo(view.safeAreaLayoutGuide)
+            make.leading.trailing.equalTo(view.safeAreaLayoutGuide).inset(32)
+        }
+        liveButton.snp.makeConstraints { make in
+            make.height.equalTo(56)
+        }
+        albumButton.snp.makeConstraints { make in
+            make.height.equalTo(56)
+        }
     }
 
     /// 统一入口按钮外观
