@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  LivePreviewViewController.swift
 //  LiveStreaming
 //
 //  Created by Hansen on 2021/11/8.
@@ -14,7 +14,7 @@ import CocoaLumberjack
 import OFFilterKit
 
 /// 直播预览页：把采集、滤镜、预览、编码、耳返串起来。
-class ViewController: UIViewController {
+class LivePreviewViewController: UIViewController {
 
     /// OpenGL ES 预览视图
     @IBOutlet weak var previewView: SCGLView!
@@ -135,7 +135,7 @@ class ViewController: UIViewController {
     }
 }
 
-extension ViewController: OFInputDeviceDelegate {
+extension LivePreviewViewController: OFInputDeviceDelegate {
     /// 视频采集回调：封装 VideoFrame → 处理图 → 预览，同时送进编码器
     func device(_ device: OFInputDevice, onReceiveVideo sampleBuffer: CMSampleBuffer) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {

@@ -25,7 +25,7 @@ public enum OFProcessNodeID: String, Hashable {
     case peak
     /// MediaPipe 人脸网格（美颜底座）
     case faceLandmarker
-    /// 预览/编码出口（无处理器，由 ViewController 继续处理）
+    /// 预览/编码出口（无处理器，由宿主继续处理）
     case sink
     /// 全局调色（曝光、对比、色温等）
     case colorAdjust

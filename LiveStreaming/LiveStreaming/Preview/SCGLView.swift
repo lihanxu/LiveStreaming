@@ -367,11 +367,13 @@ extension SCGLView  {
     /// 编译并链接 shaderv.vsh / shaderf.fsh
     /// - Returns: 链接成功为 true
     private func loadShaders() -> Bool {
-        //读取顶点、片元着色程序
-        guard let verFile = Bundle.main.path(forResource: "shaderv", ofType: "vsh") else {
+        // 文件夹自动引用会保留 Preview/Shader 相对路径，不再摊到 bundle 根目录
+        guard let verFile = Bundle.main.path(forResource: "shaderv", ofType: "vsh", inDirectory: "Preview/Shader")
+                ?? Bundle.main.path(forResource: "shaderv", ofType: "vsh") else {
             return false
         }
-        guard let fragFile = Bundle.main.path(forResource: "shaderf", ofType: "fsh") else {
+        guard let fragFile = Bundle.main.path(forResource: "shaderf", ofType: "fsh", inDirectory: "Preview/Shader")
+                ?? Bundle.main.path(forResource: "shaderf", ofType: "fsh") else {
             return false
         }
 

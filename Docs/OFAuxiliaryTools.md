@@ -16,7 +16,7 @@ pod 'OFFilterKit', :path => '../OFFilterKit'
 |----------------|----------|
 | 门面 `OFAuxiliaryTools`、`OFProcessGraph`、全部滤镜节点 | 采集、编码、音频 |
 | `OFFilterContext`（Metal + 像素池） | `SCGLView`、`FrameBuffer`（`#import <OFFilterKit/Frame.h>`） |
-| `VideoFrame`（`Frame.h` / `Frame.m`） | Settings UI、`OFMetalFuntions`（摄像头按钮枚举） |
+| `VideoFrame`（`Frame.h` / `Frame.m`） | Settings UI（摄像头切换只属于直播设置页） |
 | LUT PNG、`*.mlmodel`、`face_landmarker.task`、`AuxiliaryTool.metal` | `Album/*`（只调 `inputFrame` 与 `session.tools.pixelBufferPool`） |
 | `OFBeautySettings` / `OFWhiteningStyle` / `OFColorAdjustParams` | `OFColorAdjustEditorView` 等编辑器视图 |
 
@@ -43,7 +43,7 @@ pod 'OFFilterKit', :path => '../OFFilterKit'
 
 | 宿主 | 实例持有者 | 调用线程约束 |
 |------|------------|--------------|
-| 实时流 | `ViewController.auxiliaryTools` | 采集回调线程 `inputFrame` |
+| 实时流 | `LivePreviewViewController.auxiliaryTools` | 采集回调线程 `inputFrame` |
 | 相册 | `AlbumEditSession.tools` | 会话串行 GPU 队列 `inputFrame` |
 
 设置页通过 `OFSettingsController(tools:context:)` 绑定同一实例；相册在滤镜变更后靠 `onPipelineChanged` 从 source 重跑。

@@ -3,102 +3,73 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		60A30002275E000100000032 /* OFLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A30001275E000100000031 /* OFLogger.swift */; };
-		60A40011275E000100000051 /* OFSettingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40001275E000100000041 /* OFSettingItem.swift */; };
-		60A40012275E000100000052 /* OFSettingsController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40002275E000100000042 /* OFSettingsController.swift */; };
-		60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40003275E000100000043 /* OFSettingsSheetView.swift */; };
-		60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */; };
-		60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40005275E000100000045 /* OFBeautyEditorView.swift */; };
-		60A40016275E000100000056 /* OFOptionSliderEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A40006275E000100000046 /* OFOptionSliderEditorView.swift */; };
-		60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A60003275E000100000103 /* OFColorAdjustEditorView.swift */; };
-		60B00011275E000100000511 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00001275E000100000501 /* HomeViewController.swift */; };
-		60B00012275E000100000512 /* AlbumViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00002275E000100000502 /* AlbumViewController.swift */; };
-		60B00013275E000100000513 /* AlbumMediaConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00003275E000100000503 /* AlbumMediaConverter.swift */; };
-		60B00014275E000100000514 /* AlbumVideoPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00004275E000100000504 /* AlbumVideoPlayer.swift */; };
-		60B00015275E000100000515 /* AlbumVideoExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00005275E000100000505 /* AlbumVideoExporter.swift */; };
-		60B00016275E000100000516 /* AlbumEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00006275E000100000506 /* AlbumEditorViewController.swift */; };
-		60B00017275E000100000517 /* AlbumEditSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00007275E000100000507 /* AlbumEditSession.swift */; };
-		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
-		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
-		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
-		9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */; };
-		9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDB2273A46D20045F456 /* SCGLView.swift */; };
-		9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A16DDBA273A76350045F456 /* FrameBuffer.m */; };
-		9A1E73C527F197F90012CCC5 /* AudioMagician.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1E73C427F197F90012CCC5 /* AudioMagician.swift */; };
-		9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C627F198920012CCC5 /* fascinated.mp3 */; };
-		9A1E73CA27F198920012CCC5 /* fascinated.aac in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C727F198920012CCC5 /* fascinated.aac */; };
-		9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */ = {isa = PBXBuildFile; fileRef = 9A1E73C827F198920012CCC5 /* fascinated.pcm */; };
-		9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A44789F275E382A0021226B /* OFButtonsView.swift */; };
-		9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4478A2275E3B670021226B /* OFMetalFuntions.swift */; };
-		9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA1275DED6900568A6B /* SCLinkedList.swift */; };
-		9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA8275DED6900568A6B /* SCBufferQueue.swift */; };
-		9A552AB1275DED6900568A6B /* SCStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A552AA9275DED6900568A6B /* SCStack.swift */; };
-		9AC47C1E27E41CFE00A588A3 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */; };
-		9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */; };
-		9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */; };
-		9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB7E2738C1C200161747 /* AppDelegate.swift */; };
-		9AFFCB832738C1C200161747 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB822738C1C200161747 /* ViewController.swift */; };
-		9AFFCB862738C1C200161747 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB842738C1C200161747 /* Main.storyboard */; };
-		9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB872738C1C300161747 /* Assets.xcassets */; };
-		9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */; };
-		9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB922738C2BA00161747 /* OFInputDevice.swift */; };
-		9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB9D27396FF500161747 /* VideoManager.swift */; };
 		F813CA7E8907BC3D6F5EF40B /* Pods_LiveStreaming.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		57CA32AB458347A6CD521ABD /* Pods_LiveStreaming.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LiveStreaming.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		60A30001275E000100000031 /* OFLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFLogger.swift; sourceTree = "<group>"; };
-		60A40001275E000100000041 /* OFSettingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingItem.swift; sourceTree = "<group>"; };
-		60A40002275E000100000042 /* OFSettingsController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsController.swift; sourceTree = "<group>"; };
-		60A40003275E000100000043 /* OFSettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFSettingsSheetView.swift; sourceTree = "<group>"; };
-		60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeEditorView.swift; sourceTree = "<group>"; };
-		60A40005275E000100000045 /* OFBeautyEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyEditorView.swift; sourceTree = "<group>"; };
-		60A40006275E000100000046 /* OFOptionSliderEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFOptionSliderEditorView.swift; sourceTree = "<group>"; };
-		60A60003275E000100000103 /* OFColorAdjustEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFColorAdjustEditorView.swift; sourceTree = "<group>"; };
-		60B00001275E000100000501 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
-		60B00002275E000100000502 /* AlbumViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumViewController.swift; sourceTree = "<group>"; };
-		60B00003275E000100000503 /* AlbumMediaConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumMediaConverter.swift; sourceTree = "<group>"; };
-		60B00004275E000100000504 /* AlbumVideoPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumVideoPlayer.swift; sourceTree = "<group>"; };
-		60B00005275E000100000505 /* AlbumVideoExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumVideoExporter.swift; sourceTree = "<group>"; };
-		60B00006275E000100000506 /* AlbumEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumEditorViewController.swift; sourceTree = "<group>"; };
-		60B00007275E000100000507 /* AlbumEditSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumEditSession.swift; sourceTree = "<group>"; };
-		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
 		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
-		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
-		9A16DDAE273A132E0045F456 /* shaderf.fsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderf.fsh; sourceTree = "<group>"; };
-		9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_imageEdit_wow.png; path = LiveStreaming/Resource/icon_imageEdit_wow.png; sourceTree = SOURCE_ROOT; };
-		9A16DDB2273A46D20045F456 /* SCGLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCGLView.swift; sourceTree = "<group>"; };
-		9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LiveStreaming-Bridging-Header.h"; sourceTree = "<group>"; };
-		9A16DDBA273A76350045F456 /* FrameBuffer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FrameBuffer.m; sourceTree = "<group>"; };
-		9A16DDBC273A76350045F456 /* FrameBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameBuffer.h; sourceTree = "<group>"; };
-		9A1E73C427F197F90012CCC5 /* AudioMagician.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioMagician.swift; sourceTree = "<group>"; };
-		9A1E73C627F198920012CCC5 /* fascinated.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = fascinated.mp3; sourceTree = "<group>"; };
-		9A1E73C727F198920012CCC5 /* fascinated.aac */ = {isa = PBXFileReference; lastKnownFileType = file; path = fascinated.aac; sourceTree = "<group>"; };
-		9A1E73C827F198920012CCC5 /* fascinated.pcm */ = {isa = PBXFileReference; lastKnownFileType = file; path = fascinated.pcm; sourceTree = "<group>"; };
-		9A44789F275E382A0021226B /* OFButtonsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFButtonsView.swift; sourceTree = "<group>"; };
-		9A4478A2275E3B670021226B /* OFMetalFuntions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFMetalFuntions.swift; sourceTree = "<group>"; };
-		9A552AA1275DED6900568A6B /* SCLinkedList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCLinkedList.swift; sourceTree = "<group>"; };
-		9A552AA8275DED6900568A6B /* SCBufferQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCBufferQueue.swift; sourceTree = "<group>"; };
-		9A552AA9275DED6900568A6B /* SCStack.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SCStack.swift; sourceTree = "<group>"; };
-		9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
-		9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
-		9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFiPhoneInputDevice.swift; sourceTree = "<group>"; };
 		9AFFCB7B2738C1C200161747 /* LiveStreaming.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveStreaming.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9AFFCB7E2738C1C200161747 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		9AFFCB822738C1C200161747 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		9AFFCB852738C1C200161747 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		9AFFCB872738C1C300161747 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9AFFCB8A2738C1C300161747 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		9AFFCB8C2738C1C300161747 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9AFFCB922738C2BA00161747 /* OFInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFInputDevice.swift; sourceTree = "<group>"; };
-		9AFFCB9D27396FF500161747 /* VideoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoManager.swift; sourceTree = "<group>"; };
 		B47F3D4F6AB97F37508D3C16 /* Pods-LiveStreaming.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.debug.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F2AAB955BEA2AA6049A761F1 /* Exceptions for "LiveStreaming" folder in "LiveStreaming" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				"Preview/FrameBuffer.h",
+				"Preview/LiveStreaming-Bridging-Header.h",
+			);
+			target = 9AFFCB7A2738C1C200161747 /* LiveStreaming */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C0DE2001275E000100000901 /* Copy GLES Shaders */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "Preview/Shader";
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			name = "Copy GLES Shaders";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		C0DE1001275E000100000801 /* Exceptions for "LiveStreaming" folder in "Copy GLES Shaders" build phase */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = C0DE2001275E000100000901 /* Copy GLES Shaders */;
+			membershipExceptions = (
+				"Preview/Shader/shaderf.fsh",
+				"Preview/Shader/shaderv.vsh",
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D5A2E48A1BF2D82B2FE2AE6B /* LiveStreaming */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F2AAB955BEA2AA6049A761F1 /* Exceptions for "LiveStreaming" folder in "LiveStreaming" target */,
+				C0DE1001275E000100000801 /* Exceptions for "LiveStreaming" folder in "Copy GLES Shaders" build phase */,
+			);
+			explicitFileTypes = {
+				"Preview/Shader/shaderf.fsh" = text;
+				"Preview/Shader/shaderv.vsh" = text;
+			};
+			explicitFolders = (
+			);
+			path = LiveStreaming;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		9AFFCB782738C1C200161747 /* Frameworks */ = {
@@ -129,166 +100,10 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
-		60A10020275E000100000020 /* Process */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Process;
-			sourceTree = "<group>";
-		};
-		60A10021275E000100000021 /* LUT */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = LUT;
-			sourceTree = "<group>";
-		};
-		60A10022275E000100000022 /* LUT */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = LUT;
-			sourceTree = "<group>";
-		};
-		60A40020275E000100000061 /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				60A40001275E000100000041 /* OFSettingItem.swift */,
-				60A40002275E000100000042 /* OFSettingsController.swift */,
-				60A40003275E000100000043 /* OFSettingsSheetView.swift */,
-				60A40004275E000100000044 /* OFFaceReshapeEditorView.swift */,
-				60A40005275E000100000045 /* OFBeautyEditorView.swift */,
-				60A40006275E000100000046 /* OFOptionSliderEditorView.swift */,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
-		60A50020275E000100000081 /* Face */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Face;
-			sourceTree = "<group>";
-		};
-		60A50021275E000100000082 /* FaceLandmarker */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = FaceLandmarker;
-			sourceTree = "<group>";
-		};
-		60A60020275E000100000120 /* ColorAdjust */ = {
-			isa = PBXGroup;
-			children = (
-				60A60003275E000100000103 /* OFColorAdjustEditorView.swift */,
-			);
-			path = ColorAdjust;
-			sourceTree = "<group>";
-		};
-		60A80020275E000100000320 /* Cartoon */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Cartoon;
-			sourceTree = "<group>";
-		};
-		60A80021275E000100000321 /* Cartoon */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Cartoon;
-			sourceTree = "<group>";
-		};
-		60A90020275E000100000420 /* Transition */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Transition;
-			sourceTree = "<group>";
-		};
-		60B00020275E000100000520 /* Album */ = {
-			isa = PBXGroup;
-			children = (
-				60B00003275E000100000503 /* AlbumMediaConverter.swift */,
-				60B00004275E000100000504 /* AlbumVideoPlayer.swift */,
-				60B00005275E000100000505 /* AlbumVideoExporter.swift */,
-				60B00006275E000100000506 /* AlbumEditorViewController.swift */,
-				60B00007275E000100000507 /* AlbumEditSession.swift */,
-			);
-			path = Album;
-			sourceTree = "<group>";
-		};
-		9A16DDAB273A12CB0045F456 /* Shader */ = {
-			isa = PBXGroup;
-			children = (
-				9A16DDAC273A131E0045F456 /* shaderv.vsh */,
-				9A16DDAE273A132E0045F456 /* shaderf.fsh */,
-			);
-			path = Shader;
-			sourceTree = "<group>";
-		};
-		9A4478A4275E5C2B0021226B /* Metal */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Metal;
-			sourceTree = "<group>";
-		};
-		9A552AA0275DED6900568A6B /* structure */ = {
-			isa = PBXGroup;
-			children = (
-				9A552AA3275DED6900568A6B /* Graph */,
-				9A552AA1275DED6900568A6B /* SCLinkedList.swift */,
-				9A552AA8275DED6900568A6B /* SCBufferQueue.swift */,
-				9A552AA9275DED6900568A6B /* SCStack.swift */,
-			);
-			path = structure;
-			sourceTree = "<group>";
-		};
-		9A552AA3275DED6900568A6B /* Graph */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Graph;
-			sourceTree = "<group>";
-		};
-		9A552AB2275DED7700568A6B /* Resource */ = {
-			isa = PBXGroup;
-			children = (
-				60A10022275E000100000022 /* LUT */,
-				60A80021275E000100000321 /* Cartoon */,
-				60A50021275E000100000082 /* FaceLandmarker */,
-				9A1E73C727F198920012CCC5 /* fascinated.aac */,
-				9A1E73C627F198920012CCC5 /* fascinated.mp3 */,
-				9A1E73C827F198920012CCC5 /* fascinated.pcm */,
-				9A16DDB0273A26F40045F456 /* icon_imageEdit_wow.png */,
-			);
-			path = Resource;
-			sourceTree = "<group>";
-		};
-		9A552AB3275DEFA800568A6B /* Metal */ = {
-			isa = PBXGroup;
-			children = (
-				9A4478A4275E5C2B0021226B /* Metal */,
-				9A4478A2275E3B670021226B /* OFMetalFuntions.swift */,
-			);
-			path = Metal;
-			sourceTree = "<group>";
-		};
-		9AC47C1C27E41CE400A588A3 /* Audio */ = {
-			isa = PBXGroup;
-			children = (
-				9AC47C1D27E41CFE00A588A3 /* AudioManager.swift */,
-				9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */,
-				9A1E73C427F197F90012CCC5 /* AudioMagician.swift */,
-			);
-			path = Audio;
-			sourceTree = "<group>";
-		};
 		9AFFCB722738C1C200161747 = {
 			isa = PBXGroup;
 			children = (
-				9AFFCB7D2738C1C200161747 /* LiveStreaming */,
+				D5A2E48A1BF2D82B2FE2AE6B /* LiveStreaming */,
 				9AFFCB7C2738C1C200161747 /* Products */,
 				5D1C01C7CADA711E7617CB54 /* Pods */,
 				27FD53ABC433C3C528C13814 /* Frameworks */,
@@ -303,60 +118,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		9AFFCB7D2738C1C200161747 /* LiveStreaming */ = {
-			isa = PBXGroup;
-			children = (
-				60A10020275E000100000020 /* Process */,
-				60A40020275E000100000061 /* Settings */,
-				60A50020275E000100000081 /* Face */,
-				60A60020275E000100000120 /* ColorAdjust */,
-				60A10021275E000100000021 /* LUT */,
-				60A80020275E000100000320 /* Cartoon */,
-				60A90020275E000100000420 /* Transition */,
-				9A552AB3275DEFA800568A6B /* Metal */,
-				9A552AB2275DED7700568A6B /* Resource */,
-				9A552AA0275DED6900568A6B /* structure */,
-				9A16DDAB273A12CB0045F456 /* Shader */,
-				9AFFCBA02739703100161747 /* Frame */,
-				9AFFCB9F2739701E00161747 /* Video */,
-				9AC47C1C27E41CE400A588A3 /* Audio */,
-				9AFFCB922738C2BA00161747 /* OFInputDevice.swift */,
-				9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */,
-				9AFFCB7E2738C1C200161747 /* AppDelegate.swift */,
-				60A30001275E000100000031 /* OFLogger.swift */,
-				60B00001275E000100000501 /* HomeViewController.swift */,
-				60B00002275E000100000502 /* AlbumViewController.swift */,
-				60B00020275E000100000520 /* Album */,
-				9AFFCB822738C1C200161747 /* ViewController.swift */,
-				9A44789F275E382A0021226B /* OFButtonsView.swift */,
-				9A16DDB2273A46D20045F456 /* SCGLView.swift */,
-				9AFFCB842738C1C200161747 /* Main.storyboard */,
-				9AFFCB872738C1C300161747 /* Assets.xcassets */,
-				9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */,
-				9AFFCB8C2738C1C300161747 /* Info.plist */,
-			);
-			path = LiveStreaming;
-			sourceTree = "<group>";
-		};
-		9AFFCB9F2739701E00161747 /* Video */ = {
-			isa = PBXGroup;
-			children = (
-				9AFFCB9D27396FF500161747 /* VideoManager.swift */,
-				60DACCDC28F264BE00A0202B /* VideoEncoder.swift */,
-			);
-			path = Video;
-			sourceTree = "<group>";
-		};
-		9AFFCBA02739703100161747 /* Frame */ = {
-			isa = PBXGroup;
-			children = (
-				9A16DDBC273A76350045F456 /* FrameBuffer.h */,
-				9A16DDBA273A76350045F456 /* FrameBuffer.m */,
-				9A16DDB9273A76350045F456 /* LiveStreaming-Bridging-Header.h */,
-			);
-			path = Frame;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -368,12 +129,16 @@
 				9AFFCB772738C1C200161747 /* Sources */,
 				9AFFCB782738C1C200161747 /* Frameworks */,
 				9AFFCB792738C1C200161747 /* Resources */,
+				C0DE2001275E000100000901 /* Copy GLES Shaders */,
 				F6F727846303B850F6C982CF /* [CP] Embed Pods Frameworks */,
 				4A0722CD0AE152A49F26D2C4 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D5A2E48A1BF2D82B2FE2AE6B /* LiveStreaming */,
 			);
 			name = LiveStreaming;
 			productName = LiveStreaming;
@@ -387,7 +152,9 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1250;
-				LastUpgradeCheck = 1400;
+				LastUpgradeCheck = 2600;
+				MinimizedProjectReferenceProxies = 1;
+				PreferredProjectObjectVersion = 77;
 				TargetAttributes = {
 					9AFFCB7A2738C1C200161747 = {
 						CreatedOnToolsVersion = 12.5;
@@ -418,15 +185,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9A1E73C927F198920012CCC5 /* fascinated.mp3 in Resources */,
-				9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */,
-				9A1E73CB27F198920012CCC5 /* fascinated.pcm in Resources */,
-				9AFFCB8B2738C1C300161747 /* LaunchScreen.storyboard in Resources */,
-				9A1E73CA27F198920012CCC5 /* fascinated.aac in Resources */,
-				9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */,
-				9AFFCB862738C1C200161747 /* Main.storyboard in Resources */,
-				9A16DDB1273A26F40045F456 /* icon_imageEdit_wow.png in Resources */,
-				9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -496,60 +254,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				60A30002275E000100000032 /* OFLogger.swift in Sources */,
-				60A40011275E000100000051 /* OFSettingItem.swift in Sources */,
-				60A40012275E000100000052 /* OFSettingsController.swift in Sources */,
-				60A40013275E000100000053 /* OFSettingsSheetView.swift in Sources */,
-				60A40014275E000100000054 /* OFFaceReshapeEditorView.swift in Sources */,
-				60A40015275E000100000055 /* OFBeautyEditorView.swift in Sources */,
-				60A40016275E000100000056 /* OFOptionSliderEditorView.swift in Sources */,
-				60A60013275E000100000113 /* OFColorAdjustEditorView.swift in Sources */,
-				9A16DDBE273A76350045F456 /* FrameBuffer.m in Sources */,
-				9A4478A0275E382A0021226B /* OFButtonsView.swift in Sources */,
-				9A1E73C527F197F90012CCC5 /* AudioMagician.swift in Sources */,
-				9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */,
-				60B00011275E000100000511 /* HomeViewController.swift in Sources */,
-				60B00012275E000100000512 /* AlbumViewController.swift in Sources */,
-				60B00013275E000100000513 /* AlbumMediaConverter.swift in Sources */,
-				60B00014275E000100000514 /* AlbumVideoPlayer.swift in Sources */,
-				60B00015275E000100000515 /* AlbumVideoExporter.swift in Sources */,
-				60B00016275E000100000516 /* AlbumEditorViewController.swift in Sources */,
-				60B00017275E000100000517 /* AlbumEditSession.swift in Sources */,
-				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
-				9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */,
-				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
-				9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */,
-				9A4478A3275E3B670021226B /* OFMetalFuntions.swift in Sources */,
-				9A16DDB3273A46D20045F456 /* SCGLView.swift in Sources */,
-				9A552AB1275DED6900568A6B /* SCStack.swift in Sources */,
-				9AFFCB932738C2BA00161747 /* OFInputDevice.swift in Sources */,
-				9AC47C1E27E41CFE00A588A3 /* AudioManager.swift in Sources */,
-				9A552AAA275DED6900568A6B /* SCLinkedList.swift in Sources */,
-				60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */,
-				9AFFCB9E27396FF500161747 /* VideoManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXVariantGroup section */
-		9AFFCB842738C1C200161747 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				9AFFCB852738C1C200161747 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		9AFFCB892738C1C300161747 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				9AFFCB8A2738C1C300161747 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		9AFFCB8D2738C1C300161747 /* Debug */ = {
@@ -685,7 +394,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.hansen.LiveStreaming;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Frame/LiveStreaming-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Preview/LiveStreaming-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -709,7 +418,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.hansen.LiveStreaming;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Frame/LiveStreaming-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "LiveStreaming/Preview/LiveStreaming-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

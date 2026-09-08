@@ -11,7 +11,7 @@
 import Foundation
 import CoreGraphics
 
-/// 辅助滤镜门面，ViewController 只跟这一层打交道。
+/// 辅助滤镜门面，直播/相册宿主只跟这一层打交道。
 public class OFAuxiliaryTools: NSObject {
     /// 本实例 GPU 资源（Metal + 像素池）
     public let context = OFFilterContext()

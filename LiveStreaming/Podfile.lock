@@ -8,16 +8,19 @@ PODS:
   - OFFilterKit (0.1.0):
     - CocoaLumberjack/Swift
     - MediaPipeTasksVision
+  - SnapKit (5.7.1)
 
 DEPENDENCIES:
   - CocoaLumberjack/Swift
   - OFFilterKit (from `../OFFilterKit`)
+  - SnapKit
 
 SPEC REPOS:
   trunk:
     - CocoaLumberjack
     - MediaPipeTasksCommon
     - MediaPipeTasksVision
+    - SnapKit
 
 EXTERNAL SOURCES:
   OFFilterKit:
@@ -28,7 +31,8 @@ SPEC CHECKSUMS:
   MediaPipeTasksCommon: 6cfa29170d4900f04d250ad95ec058f14a741f38
   MediaPipeTasksVision: 7b1c0f5a5820e87e9d96926f5e65d8cd3744fac2
   OFFilterKit: c41ef7f2dffbd521d9b6de74cea669e7a5288aae
+  SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
 
-PODFILE CHECKSUM: fa4921be7ddfacfd7f2ca3297f9323d946861dde
+PODFILE CHECKSUM: 2bfc1b9bfb607038e621fbbaebe4b3607b804a41
 
 COCOAPODS: 1.16.2

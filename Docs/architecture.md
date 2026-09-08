@@ -8,7 +8,7 @@ App 启动后进入首页，两个入口：
 
 | 入口 | 页面 | 职责 |
 |------|------|------|
-| 实时流预览 | `ViewController`（Storyboard id: `LivePreviewViewController`） | 摄像头采集 → 滤镜处理图 → OpenGL 预览；顺带 H.264 编码与耳返 |
+| 实时流预览 | `LivePreviewViewController`（Storyboard id 同名） | 摄像头采集 → 滤镜处理图 → OpenGL 预览；顺带 H.264 编码与耳返 |
 | 相册 | `AlbumViewController` → `AlbumEditorViewController` | 浏览系统相册；对照片/视频套同一套 LUT/美颜，预览并可导出回相册 |
 
 滤镜实现只维护一份，在开发源 Pod **OFFilterKit**（`OFAuxiliaryTools` + `OFProcessGraph`）。直播与相册各自持有独立门面实例，参数互不串扰。
@@ -35,7 +35,7 @@ AppDelegate
 Main.storyboard
   └─ UINavigationController
        └─ HomeViewController
-            ├─ push ViewController（实时流）
+            ├─ push LivePreviewViewController（实时流）
             └─ push AlbumViewController
                  └─ push AlbumEditorViewController
 ```
@@ -115,7 +115,7 @@ Source
 | 文件 | 职责 |
 |------|------|
 | `OFiPhoneInputDevice` | 前后摄 + 麦克风，`hd1920x1080`，前置镜像 |
-| `ViewController` | 协调采集、处理图、`SCGLView`、设置卡片、编码器 |
+| `LivePreviewViewController` | 协调采集、处理图、`SCGLView`、设置卡片、编码器 |
 | `VideoEncoder` | VideoToolbox H.264，写 `temp.h264`（非相册导出） |
 | `AudioManager` / `AudioPlayer` | 耳返 |
 
@@ -271,22 +271,23 @@ iOS 14+ 可用配对资源写入 Live Photo；iOS 12/13 降级为「静图 + 短
 OFFilterKit/                          滤镜内核开发源 Pod
   OFFilterKit.podspec
   Sources/
-    Metal/                            门面、Context、像素池、部分滤镜、.metal
+    Metal/                            门面、Context、像素池、部分滤镜、AuxiliaryTool.metal
     Process/ Face/ LUT/ ColorAdjust/ Cartoon/ Transition/
     Frame/                            VideoFrame（public header）
     Graph/                            SCListGraph / SCQueue
   Resources/                          LUT PNG、mlmodel、face_landmarker.task
 
 LiveStreaming/LiveStreaming/          App
-  AppDelegate.swift / HomeViewController.swift / ViewController.swift
-  AlbumViewController.swift
-  Album/                              相册编辑会话、转换、播放、导出
-  Settings/                           设置数据与底部面板
-  ColorAdjust/                        仅 OFColorAdjustEditorView
-  Metal/                              仅 OFMetalFuntions（摄像头 UI 枚举）
-  Audio/ Video/ Frame/ Shader/        FrameBuffer 预览队列；采集/编码
-  structure/                          App 侧其余结构（不含已进 Pod 的图）
+  AppDelegate.swift / HomeViewController.swift / OFLogger.swift
+  Live/                     LivePreviewViewController
+  Capture/                  OFInputDevice / OFiPhoneInputDevice
+  Preview/                  SCGLView、FrameBuffer、GLES shader
+  Album/                    网格、编辑会话、转换、播放、导出
+  Settings/                 设置数据、底部面板、各 EditorView
+  Audio/ Video/             耳返、H.264 编码
 ```
+
+App 工程用 Xcode 文件夹自动同步（`PBXFileSystemSynchronizedRootGroup`）引用 `LiveStreaming/`，在该目录新增/移动源码不必再改 `project.pbxproj`。`Info.plist` 与 bridging header 走 membership exception；GLES `.vsh/.fsh` 经 Copy Files 拷进 bundle 的 `Preview/Shader/`（避免 CocoaPods 无法解析 Resources 阶段 exception）。
 
 ## 12. 日志
 
@@ -309,4 +310,4 @@ LiveStreaming/LiveStreaming/          App
 
 - 新滤镜：在 OFFilterKit 实现 `OFProcessNode`，在 `OFAuxiliaryTools.setupProcessGraph` 加顶点与边，并在 App 设置页加项。
 - 新采集源：继承 `OFInputDevice`，输出 32BGRA `CMSampleBuffer`。
-- 推流：在直播 `ViewController` 编码出口接封装/网络，不必改处理图。
+- 推流：在直播 `LivePreviewViewController` 编码出口接封装/网络，不必改处理图。
