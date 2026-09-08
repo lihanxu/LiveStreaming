@@ -2,7 +2,7 @@
 //  OFProcessNode.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  处理图节点约定：图结构只存 ID，真正做 GPU/滤镜的对象通过 OFProcessNode 注册。
 //

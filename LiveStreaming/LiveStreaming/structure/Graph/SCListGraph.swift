@@ -2,7 +2,7 @@
 //  SCListGraph.swift
 //  DataStructure
 //
-//  Created by anker on 2021/10/18.
+//  Created by Hansen on 2021/10/18.
 //
 //  邻接表有向图：顶点字典 + 边集合。
 //  直播处理链路用它描述「采集 → LUT → 滤镜 → 输出」的依赖，再拓扑排序后执行。

@@ -2,7 +2,7 @@
 //  ViewController.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/11/8.
+//  Created by Hansen on 2021/11/8.
 //
 //  实时流预览协调器：采集 → 处理图 → OpenGL 预览 / H.264 编码，音频走耳返。
 //  从首页 push 进入；左上返回、右上设置。

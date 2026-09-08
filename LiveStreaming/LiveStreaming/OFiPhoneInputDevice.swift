@@ -2,7 +2,7 @@
 //  OFiPhoneInputDevice.swift
 //  LiveStreaming
 //
-//  Created by anker on 2022/3/18.
+//  Created by Hansen on 2022/3/18.
 //
 //  iPhone 摄像头 + 麦克风采集。输出 32BGRA 视频和 PCM 音频。
 //

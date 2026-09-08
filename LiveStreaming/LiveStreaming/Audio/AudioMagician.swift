@@ -2,7 +2,7 @@
 //  AudioMagician.swift
 //  AudioBox
 //
-//  Created by anker on 2022/2/15.
+//  Created by Hansen on 2022/2/15.
 //
 //  实验用：把 Bundle 里的 mp3 循环播放。当前直播链路未接入。
 //

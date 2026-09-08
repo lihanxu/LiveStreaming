@@ -2,7 +2,7 @@
 //  SCGLView.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/11/9.
+//  Created by Hansen on 2021/11/9.
 //
 //  OpenGL ES 预览：从 VideoFrame 的 CVPixelBuffer 建 GLES 纹理，CADisplayLink 刷新。
 //  采集/滤镜走 Metal，预览仍走 GL，两套 GPU 通过 IOSurface 共享像素。
@@ -32,6 +32,12 @@ class SCGLView: UIView {
     var displayLink: CADisplayLink?
     /// 是否已 start
     var isStarted: Bool = false
+    /// 相册静图：队列空时仍重画上一帧，避免 DisplayLink 把唯一一帧弹出后变黑
+    var holdsLastFrame = false
+    /// 按像素宽高比 letterbox，不把画面拉满全屏
+    var isAspectFitEnabled = false
+    /// holdsLastFrame 时缓存的上一帧
+    private var lastPresentedFrame: VideoFrame?
     
     /// 渲染缓冲实际像素宽
     var _backingWidth: GLint = 0
@@ -89,25 +95,39 @@ class SCGLView: UIView {
         }
     }
     
-    /// 首次布局时完成 GLES 初始化（layer / context / shader / FBO / cache）
+    /// 首次布局完成 GLES；之后尺寸或 contentsScale 变了只重建 FBO
     override func layoutSubviews() {
-        guard glLayer == nil else {
-            return
+        super.layoutSubviews()
+        if glLayer == nil {
+            setupLayer()
+            setupContext()
+            _ = loadShaders()
+            initUniform()
+            initTextureCache()
         }
-        setupLayer()
-        setupContext()
-        _ = loadShaders()
-        createFBO()
-        initUniform()
-        initTextureCache()
+        updateDrawableSizeIfNeeded()
     }
     
-    /// 配置不透明、不栅格化的 EAGL layer
+    /// 配置不透明、按屏幕 scale 的 EAGL layer，避免 1x FBO 被放大发糊
     private func setupLayer() {
         glLayer = layer as? CAEAGLLayer
         glLayer?.isOpaque = true
-//        glLayer?.drawableProperties = [kEAGLDrawablePropertyRetainedBacking: false]
+        glLayer?.contentsScale = UIScreen.main.scale
         glLayer?.shouldRasterize = false
+    }
+
+    /// 按当前 bounds × scale 重建 renderbuffer；未变化则跳过
+    private func updateDrawableSizeIfNeeded() {
+        let scale = UIScreen.main.scale
+        glLayer?.contentsScale = scale
+        let pixelWidth = GLint((bounds.width * scale).rounded())
+        let pixelHeight = GLint((bounds.height * scale).rounded())
+        guard pixelWidth > 0, pixelHeight > 0 else { return }
+        if frameBufferHandle != 0, pixelWidth == _backingWidth, pixelHeight == _backingHeight {
+            return
+        }
+        deleteFBO()
+        createFBO()
     }
     
     /// 创建并设为当前 OpenGL ES 3 上下文
@@ -182,50 +202,91 @@ class SCGLView: UIView {
         }
     }
     
-    /// CADisplayLink 回调：无帧时画绿底，有帧则贴纹理画全屏四边形
+    /// CADisplayLink 回调：有新帧则画；holdsLastFrame 时队列空仍画上一帧
     @objc private func render() {
         if EAGLContext.current() != context {
             EAGLContext.setCurrent(context)
         }
-        
-        guard let frame: VideoFrame = frameBuffer.popFrameWait(0) as? VideoFrame else {
+
+        let popped = frameBuffer.popFrameWait(0) as? VideoFrame
+        if let popped = popped {
+            lastPresentedFrame = popped
+        }
+        guard let frame = popped ?? (holdsLastFrame ? lastPresentedFrame : nil) else {
             glClearColor(0.0, 1.0, 0.0, 1.0)
             glClear(GLbitfield(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT))
             glBindRenderbuffer(GLenum(GL_RENDERBUFFER), colorBufferHandle)
             context?.presentRenderbuffer(Int(GL_RENDERBUFFER))
             return
         }
-        
-        // 绑定 FBO，从 pixel buffer 建纹理，画 triangle strip
+        guard frame.pixelBuffer != nil else {
+            return
+        }
+
+        // 绑定 FBO，从 pixel buffer 建纹理；相册开启等比时先按黑边算顶点
         glDisable(GLenum(GL_DEPTH_TEST))
         glViewport(0, 0, _backingWidth, _backingHeight)
         glBindRenderbuffer(GLenum(GL_RENDERBUFFER), colorBufferHandle)
         glBindFramebuffer(GLenum(GL_FRAMEBUFFER), frameBufferHandle)
-        glClearColor(0.0, 1.0, 0.0, 1.0)
+        glClearColor(0.0, 0.0, 0.0, 1.0)
         glClear(GLbitfield(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT))
-        
+
+        updateQuadVertices(for: frame)
         createTexture(frame.pixelBuffer)
 
         glUseProgram(program)
-//        glUniform1i(glGetUniformLocation(program, "samplerRGBA"), 0)
         glUniform1f(glGetUniformLocation(program, "preferredRotation"), GLKMathDegreesToRadians(0))
 
         let position = glGetAttribLocation(program, "position")
         glEnableVertexAttribArray(GLuint(position))
-        glVertexAttribPointer(GLuint(position), 2, GLenum(GL_FLOAT), GLboolean(GL_FALSE),0, quadVertexCoord)
+        glVertexAttribPointer(GLuint(position), 2, GLenum(GL_FLOAT), GLboolean(GL_FALSE), 0, quadVertexCoord)
 
         let textCoor = glGetAttribLocation(program, "texCoord")
         glEnableVertexAttribArray(GLuint(textCoor))
         glVertexAttribPointer(GLuint(textCoor), 2, GLenum(GL_FLOAT), GLboolean(GL_FALSE), 0, quadTextureCoord)
 
         glDrawArrays(GLenum(GL_TRIANGLE_STRIP), 0, 4)
-        
+
         context?.presentRenderbuffer(Int(GL_RENDERBUFFER))
-    
+
         glDisableVertexAttribArray(GLuint(position))
         glDisableVertexAttribArray(GLuint(textCoor))
         glBindRenderbuffer(GLenum(GL_RENDERBUFFER), 0)
         glBindFramebuffer(GLenum(GL_FRAMEBUFFER), 0)
+    }
+
+    /// 按预览层与帧的宽高比更新 NDC 四边形；关闭等比时铺满
+    /// - Parameter frame: 当前要画的帧
+    private func updateQuadVertices(for frame: VideoFrame) {
+        guard isAspectFitEnabled, _backingWidth > 0, _backingHeight > 0,
+              frame.frameWidth > 0, frame.frameHeight > 0 else {
+            quadVertexCoord = [
+                -1.0, -1.0,
+                1.0, -1.0,
+                -1.0, 1.0,
+                1.0, 1.0,
+            ]
+            return
+        }
+        let viewAspect = CGFloat(_backingWidth) / CGFloat(_backingHeight)
+        let frameAspect = CGFloat(frame.frameWidth) / CGFloat(frame.frameHeight)
+        if frameAspect > viewAspect {
+            let heightNDC = GLfloat(viewAspect / frameAspect)
+            quadVertexCoord = [
+                -1.0, -heightNDC,
+                1.0, -heightNDC,
+                -1.0, heightNDC,
+                1.0, heightNDC,
+            ]
+        } else {
+            let widthNDC = GLfloat(frameAspect / viewAspect)
+            quadVertexCoord = [
+                -widthNDC, -1.0,
+                widthNDC, -1.0,
+                -widthNDC, 1.0,
+                widthNDC, 1.0,
+            ]
+        }
     }
     
     /// 用当前 pixel buffer 创建 GLES 纹理并设置线性采样 / clamp
@@ -281,6 +342,7 @@ extension SCGLView: SCGLViewProtocol {
         }
         isStarted = false
         displayLink?.isPaused = true
+        lastPresentedFrame = nil
         cleanUpPixelBuffer()
         clearColor()
     }

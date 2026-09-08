@@ -8,6 +8,7 @@
 import UIKit
 import Photos
 import AVFoundation
+import CocoaLumberjack
 
 /// 相册单资源编辑：OpenGL 预览 + 设置卡片 + 导出。
 class AlbumEditorViewController: UIViewController {
@@ -74,10 +75,13 @@ class AlbumEditorViewController: UIViewController {
         loadMedia()
     }
 
-    /// 可见后开 GL 预览；视频自动播放
+    /// 可见后开 GL 预览；静图必须在 start 之后再入帧，否则会被丢掉
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         previewView.start()
+        if asset.mediaType == .image {
+            reprocessPhotoPreview()
+        }
         if asset.mediaType == .video, videoAsset != nil, !isExporting {
             videoPlayer.play()
             updatePlayButtonTitle()
@@ -98,6 +102,8 @@ class AlbumEditorViewController: UIViewController {
 
     /// 预览 + 按钮 + 设置卡片
     private func initUI() {
+        previewView.holdsLastFrame = true
+        previewView.isAspectFitEnabled = true
         view.addSubview(previewView)
 
         configureTopButton(settingsButton, title: "设置")
@@ -242,10 +248,10 @@ class AlbumEditorViewController: UIViewController {
         }
     }
 
-    /// 进入导出独占：停播放器与 SCGLView DisplayLink
+    /// 进入导出独占：停播放器（释放 AVAsset，避免和 Reader 抢同一份资源）
     /// - Parameter work: 主线程；在 session 标记 isExporting 后执行
     private func enterExportMode(work: @escaping () -> Void) {
-        videoPlayer.pause()
+        videoPlayer.teardown()
         updatePlayButtonTitle()
         previewView.stop()
         session.beginExport {
@@ -259,7 +265,8 @@ class AlbumEditorViewController: UIViewController {
         session.endExport { [weak self] in
             guard let self = self else { return }
             self.previewView.start()
-            if resumeVideo, self.asset.mediaType == .video {
+            if resumeVideo, self.asset.mediaType == .video, let videoAsset = self.videoAsset {
+                self.videoPlayer.configure(with: videoAsset)
                 self.videoPlayer.play()
                 self.updatePlayButtonTitle()
             }
@@ -344,6 +351,7 @@ class AlbumEditorViewController: UIViewController {
 
         enterExportMode { [weak self] in
             guard let self = self else { return }
+            DDLogInfo("album export video tapped")
             self.session.exportVideo(asset: videoAsset, progress: { [weak self] value in
                 self?.setExportUI(
                     visible: true,

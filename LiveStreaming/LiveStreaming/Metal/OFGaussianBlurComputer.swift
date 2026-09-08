@@ -2,7 +2,7 @@
 //  OFGaussianBlurComputer.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/7.
+//  Created by Hansen on 2021/12/7.
 //
 //  高斯模糊节点。CPU 生成 3×3 核，GPU 做卷积。关闭时透传。
 //  G(u,v) = 1 / (2πσ²) * e^(-(u²+v²)/(2σ²))

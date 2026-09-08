@@ -2,7 +2,7 @@
 //  AudioManager.swift
 //  LiveStreaming
 //
-//  Created by anker on 2022/3/18.
+//  Created by Hansen on 2022/3/18.
 //
 //  耳返入口，转发给 AudioPlayer。
 //

@@ -12,8 +12,11 @@ import CoreVideo
 
 /// 相册媒体 ↔ VideoFrame / PixelBuffer 工具；与采集链路统一 32BGRA。
 enum AlbumMediaConverter {
-    /// 预览长边上限（像素）
-    static let previewMaxLongEdge: CGFloat = 1080
+    /// 预览长边上限：对齐屏幕像素，避免 3x 屏上被放大发糊
+    static var previewMaxLongEdge: CGFloat {
+        let native = UIScreen.main.nativeBounds.size
+        return max(native.width, native.height)
+    }
     /// 照片导出长边上限
     static let photoExportMaxLongEdge: CGFloat = 4096
     /// 视频导出长边上限
@@ -30,10 +33,19 @@ enum AlbumMediaConverter {
         let height = CGFloat(originalHeight)
         let longEdge = max(width, height)
         guard longEdge > maxLongEdge, longEdge > 0 else {
-            return (originalWidth, originalHeight)
+            return (max(1, originalWidth), max(1, originalHeight))
         }
         let scale = maxLongEdge / longEdge
-        return (max(1, Int(width * scale)), max(1, Int(height * scale)))
+        return (max(1, Int((width * scale).rounded())), max(1, Int((height * scale).rounded())))
+    }
+
+    /// H.264 要求宽高为偶数，否则 VideoToolbox 会直接 abort
+    /// - Parameters:
+    ///   - width: 宽
+    ///   - height: 高
+    /// - Returns: 向下收成偶数且至少为 2
+    static func evenSize(width: Int, height: Int) -> (Int, Int) {
+        return (max(2, width / 2 * 2), max(2, height / 2 * 2))
     }
 
     /// 由 PixelBuffer 构造 VideoFrame
@@ -89,19 +101,29 @@ enum AlbumMediaConverter {
         return pixelBuffer(from: cgImage)
     }
 
-    /// 烘焙方向并按长边缩放
+    /// 烘焙方向并按长边缩放；必须用像素宽高，不能用 size（点）否则 Retina 图会被压糊
     /// - Parameters:
     ///   - image: 源图
-    ///   - maxLongEdge: 长边上限
+    ///   - maxLongEdge: 长边上限（像素）
     /// - Returns: 正向 CGImage
     static func normalizedCGImage(from image: UIImage, maxLongEdge: CGFloat) -> CGImage? {
+        let pixelWidth: Int
+        let pixelHeight: Int
+        if let cgImage = image.cgImage {
+            pixelWidth = cgImage.width
+            pixelHeight = cgImage.height
+        } else {
+            pixelWidth = max(1, Int(image.size.width * image.scale))
+            pixelHeight = max(1, Int(image.size.height * image.scale))
+        }
         let (targetWidth, targetHeight) = scaledSize(
-            originalWidth: Int(image.size.width),
-            originalHeight: Int(image.size.height),
+            originalWidth: pixelWidth,
+            originalHeight: pixelHeight,
             maxLongEdge: maxLongEdge
         )
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
+        format.opaque = false
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: targetWidth, height: targetHeight), format: format)
         let drawn = renderer.image { _ in
             image.draw(in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight))
@@ -166,7 +188,7 @@ enum AlbumMediaConverter {
         return UIImage(cgImage: cgImage)
     }
 
-    /// 将 buffer 缩放到目标尺寸（导出视频帧尺寸与源不一致时用）
+    /// 将 buffer 缩放到目标尺寸；只用 CoreGraphics，可在后台队列调用
     /// - Parameters:
     ///   - source: 源 BGRA
     ///   - targetWidth: 目标宽
@@ -178,16 +200,58 @@ enum AlbumMediaConverter {
         if srcWidth == targetWidth && srcHeight == targetHeight {
             return copyPixelBuffer(source)
         }
-        guard let srcImage = uiImage(from: source) else {
+        guard let cgImage = cgImage(from: source) else {
             return nil
         }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: targetWidth, height: targetHeight), format: format)
-        let scaled = renderer.image { _ in
-            srcImage.draw(in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight))
+        OFPixelBufferTool.sharedInstance.update(
+            width: UInt32(targetWidth),
+            height: UInt32(targetHeight),
+            pixelFormat: kCVPixelFormatType_32BGRA
+        )
+        guard let buffer = OFPixelBufferTool.sharedInstance.createPixelBuffer() else {
+            return nil
         }
-        return pixelBuffer(from: scaled, maxLongEdge: max(CGFloat(targetWidth), CGFloat(targetHeight)))
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        guard let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(buffer),
+            width: targetWidth,
+            height: targetHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else {
+            return nil
+        }
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight))
+        return buffer
+    }
+
+    /// PixelBuffer 转 CGImage，不走 UIKit
+    /// - Parameter pixelBuffer: BGRA
+    /// - Returns: CGImage
+    static func cgImage(from pixelBuffer: CVPixelBuffer) -> CGImage? {
+        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+            return nil
+        }
+        guard let context = CGContext(
+            data: baseAddress,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else {
+            return nil
+        }
+        return context.makeImage()
     }
 
     /// 异步加载照片为 BGRA source buffer
@@ -215,7 +279,11 @@ enum AlbumMediaConverter {
             targetSize: targetSize,
             contentMode: .aspectFit,
             options: options
-        ) { image, _ in
+        ) { image, info in
+            // 第一次回调常是缩略图，丢掉会一直糊
+            if let degraded = info?[PHImageResultIsDegradedKey] as? Bool, degraded {
+                return
+            }
             DispatchQueue.main.async {
                 guard let image = image else {
                     completion(nil)

@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/11/8.
+//  Created by Hansen on 2021/11/8.
 //
 //  启动时配置 CocoaLumberjack 与 AVAudioSession（播放+录音，允许蓝牙 A2DP）。
 //

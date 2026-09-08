@@ -2,7 +2,7 @@
 //  OFLUTLoader.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  把 Bundle 里的 PNG 色表（64³ LUT 排成 8×8 的 64×64 切片，共 512×512）上传为 Metal 纹理。
 //

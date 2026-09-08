@@ -2,7 +2,7 @@
 //  SCGraphEdge.swift
 //  DataStructure
 //
-//  Created by anker on 2021/10/15.
+//  Created by Hansen on 2021/10/15.
 //
 //  有向边。相等性只比较 from/to，替换同向边时不依赖权重。
 //

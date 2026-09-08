@@ -2,7 +2,7 @@
 //  OFProcessGraph.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  把 SCListGraph 包一层：ID 构图，processor 表执行。
 //  拓扑序只在加节点/加边后失效，按帧处理时复用缓存，避免每帧跑 Kahn。

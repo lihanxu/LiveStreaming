@@ -48,34 +48,49 @@ enum AlbumVideoExporter {
         guard let videoTrack = asset.tracks(withMediaType: .video).first else {
             throw AlbumExportError.missingVideoTrack
         }
-        let audioTrack = asset.tracks(withMediaType: .audio).first
-        let naturalSize = videoTrack.naturalSize.applying(videoTrack.preferredTransform)
-        let absWidth = abs(naturalSize.width)
-        let absHeight = abs(naturalSize.height)
-        let (outputWidth, outputHeight) = AlbumMediaConverter.scaledSize(
-            originalWidth: Int(absWidth),
-            originalHeight: Int(absHeight),
+        // 用编码尺寸而不是 transform 后的显示尺寸，避免和 writer.transform 叠两次
+        let codedWidth = max(2, Int(videoTrack.naturalSize.width.rounded()))
+        let codedHeight = max(2, Int(videoTrack.naturalSize.height.rounded()))
+        let scaled = AlbumMediaConverter.scaledSize(
+            originalWidth: codedWidth,
+            originalHeight: codedHeight,
             maxLongEdge: AlbumMediaConverter.videoExportMaxLongEdge
         )
+        let (outputWidth, outputHeight) = AlbumMediaConverter.evenSize(width: scaled.0, height: scaled.1)
+        DDLogInfo("album export start \(codedWidth)x\(codedHeight) -> \(outputWidth)x\(outputHeight) duration=\(CMTimeGetSeconds(asset.duration))")
 
         let reader = try AVAssetReader(asset: asset)
         let videoReaderSettings: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
+            kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any],
         ]
         let videoReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: videoReaderSettings)
-        videoReaderOutput.alwaysCopiesSampleData = false
+        videoReaderOutput.alwaysCopiesSampleData = true
         guard reader.canAdd(videoReaderOutput) else {
             throw AlbumExportError.setupFailed("无法添加视频读取输出")
         }
         reader.add(videoReaderOutput)
 
+        let audioTrack = asset.tracks(withMediaType: .audio).first
         var audioReaderOutput: AVAssetReaderTrackOutput?
         if let audioTrack = audioTrack {
-            let output = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil)
+            let pcmSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: 44100,
+                AVNumberOfChannelsKey: 2,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsNonInterleaved: false,
+                AVLinearPCMIsBigEndianKey: false,
+            ]
+            let output = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: pcmSettings)
+            output.alwaysCopiesSampleData = false
             if reader.canAdd(output) {
                 reader.add(output)
                 audioReaderOutput = output
+            } else {
+                DDLogError("album export skip audio: cannot add PCM reader")
             }
         }
 
@@ -83,13 +98,14 @@ enum AlbumVideoExporter {
         try? FileManager.default.removeItem(at: outputURL)
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
 
-        let bitRate = Float(outputWidth * outputHeight * 2 * 32)
+        let bitRate = min(8_000_000, outputWidth * outputHeight * 6)
         let videoWriterSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: outputWidth,
             AVVideoHeightKey: outputHeight,
             AVVideoCompressionPropertiesKey: [
                 AVVideoAverageBitRateKey: bitRate,
+                AVVideoProfileLevelKey: AVVideoProfileLevelH264BaselineAutoLevel,
                 AVVideoMaxKeyFrameIntervalKey: 30,
             ],
         ]
@@ -103,6 +119,7 @@ enum AlbumVideoExporter {
                 kCVPixelBufferWidthKey as String: outputWidth,
                 kCVPixelBufferHeightKey as String: outputHeight,
                 kCVPixelBufferMetalCompatibilityKey as String: true,
+                kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any],
             ]
         )
         guard writer.canAdd(videoWriterInput) else {
@@ -111,31 +128,40 @@ enum AlbumVideoExporter {
         writer.add(videoWriterInput)
 
         var audioWriterInput: AVAssetWriterInput?
-        if let audioTrack = audioTrack,
-           let formatDescription = audioTrack.formatDescriptions.first {
-            let input = AVAssetWriterInput(
-                mediaType: .audio,
-                outputSettings: nil,
-                sourceFormatHint: formatDescription as! CMFormatDescription
-            )
+        if audioReaderOutput != nil {
+            let aacSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 44100,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128000,
+            ]
+            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: aacSettings)
             input.expectsMediaDataInRealTime = false
             if writer.canAdd(input) {
                 writer.add(input)
                 audioWriterInput = input
+            } else {
+                DDLogError("album export skip audio: cannot add AAC writer")
+                audioReaderOutput = nil
             }
         }
 
         guard reader.startReading() else {
-            throw AlbumExportError.setupFailed(reader.error?.localizedDescription ?? "读取器启动失败")
+            let message = reader.error?.localizedDescription ?? "读取器启动失败"
+            DDLogError("album export reader start failed: \(message)")
+            throw AlbumExportError.setupFailed(message)
         }
         guard writer.startWriting() else {
-            throw AlbumExportError.setupFailed(writer.error?.localizedDescription ?? "写入器启动失败")
+            let message = writer.error?.localizedDescription ?? "写入器启动失败"
+            DDLogError("album export writer start failed: \(message)")
+            throw AlbumExportError.setupFailed(message)
         }
-        writer.startSession(atSourceTime: .zero)
 
         let durationSeconds = max(CMTimeGetSeconds(asset.duration), 0.001)
+        var sessionStarted = false
         var videoFinished = false
         var audioFinished = audioWriterInput == nil
+        var frameIndex = 0
 
         while reader.status == .reading && !(videoFinished && audioFinished) {
             var didWork = false
@@ -144,19 +170,32 @@ enum AlbumVideoExporter {
                 if let sampleBuffer = videoReaderOutput.copyNextSampleBuffer(),
                    let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
                     let presentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-                    let processedBuffer = session.processPixelBufferSync(
-                        imageBuffer,
-                        targetWidth: outputWidth,
-                        targetHeight: outputHeight
-                    )
-                    if !adaptor.append(processedBuffer, withPresentationTime: presentationTime) {
-                        DDLogError("video append failed: \(writer.error?.localizedDescription ?? "")")
+                    if !sessionStarted {
+                        writer.startSession(atSourceTime: presentationTime)
+                        sessionStarted = true
+                        DDLogInfo("album export session at \(CMTimeGetSeconds(presentationTime))")
+                    }
+                    autoreleasepool {
+                        let processedBuffer = session.processPixelBufferSync(
+                            imageBuffer,
+                            targetWidth: outputWidth,
+                            targetHeight: outputHeight
+                        )
+                        let ok = adaptor.append(processedBuffer, withPresentationTime: presentationTime)
+                        if !ok {
+                            DDLogError("album export video append failed: \(writer.error?.localizedDescription ?? "unknown") status=\(writer.status.rawValue)")
+                        }
+                    }
+                    frameIndex += 1
+                    if frameIndex == 1 || frameIndex % 30 == 0 {
+                        DDLogInfo("album export frame \(frameIndex) t=\(CMTimeGetSeconds(presentationTime))")
                     }
                     progress(min(1, Float(CMTimeGetSeconds(presentationTime) / durationSeconds)))
                     didWork = true
                 } else {
                     videoWriterInput.markAsFinished()
                     videoFinished = true
+                    DDLogInfo("album export video finished frames=\(frameIndex)")
                 }
             }
 
@@ -165,14 +204,21 @@ enum AlbumVideoExporter {
                let audioWriterInput = audioWriterInput,
                audioWriterInput.isReadyForMoreMediaData {
                 if let sampleBuffer = audioReaderOutput.copyNextSampleBuffer() {
-                    if !audioWriterInput.append(sampleBuffer) {
-                        DDLogError("audio append failed: \(writer.error?.localizedDescription ?? "")")
+                    if sessionStarted {
+                        if !audioWriterInput.append(sampleBuffer) {
+                            DDLogError("album export audio append failed: \(writer.error?.localizedDescription ?? "")")
+                        }
                     }
                     didWork = true
                 } else {
                     audioWriterInput.markAsFinished()
                     audioFinished = true
+                    DDLogInfo("album export audio finished")
                 }
+            }
+
+            if writer.status == .failed {
+                throw AlbumExportError.processingFailed(writer.error?.localizedDescription ?? "写入失败")
             }
 
             if !didWork {
@@ -180,8 +226,14 @@ enum AlbumVideoExporter {
             }
         }
 
+        if !sessionStarted {
+            throw AlbumExportError.processingFailed("没有可读的视频帧")
+        }
+
         if reader.status == .failed {
-            throw AlbumExportError.processingFailed(reader.error?.localizedDescription ?? "读取失败")
+            let message = reader.error?.localizedDescription ?? "读取失败"
+            DDLogError("album export reader failed: \(message)")
+            throw AlbumExportError.processingFailed(message)
         }
 
         let semaphore = DispatchSemaphore(value: 0)
@@ -192,8 +244,11 @@ enum AlbumVideoExporter {
 
         guard writer.status == .completed else {
             try? FileManager.default.removeItem(at: outputURL)
-            throw AlbumExportError.processingFailed(writer.error?.localizedDescription ?? "写入失败")
+            let message = writer.error?.localizedDescription ?? "写入失败"
+            DDLogError("album export writer not completed: \(message) status=\(writer.status.rawValue)")
+            throw AlbumExportError.processingFailed(message)
         }
+        DDLogInfo("album export mp4 ready \(outputURL.lastPathComponent)")
         progress(1)
         return outputURL
     }
@@ -206,8 +261,10 @@ enum AlbumVideoExporter {
             DispatchQueue.main.async {
                 defer { try? FileManager.default.removeItem(at: fileURL) }
                 if success {
+                    DDLogInfo("album export saved to photo library")
                     completion(.success(()))
                 } else {
+                    DDLogError("album export save video failed: \(error?.localizedDescription ?? "")")
                     completion(.failure(error ?? AlbumExportError.processingFailed("保存到相册失败")))
                 }
             }

@@ -2,7 +2,7 @@
 //  SCGraph.swift
 //  DataStructure
 //
-//  Created by anker on 2021/10/15.
+//  Created by Hansen on 2021/10/15.
 //
 //  有向图抽象：处理链路用顶点表示滤镜节点，用边表示数据流向。
 //

@@ -2,7 +2,7 @@
 //  OFLUTComputer.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  LUT 处理节点：把 512×512 PNG 色表做成 Metal 纹理，对视频做四面体插值。
 //  关闭（预设 fileName 为 nil）时 isEnabled 为 false，图调度器会跳过本节点。

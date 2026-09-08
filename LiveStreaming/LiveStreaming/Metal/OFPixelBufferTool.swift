@@ -2,7 +2,7 @@
 //  OFPixelBufferTool.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  滤镜输出用的 CVPixelBuffer 池。需同时 Metal / OpenGL ES 兼容，便于 Compute 写、预览读。
 //

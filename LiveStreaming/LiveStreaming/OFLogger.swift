@@ -2,7 +2,7 @@
 //  OFLogger.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  CocoaLumberjack 初始化：os_log + 按天滚动的文件日志。
 //
@@ -11,10 +11,17 @@ import CocoaLumberjack
 
 /// 应用启动时配置日志。
 enum OFLogger {
-    /// 注册 DDOSLogger 和按天滚动的文件 logger（保留 7 天）
+    /// 注册 TTY（Xcode/终端）+ os_log + 按天滚动的文件 logger（保留 7 天）
     static func setup() {
         dynamicLogLevel = .debug
-        
+
+        // 1. stderr，Xcode 控制台和从终端起的进程都能看到
+        if let ttyLogger = DDTTYLogger.sharedInstance {
+            ttyLogger.logFormatter = OFLogFormatter()
+            DDLog.add(ttyLogger)
+        }
+
+        // 2. 系统统一日志，Console.app 可查
         let osLogger = DDOSLogger.sharedInstance
         osLogger.logFormatter = OFLogFormatter()
         DDLog.add(osLogger)

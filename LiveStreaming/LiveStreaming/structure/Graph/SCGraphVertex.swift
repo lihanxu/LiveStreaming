@@ -2,7 +2,7 @@
 //  SCGraphVertex.swift
 //  DataStructure
 //
-//  Created by anker on 2021/10/15.
+//  Created by Hansen on 2021/10/15.
 //
 //  邻接表图的顶点：用入边/出边集合描述与其它顶点的连接。
 //

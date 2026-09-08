@@ -2,7 +2,7 @@
 //  OFSingleColorMetalComputer.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  单色节点：只保留 R/G/B 或按 Rec.709 转灰度。none 时透传。
 //

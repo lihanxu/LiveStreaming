@@ -2,7 +2,7 @@
 //  AuxiliaryTool.metal
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 
 #include <metal_stdlib>

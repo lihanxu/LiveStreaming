@@ -341,13 +341,6 @@
 			path = Shader;
 			sourceTree = "<group>";
 		};
-		9A4478A1275E38910021226B /* Extension */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Extension;
-			sourceTree = "<group>";
-		};
 		9A4478A4275E5C2B0021226B /* Metal */ = {
 			isa = PBXGroup;
 			children = (
@@ -439,7 +432,6 @@
 		9AFFCB7D2738C1C200161747 /* LiveStreaming */ = {
 			isa = PBXGroup;
 			children = (
-				9A4478A1275E38910021226B /* Extension */,
 				60A10020275E000100000020 /* Process */,
 				60A40020275E000100000061 /* Settings */,
 				60A50020275E000100000081 /* Face */,

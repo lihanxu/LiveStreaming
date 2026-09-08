@@ -2,7 +2,7 @@
 //  OFDefalutMetal.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  全局 Metal 上下文：设备、命令队列、纹理缓存、线程组尺寸。
 //  sizeBuffer 必须用 UInt32，与 kernel 里 constant uint *size 对齐。

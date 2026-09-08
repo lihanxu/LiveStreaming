@@ -2,7 +2,7 @@
 //  OFButtonsView.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  底部横向功能按钮。LUT 切换后可通过 updateItem 改文案。
 //

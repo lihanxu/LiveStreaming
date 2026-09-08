@@ -2,7 +2,7 @@
 //  AudioPlayer.swift
 //  LiveStreaming
 //
-//  Created by anker on 2022/3/18.
+//  Created by Hansen on 2022/3/18.
 //
 //  耳返：采集 PCM 先转成 AVAudioEngine 能接的标准 Float32，再送 PlayerNode。
 //  采集 Int16 / 采样率与硬件不一致时，直接 connect 会在 iPhone 上抛 -10868。

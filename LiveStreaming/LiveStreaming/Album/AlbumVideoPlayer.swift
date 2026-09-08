@@ -36,11 +36,22 @@ class AlbumVideoPlayer: NSObject {
     func configure(with asset: AVAsset) {
         teardown()
         let item = AVPlayerItem(asset: asset)
-        let attributes: [String: Any] = [
+        var attributes: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
             kCVPixelFormatOpenGLESCompatibility as String: true,
         ]
+        // 按屏幕像素长边出帧，避免 4K 过重，也避免默认小尺寸发糊
+        if let track = asset.tracks(withMediaType: .video).first {
+            let transformed = track.naturalSize.applying(track.preferredTransform)
+            let (width, height) = AlbumMediaConverter.scaledSize(
+                originalWidth: Int(abs(transformed.width)),
+                originalHeight: Int(abs(transformed.height)),
+                maxLongEdge: AlbumMediaConverter.previewMaxLongEdge
+            )
+            attributes[kCVPixelBufferWidthKey as String] = width
+            attributes[kCVPixelBufferHeightKey as String] = height
+        }
         let output = AVPlayerItemVideoOutput(pixelBufferAttributes: attributes)
         item.add(output)
         videoOutput = output

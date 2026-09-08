@@ -2,7 +2,7 @@
 //  OFAuxiliaryTools.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
 //  默认链路：Source → FaceLandmarker → Beauty → FaceReshape → ColorAdjust → LUT → Cartoon → SingleColor → GaussianBlur → Peak → Transition → Sink

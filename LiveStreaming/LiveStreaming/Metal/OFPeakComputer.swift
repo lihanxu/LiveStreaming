@@ -2,7 +2,7 @@
 //  OFPeakComputer.swift
 //  LiveStreaming
 //
-//  Created by anker on 2021/12/6.
+//  Created by Hansen on 2021/12/6.
 //
 //  Peak 节点：高斯平滑 + Sobel 描边，用于对焦辅助。关闭时透传。
 //

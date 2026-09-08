@@ -2,7 +2,7 @@
 //  SCStack.swift
 //  DataStructure
 //
-//  Created by anker on 2021/6/27.
+//  Created by Hansen on 2021/6/27.
 //
 
 import Foundation
