@@ -26,6 +26,8 @@
 	<string>Live Streaming</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于在相册页浏览你的照片和视频</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>用于将编辑后的照片和视频保存到相册</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

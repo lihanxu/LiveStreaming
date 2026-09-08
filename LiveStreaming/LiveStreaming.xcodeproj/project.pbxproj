@@ -41,9 +41,16 @@
 		60A70012275E000100000212 /* OFBeautyComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70002275E000100000202 /* OFBeautyComputer.swift */; };
 		60A70013275E000100000213 /* OFFaceReshapeComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A70003275E000100000203 /* OFFaceReshapeComputer.swift */; };
 		60A80011275E000100000311 /* OFCartoonComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A80001275E000100000301 /* OFCartoonComputer.swift */; };
-		60A90011275E000100000411 /* OFTransitionComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A90001275E000100000401 /* OFTransitionComputer.swift */; };
 		60A80012275E000100000312 /* AnimeGANv3_Hayao_36.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = 60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */; };
 		60A80013275E000100000313 /* AnimeGANv3_Shinkai_37.mlmodel in Resources */ = {isa = PBXBuildFile; fileRef = 60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */; };
+		60A90011275E000100000411 /* OFTransitionComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A90001275E000100000401 /* OFTransitionComputer.swift */; };
+		60B00011275E000100000511 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00001275E000100000501 /* HomeViewController.swift */; };
+		60B00012275E000100000512 /* AlbumViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00002275E000100000502 /* AlbumViewController.swift */; };
+		60B00013275E000100000513 /* AlbumMediaConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00003275E000100000503 /* AlbumMediaConverter.swift */; };
+		60B00014275E000100000514 /* AlbumVideoPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00004275E000100000504 /* AlbumVideoPlayer.swift */; };
+		60B00015275E000100000515 /* AlbumVideoExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00005275E000100000505 /* AlbumVideoExporter.swift */; };
+		60B00016275E000100000516 /* AlbumEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00006275E000100000506 /* AlbumEditorViewController.swift */; };
+		60B00017275E000100000517 /* AlbumEditSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00007275E000100000507 /* AlbumEditSession.swift */; };
 		60DACCDD28F264BE00A0202B /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60DACCDC28F264BE00A0202B /* VideoEncoder.swift */; };
 		9A16DDAD273A131E0045F456 /* shaderv.vsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAC273A131E0045F456 /* shaderv.vsh */; };
 		9A16DDAF273A132E0045F456 /* shaderf.fsh in Resources */ = {isa = PBXBuildFile; fileRef = 9A16DDAE273A132E0045F456 /* shaderf.fsh */; };
@@ -76,8 +83,6 @@
 		9AC47C2027E41D4A00A588A3 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C1F27E41D4A00A588A3 /* AudioPlayer.swift */; };
 		9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC47C2127E41E5E00A588A3 /* OFiPhoneInputDevice.swift */; };
 		9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB7E2738C1C200161747 /* AppDelegate.swift */; };
-		60B00011275E000100000511 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00001275E000100000501 /* HomeViewController.swift */; };
-		60B00012275E000100000512 /* AlbumViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B00002275E000100000502 /* AlbumViewController.swift */; };
 		9AFFCB832738C1C200161747 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFFCB822738C1C200161747 /* ViewController.swift */; };
 		9AFFCB862738C1C200161747 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB842738C1C200161747 /* Main.storyboard */; };
 		9AFFCB882738C1C300161747 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AFFCB872738C1C300161747 /* Assets.xcassets */; };
@@ -123,11 +128,16 @@
 		60A70002275E000100000202 /* OFBeautyComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFBeautyComputer.swift; sourceTree = "<group>"; };
 		60A70003275E000100000203 /* OFFaceReshapeComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFFaceReshapeComputer.swift; sourceTree = "<group>"; };
 		60A80001275E000100000301 /* OFCartoonComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFCartoonComputer.swift; sourceTree = "<group>"; };
+		60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Hayao_36.mlmodel; sourceTree = "<group>"; };
+		60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Shinkai_37.mlmodel; sourceTree = "<group>"; };
 		60A90001275E000100000401 /* OFTransitionComputer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OFTransitionComputer.swift; sourceTree = "<group>"; };
 		60B00001275E000100000501 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		60B00002275E000100000502 /* AlbumViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumViewController.swift; sourceTree = "<group>"; };
-		60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Hayao_36.mlmodel; sourceTree = "<group>"; };
-		60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = AnimeGANv3_Shinkai_37.mlmodel; sourceTree = "<group>"; };
+		60B00003275E000100000503 /* AlbumMediaConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumMediaConverter.swift; sourceTree = "<group>"; };
+		60B00004275E000100000504 /* AlbumVideoPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumVideoPlayer.swift; sourceTree = "<group>"; };
+		60B00005275E000100000505 /* AlbumVideoExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumVideoExporter.swift; sourceTree = "<group>"; };
+		60B00006275E000100000506 /* AlbumEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumEditorViewController.swift; sourceTree = "<group>"; };
+		60B00007275E000100000507 /* AlbumEditSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumEditSession.swift; sourceTree = "<group>"; };
 		60DACCDC28F264BE00A0202B /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
 		67DC9FED2033CBA76DE6B605 /* Pods-LiveStreaming.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiveStreaming.release.xcconfig"; path = "Target Support Files/Pods-LiveStreaming/Pods-LiveStreaming.release.xcconfig"; sourceTree = "<group>"; };
 		9A16DDAC273A131E0045F456 /* shaderv.vsh */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = shaderv.vsh; sourceTree = "<group>"; };
@@ -293,6 +303,15 @@
 			path = Cartoon;
 			sourceTree = "<group>";
 		};
+		60A80021275E000100000321 /* Cartoon */ = {
+			isa = PBXGroup;
+			children = (
+				60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */,
+				60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */,
+			);
+			path = Cartoon;
+			sourceTree = "<group>";
+		};
 		60A90020275E000100000420 /* Transition */ = {
 			isa = PBXGroup;
 			children = (
@@ -301,13 +320,16 @@
 			path = Transition;
 			sourceTree = "<group>";
 		};
-		60A80021275E000100000321 /* Cartoon */ = {
+		60B00020275E000100000520 /* Album */ = {
 			isa = PBXGroup;
 			children = (
-				60A80002275E000100000302 /* AnimeGANv3_Hayao_36.mlmodel */,
-				60A80003275E000100000303 /* AnimeGANv3_Shinkai_37.mlmodel */,
+				60B00003275E000100000503 /* AlbumMediaConverter.swift */,
+				60B00004275E000100000504 /* AlbumVideoPlayer.swift */,
+				60B00005275E000100000505 /* AlbumVideoExporter.swift */,
+				60B00006275E000100000506 /* AlbumEditorViewController.swift */,
+				60B00007275E000100000507 /* AlbumEditSession.swift */,
 			);
-			path = Cartoon;
+			path = Album;
 			sourceTree = "<group>";
 		};
 		9A16DDAB273A12CB0045F456 /* Shader */ = {
@@ -438,6 +460,7 @@
 				60A30001275E000100000031 /* OFLogger.swift */,
 				60B00001275E000100000501 /* HomeViewController.swift */,
 				60B00002275E000100000502 /* AlbumViewController.swift */,
+				60B00020275E000100000520 /* Album */,
 				9AFFCB822738C1C200161747 /* ViewController.swift */,
 				9A44789F275E382A0021226B /* OFButtonsView.swift */,
 				9A16DDB2273A46D20045F456 /* SCGLView.swift */,
@@ -641,6 +664,11 @@
 				9AC47C2227E41E5E00A588A3 /* OFiPhoneInputDevice.swift in Sources */,
 				60B00011275E000100000511 /* HomeViewController.swift in Sources */,
 				60B00012275E000100000512 /* AlbumViewController.swift in Sources */,
+				60B00013275E000100000513 /* AlbumMediaConverter.swift in Sources */,
+				60B00014275E000100000514 /* AlbumVideoPlayer.swift in Sources */,
+				60B00015275E000100000515 /* AlbumVideoExporter.swift in Sources */,
+				60B00016275E000100000516 /* AlbumEditorViewController.swift in Sources */,
+				60B00017275E000100000517 /* AlbumEditSession.swift in Sources */,
 				9AFFCB832738C1C200161747 /* ViewController.swift in Sources */,
 				9A552AB0275DED6900568A6B /* SCBufferQueue.swift in Sources */,
 				9AFFCB7F2738C1C200161747 /* AppDelegate.swift in Sources */,
@@ -812,7 +840,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = HZZY6X575W;
+				DEVELOPMENT_TEAM = 5S6DCB24V8;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -836,7 +864,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = HZZY6X575W;
+				DEVELOPMENT_TEAM = 5S6DCB24V8;
 				INFOPLIST_FILE = LiveStreaming/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (

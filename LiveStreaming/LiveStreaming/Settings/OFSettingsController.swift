@@ -10,20 +10,40 @@ import AVFoundation
 import Foundation
 import CocoaLumberjack
 
+/// 设置页使用场景：直播含摄像头/转场，相册只保留静态媒体可用的滤镜。
+enum OFSettingsContext {
+    /// 实时流预览
+    case live
+    /// 相册编辑
+    case album
+}
+
 /// 设置页业务逻辑，不负责动画。
 class OFSettingsController {
     /// 滤镜门面
     private let tools: OFAuxiliaryTools
+    /// 直播 / 相册；相册根页隐藏摄像头与转场
+    let context: OFSettingsContext
     /// 用来读/切摄像头；未就绪时格子显示「--」
     weak var inputDevice: OFiPhoneInputDevice?
     /// 美颜占位状态
     let beauty = OFBeautySettings()
     /// 进入调色页时的参数快照；点 X 时还原
     private var colorAdjustBackup: OFColorAdjustParams?
+    /// 参数变更后通知宿主重跑处理图（相册照片需从 source 重算）
+    var onPipelineChanged: (() -> Void)?
     
-    /// - Parameter tools: 已搭好处理图的门面
-    init(tools: OFAuxiliaryTools) {
+    /// - Parameters:
+    ///   - tools: 已搭好处理图的门面
+    ///   - context: 使用场景，默认直播
+    init(tools: OFAuxiliaryTools, context: OFSettingsContext = .live) {
         self.tools = tools
+        self.context = context
+    }
+    
+    /// 通知外部刷新预览（相册照片必须重跑 source）
+    func notifyPipelineChanged() {
+        onPipelineChanged?()
     }
     
     /// 按页 ID 生成当前快照
@@ -56,28 +76,35 @@ class OFSettingsController {
     func performTap(_ id: OFSettingID) -> OFSettingsTapResult {
         switch id {
         case .camera:
+            guard context == .live else { return .reload }
             tools.playArmedTransition()
             _ = inputDevice?.switchCameraPosition()
             DDLogInfo("settings camera -> \(cameraValueText())")
+            notifyPipelineChanged()
             return .reload
         case .lut:
             return .push(.lut)
         case .lutPreset(let index):
             tools.applyLUT(at: index)
+            notifyPipelineChanged()
             return .reload
         case .cartoon:
             return .push(.cartoon)
         case .cartoonPreset(let index):
             tools.applyCartoon(at: index)
+            notifyPipelineChanged()
             return .reload
         case .singleColor:
             tools.switchSingleColor()
+            notifyPipelineChanged()
             return .reload
         case .gaussianBlur:
             tools.switchGaussianBlur()
+            notifyPipelineChanged()
             return .reload
         case .edgeDetection:
             tools.switchPeak()
+            notifyPipelineChanged()
             return .reload
         case .beauty:
             return .push(.beauty)
@@ -96,15 +123,18 @@ class OFSettingsController {
             return .push(.transition)
         case .transitionPreset(let index):
             tools.applyTransition(at: index)
+            notifyPipelineChanged()
             return .reload
         case .beautyMaster:
             beauty.isEnabled.toggle()
             tools.applyBeautySettings(beauty)
             DDLogInfo("beauty master \(beauty.isEnabled)")
+            notifyPipelineChanged()
             return .reload
         case .faceMeshOverlay:
             tools.setFaceMeshOverlayEnabled(!tools.isFaceMeshOverlayEnabled)
             syncBeautyMaster()
+            notifyPipelineChanged()
             return .reload
         }
     }
@@ -112,17 +142,24 @@ class OFSettingsController {
     /// 主卡片：已实现滤镜 + 美颜入口，后续参数往这里追加
     /// - Returns: 根页
     private func makeRootPage() -> OFSettingsPage {
-        let items: [OFSettingItem] = [
-            OFSettingItem(id: .camera, title: "摄像头", valueText: cameraValueText(), interaction: .cycle),
+        var items: [OFSettingItem] = []
+        if context == .live {
+            items.append(OFSettingItem(id: .camera, title: "摄像头", valueText: cameraValueText(), interaction: .cycle))
+        }
+        items.append(contentsOf: [
             OFSettingItem(id: .lut, title: "LUT", valueText: tools.lutValueText, interaction: .drillIn(.lut)),
             OFSettingItem(id: .cartoon, title: "漫画风", valueText: tools.cartoonValueText, interaction: .drillIn(.cartoon)),
             OFSettingItem(id: .singleColor, title: "单色", valueText: tools.singleColorValueText, interaction: .cycle),
             OFSettingItem(id: .gaussianBlur, title: "高斯模糊", valueText: tools.isGaussianBlurEnabled ? "开" : "关", interaction: .toggle),
             OFSettingItem(id: .edgeDetection, title: "描边", valueText: tools.isPeakEnabled ? "开" : "关", interaction: .toggle),
-            OFSettingItem(id: .transition, title: "转场", valueText: tools.transitionValueText, interaction: .drillIn(.transition)),
+        ])
+        if context == .live {
+            items.append(OFSettingItem(id: .transition, title: "转场", valueText: tools.transitionValueText, interaction: .drillIn(.transition)))
+        }
+        items.append(contentsOf: [
             OFSettingItem(id: .beauty, title: "美颜", valueText: beauty.summaryText, interaction: .drillIn(.beauty)),
             OFSettingItem(id: .colorAdjust, title: "调色", valueText: tools.colorAdjustSummary, interaction: .drillIn(.colorAdjust)),
-        ]
+        ])
         return OFSettingsPage(id: .root, title: "设置", items: items)
     }
     
@@ -226,17 +263,20 @@ class OFSettingsController {
         if hasLUT, tools.lutIntensitySlider < 0.5 {
             tools.setLUTIntensity(100)
         }
+        notifyPipelineChanged()
     }
     
     /// 拖动 LUT 灵敏度
     /// - Parameter value: 0…100
     func updateLUTIntensity(_ value: Float) {
         tools.setLUTIntensity(value)
+        notifyPipelineChanged()
     }
     
     /// LUT 灵敏度拉回 100
     func resetLUTIntensity() {
         tools.setLUTIntensity(100)
+        notifyPipelineChanged()
     }
     
     /// 选中转场模版并预览；从关切到有模版时若时长为 0 则拉到默认
@@ -247,17 +287,20 @@ class OFSettingsController {
         if hasStyle, tools.transitionDurationSlider < 0.5 {
             tools.setTransitionDuration(50)
         }
+        notifyPipelineChanged()
     }
     
     /// 拖动转场时长
     /// - Parameter value: 0…100
     func updateTransitionDuration(_ value: Float) {
         tools.setTransitionDuration(value)
+        notifyPipelineChanged()
     }
     
     /// 时长滑杆回到默认
     func resetTransitionDuration() {
         tools.resetTransitionDuration()
+        notifyPipelineChanged()
     }
     
     /// 选中美肤滤镜；强度为 0 时给默认 50，避免只换风格看不见变化
@@ -269,14 +312,14 @@ class OFSettingsController {
             beauty.whitening = 50
         }
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
-    
-    /// 拖动美肤灵敏度
     /// - Parameter value: 0…100
     func updateWhiteningIntensity(_ value: Float) {
         beauty.leaveOneClickKeepingValues()
         beauty.setToneValue(value, for: .whitening)
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 美肤灵敏度归零
@@ -284,6 +327,7 @@ class OFSettingsController {
         beauty.leaveOneClickKeepingValues()
         beauty.setToneValue(0, for: .whitening)
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 拖动面部重塑滑杆，即时写入 GPU
@@ -294,6 +338,7 @@ class OFSettingsController {
         beauty.leaveOneClickKeepingValues()
         beauty.setReshapeValue(value, for: key)
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 六项灵敏度归零
@@ -301,6 +346,7 @@ class OFSettingsController {
         beauty.leaveOneClickKeepingValues()
         beauty.resetReshape()
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 拖动磨皮 / 美肤 / 亮眼 / 白牙
@@ -311,6 +357,7 @@ class OFSettingsController {
         beauty.leaveOneClickKeepingValues()
         beauty.setToneValue(value, for: key)
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 四项着色归零
@@ -322,6 +369,7 @@ class OFSettingsController {
             beauty.resetReshape()
         }
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 开关一键美颜：打开套预设，关掉还原打开前的手动值
@@ -332,18 +380,21 @@ class OFSettingsController {
             beauty.enableOneClickPreset()
         }
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 点了其它子项，一键关掉但参数留着给手动微调
     func leaveBeautyOneClick() {
         beauty.leaveOneClickKeepingValues()
         syncBeautyMaster()
+        notifyPipelineChanged()
     }
     
     /// 按住对比看未着色的脸
     /// - Parameter holding: 是否按住
     func setBeautyToneCompareHolding(_ holding: Bool) {
         tools.setBeautyToneBypassed(holding)
+        notifyPipelineChanged()
     }
     
     /// 有滑杆或网格时打开总开关，否则关掉以免空跑推理
@@ -356,6 +407,7 @@ class OFSettingsController {
     /// - Parameter holding: 是否按住
     func setFaceReshapeCompareHolding(_ holding: Bool) {
         tools.setFaceReshapeBypassed(holding)
+        notifyPipelineChanged()
     }
     
     /// 人脸网格是否在画
@@ -374,6 +426,7 @@ class OFSettingsController {
     ///   - value: 滑杆当前值
     func updateColorAdjust(key: OFColorAdjustKey, value: Float) {
         tools.updateColorAdjust(key: key, value: value)
+        notifyPipelineChanged()
     }
     
     /// 打开调色页前记下当前值，方便取消
@@ -401,17 +454,20 @@ class OFSettingsController {
     /// - Parameter holding: 是否按住
     func setColorAdjustCompareHolding(_ holding: Bool) {
         tools.setColorAdjustBypassed(holding)
+        notifyPipelineChanged()
     }
     
     /// 按住对比时旁路 LUT
     /// - Parameter bypassed: true 看未套 LUT 的画面
     func setLUTBypassed(_ bypassed: Bool) {
         tools.setLUTBypassed(bypassed)
+        notifyPipelineChanged()
     }
     
     /// 调色全部复位
     func resetColorAdjust() {
         tools.resetColorAdjust()
+        notifyPipelineChanged()
     }
     
     /// 当前镜头位置文案

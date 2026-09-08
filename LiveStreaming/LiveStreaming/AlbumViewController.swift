@@ -236,14 +236,14 @@ extension AlbumViewController: UICollectionViewDataSource, UICollectionViewDeleg
         return CGSize(width: width, height: width)
     }
 
-    /// 点格子看原图（视频只展示封面）
+    /// 进入编辑页（LUT / 美颜 / 导出）
     /// - Parameters:
     ///   - collectionView: 网格
     ///   - indexPath: 点中的格子
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let asset = fetchResult?.object(at: indexPath.item) else { return }
-        let preview = AlbumPreviewViewController(asset: asset)
-        navigationController?.pushViewController(preview, animated: true)
+        let editor = AlbumEditorViewController(asset: asset)
+        navigationController?.pushViewController(editor, animated: true)
     }
 }
 
@@ -317,51 +317,5 @@ class AlbumPhotoCell: UICollectionViewCell {
         imageView.image = nil
         representedAssetIdentifier = nil
         showsVideoBadge = false
-    }
-}
-
-/// 单张资源大图预览；视频只出封面，不播。
-class AlbumPreviewViewController: UIViewController {
-    /// 要展示的相册资源
-    private let asset: PHAsset
-    /// 大图容器
-    private let imageView = UIImageView()
-
-    /// 绑定资源，标题用日期或占位
-    /// - Parameter asset: 点中的 PHAsset
-    init(asset: PHAsset) {
-        self.asset = asset
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    /// 不支持 Storyboard
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    /// 拉一张接近屏宽的图铺满展示
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .black
-        title = asset.mediaType == .video ? "视频" : "照片"
-        imageView.contentMode = .scaleAspectFit
-        view.addSubview(imageView)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-
-        let scale = UIScreen.main.scale
-        let screen = UIScreen.main.bounds.size
-        let target = CGSize(width: screen.width * scale, height: screen.height * scale)
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .highQualityFormat
-        options.isNetworkAccessAllowed = true
-        PHImageManager.default().requestImage(for: asset, targetSize: target, contentMode: .aspectFit, options: options) { [weak self] image, _ in
-            self?.imageView.image = image
-        }
     }
 }
