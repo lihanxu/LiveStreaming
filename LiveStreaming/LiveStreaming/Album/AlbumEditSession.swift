@@ -60,15 +60,34 @@ class AlbumEditSession {
         }
     }
 
-    /// 视频预览帧：在 GPU 队列处理，主线程只负责 inputFrame 到 SCGLView
+    /// 视频预览帧：先按轨朝向转正，再过处理图；主线程只负责送 SCGLView
     /// - Parameters:
-    ///   - pixelBuffer: VideoOutput 当前帧
+    ///   - pixelBuffer: VideoOutput 当前帧（编码朝向）
+    ///   - preferredTransform: 视频轨 `preferredTransform`
     ///   - completion: 主线程回调
-    func processVideoPreviewFrame(_ pixelBuffer: CVPixelBuffer, completion: @escaping (VideoFrame) -> Void) {
+    func processVideoPreviewFrame(
+        _ pixelBuffer: CVPixelBuffer,
+        preferredTransform: CGAffineTransform,
+        completion: @escaping (VideoFrame) -> Void
+    ) {
         processingQueue.async {
             guard !self.isExporting else { return }
-            guard let processed = self.processCopiedBuffer(pixelBuffer) else { return }
-            let frame = AlbumMediaConverter.makeVideoFrame(from: processed)
+            // 1. 有朝向则 bake 成正放独立 buffer；否则拷一份，避免滤镜改 VideoOutput 的帧
+            let working: CVPixelBuffer
+            if let baked = AlbumMediaConverter.orientedPixelBuffer(
+                pixelBuffer,
+                transform: preferredTransform,
+                pool: self.tools.pixelBufferPool
+            ) {
+                working = baked
+            } else if let copy = AlbumMediaConverter.copyPixelBuffer(pixelBuffer, pool: self.tools.pixelBufferPool) {
+                working = copy
+            } else {
+                return
+            }
+            // 2. 原地滤镜，主线程只负责把同一 VideoFrame 丢给预览
+            let frame = AlbumMediaConverter.makeVideoFrame(from: working)
+            self.tools.inputFrame(frame)
             DispatchQueue.main.async {
                 completion(frame)
             }

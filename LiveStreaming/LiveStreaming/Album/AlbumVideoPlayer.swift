@@ -30,23 +30,27 @@ class AlbumVideoPlayer: NSObject {
     private var displayLink: CADisplayLink?
     /// 循环播放通知
     private var endObserver: NSObjectProtocol?
+    /// 当前视频轨朝向；VideoOutput 不应用它，预览处理时再 bake
+    private(set) var preferredTransform = CGAffineTransform.identity
 
     /// 绑定 AVAsset 并准备输出
     /// - Parameter asset: 相册视频
     func configure(with asset: AVAsset) {
         teardown()
+        preferredTransform = .identity
         let item = AVPlayerItem(asset: asset)
         var attributes: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
             kCVPixelFormatOpenGLESCompatibility as String: true,
         ]
-        // 按屏幕像素长边出帧，避免 4K 过重，也避免默认小尺寸发糊
+        // VideoOutput 只出编码朝向的像素。必须按 naturalSize 要 buffer；
+        // 若用 transform 后的竖屏尺寸，横图会被硬拉成竖图（旋转+拉伸）。
         if let track = asset.tracks(withMediaType: .video).first {
-            let transformed = track.naturalSize.applying(track.preferredTransform)
+            preferredTransform = track.preferredTransform
             let (width, height) = AlbumMediaConverter.scaledSize(
-                originalWidth: Int(abs(transformed.width)),
-                originalHeight: Int(abs(transformed.height)),
+                originalWidth: Int(track.naturalSize.width.rounded()),
+                originalHeight: Int(track.naturalSize.height.rounded()),
                 maxLongEdge: AlbumMediaConverter.previewMaxLongEdge
             )
             attributes[kCVPixelBufferWidthKey as String] = width
@@ -104,6 +108,7 @@ class AlbumVideoPlayer: NSObject {
         player?.pause()
         player = nil
         videoOutput = nil
+        preferredTransform = .identity
     }
 
     /// 启动 CADisplayLink 拉取当前帧

@@ -413,7 +413,7 @@ extension AlbumEditorViewController: AlbumVideoPlayerDelegate {
     /// DisplayLink 在主线程触发，处理交给 session GPU 队列
     func videoPlayer(_ player: AlbumVideoPlayer, didOutput pixelBuffer: CVPixelBuffer, at time: CMTime) {
         guard !isExporting else { return }
-        session.processVideoPreviewFrame(pixelBuffer) { [weak self] frame in
+        session.processVideoPreviewFrame(pixelBuffer, preferredTransform: player.preferredTransform) { [weak self] frame in
             self?.previewView.inputFrame(frame)
         }
     }

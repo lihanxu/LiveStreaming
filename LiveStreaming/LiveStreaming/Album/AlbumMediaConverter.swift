@@ -9,6 +9,7 @@ import UIKit
 import AVFoundation
 import Photos
 import CoreVideo
+import CoreImage
 import OFFilterKit
 
 /// 相册媒体 ↔ VideoFrame / PixelBuffer 工具；与采集链路统一 32BGRA。
@@ -22,6 +23,8 @@ enum AlbumMediaConverter {
     static let photoExportMaxLongEdge: CGFloat = 4096
     /// 视频导出长边上限
     static let videoExportMaxLongEdge: CGFloat = 1920
+    /// 视频朝向烘焙复用；每帧新建 CIContext 会卡 DisplayLink
+    private static let orientationCIContext = CIContext(options: [.workingColorSpace: NSNull()])
 
     /// 按长边等比缩放后的宽高
     /// - Parameters:
@@ -88,6 +91,71 @@ enum AlbumMediaConverter {
             memcpy(dstBase.advanced(by: row * dstRow), srcBase.advanced(by: row * srcRow), copyBytes)
         }
         return destination
+    }
+
+    /// 把 `preferredTransform` 烘焙进像素，得到正放、宽高比为显示尺寸的 buffer。
+    /// VideoOutput / AssetReader 只给编码朝向（竖屏 iPhone 常是 1920×1080 横图）；预览必须先转正，否则 SCGLView 会横着画，再按显示尺寸要 buffer 还会被拉扁。
+    /// - Parameters:
+    ///   - source: 编码朝向的 BGRA
+    ///   - transform: 视频轨 `preferredTransform`
+    ///   - pool: 输出池
+    /// - Returns: 已转正的新 buffer；无需旋转或失败时为 nil
+    static func orientedPixelBuffer(_ source: CVPixelBuffer, transform: CGAffineTransform, pool: OFPixelBufferTool) -> CVPixelBuffer? {
+        let orientation = cgImageOrientation(from: transform)
+        if orientation == .up {
+            return nil
+        }
+        var image = CIImage(cvPixelBuffer: source)
+        if let orientation = orientation {
+            image = image.oriented(orientation)
+        } else {
+            // 非标准 90° 档：直接乘仿射
+            image = image.transformed(by: transform)
+        }
+        // Core Image 转正后 extent 原点可能不在 (0,0)，不拉回去会画出空白
+        let rawExtent = image.extent
+        guard rawExtent.width >= 1, rawExtent.height >= 1, !rawExtent.isInfinite else {
+            return nil
+        }
+        if rawExtent.origin != .zero {
+            image = image.transformed(by: CGAffineTransform(translationX: -rawExtent.origin.x, y: -rawExtent.origin.y))
+        }
+        let extent = image.extent.integral
+        let width = max(1, Int(extent.width))
+        let height = max(1, Int(extent.height))
+        pool.update(width: UInt32(width), height: UInt32(height), pixelFormat: kCVPixelFormatType_32BGRA)
+        guard let destination = pool.createPixelBuffer() else {
+            return nil
+        }
+        orientationCIContext.render(
+            image,
+            to: destination,
+            bounds: CGRect(x: 0, y: 0, width: width, height: height),
+            colorSpace: CGColorSpaceCreateDeviceRGB()
+        )
+        return destination
+    }
+
+    /// 把轨道 transform 收成 8 种 EXIF 朝向；对不齐则返回 nil，由调用方走仿射。
+    /// - Parameter transform: `AVAssetTrack.preferredTransform`（忽略平移）
+    /// - Returns: 对应 `CGImagePropertyOrientation`；近似单位阵为 `.up`
+    static func cgImageOrientation(from transform: CGAffineTransform) -> CGImagePropertyOrientation? {
+        func near(_ value: CGFloat, _ target: CGFloat) -> Bool {
+            return abs(value - target) < 0.01
+        }
+        let a = transform.a
+        let b = transform.b
+        let c = transform.c
+        let d = transform.d
+        if near(a, 1) && near(b, 0) && near(c, 0) && near(d, 1) { return .up }
+        if near(a, -1) && near(b, 0) && near(c, 0) && near(d, -1) { return .down }
+        if near(a, 0) && near(b, 1) && near(c, -1) && near(d, 0) { return .right }
+        if near(a, 0) && near(b, -1) && near(c, 1) && near(d, 0) { return .left }
+        if near(a, -1) && near(b, 0) && near(c, 0) && near(d, 1) { return .upMirrored }
+        if near(a, 1) && near(b, 0) && near(c, 0) && near(d, -1) { return .downMirrored }
+        if near(a, 0) && near(b, -1) && near(c, -1) && near(d, 0) { return .leftMirrored }
+        if near(a, 0) && near(b, 1) && near(c, 1) && near(d, 0) { return .rightMirrored }
+        return nil
     }
 
     /// UIImage 转 BGRA；draw 时烘焙 orientation
