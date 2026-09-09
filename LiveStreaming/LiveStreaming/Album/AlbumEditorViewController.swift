@@ -47,8 +47,10 @@ class AlbumEditorViewController: UIViewController {
     private let playButton = UIButton(type: .system)
     /// 画幅入口；照片与视频都显示
     private let geometryButton = UIButton(type: .system)
-    /// 视频单段收尾入口；照片隐藏
+    /// 视频剪辑入口（首尾 / 多段）；照片隐藏
     private let trimButton = UIButton(type: .system)
+    /// 剪辑面板打开时播放器走原片源时间，关掉后再按 Composition 重建
+    private var isTrimPanelOpen = false
     /// 底部工具条：照片仅画幅，视频为画幅 / 播放 / 剪辑
     private let bottomBar = UIStackView()
     /// 画幅底部面板
@@ -296,10 +298,19 @@ class AlbumEditorViewController: UIViewController {
         }
     }
 
-    /// 按文档收尾区间重建播放器
+    /// 按文档重建播放器：多段播 Composition（无缺口），单段仍用原片 + 入出点
     private func configureVideoPlayer() {
-        guard let videoAsset = videoAsset else { return }
-        let segment = session.document.timeline.resolvedSegment(sourceDuration: videoAsset.duration)
+        guard let videoAsset = videoAsset, !isTrimPanelOpen else { return }
+        let mapper = AlbumTimeMapper(timeline: session.document.timeline, sourceDuration: videoAsset.duration)
+        if mapper.needsComposition, let composition = mapper.makeComposition(from: videoAsset) {
+            videoPlayer.configure(
+                with: composition,
+                trimStart: .zero,
+                trimEnd: mapper.playDuration
+            )
+            return
+        }
+        let segment = mapper.segments[0]
         videoPlayer.configure(
             with: videoAsset,
             trimStart: segment.sourceStart,
@@ -307,11 +318,23 @@ class AlbumEditorViewController: UIViewController {
         )
     }
 
+    /// 剪辑面板期间改绑原片整段，条带按源时间 scrub
+    /// - Parameter asset: 相册原片
+    private func configureVideoPlayerForTrimEditing(asset: AVAsset) {
+        videoPlayer.configure(
+            with: asset,
+            trimStart: .zero,
+            trimEnd: asset.duration
+        )
+        videoPlayer.pause()
+    }
+
     /// 进入导出独占：停播放器（释放 AVAsset，避免和 Reader 抢同一份资源）
     /// - Parameter work: 主线程；在 session 标记 isExporting 后执行
     private func enterExportMode(work: @escaping () -> Void) {
         geometryPanel.dismiss()
-        trimPanel.dismiss()
+        isTrimPanelOpen = false
+        trimPanel.dismiss(notify: false)
         videoPlayer.teardown()
         updatePlayButtonTitle()
         previewView.stop()
@@ -352,16 +375,15 @@ class AlbumEditorViewController: UIViewController {
         geometryPanel.present()
     }
 
-    /// 弹出视频收尾面板；在 1x 源时间下改入出点
+    /// 弹出剪辑面板；条带是源轴，先卸掉 Composition
     @objc private func handleTrimTap() {
         guard !isExporting, let videoAsset = videoAsset else { return }
         geometryPanel.dismiss()
-        videoPlayer.pause()
+        isTrimPanelOpen = true
+        configureVideoPlayerForTrimEditing(asset: videoAsset)
         updatePlayButtonTitle()
-        let duration = videoAsset.duration
-        let segment = session.document.timeline.resolvedSegment(sourceDuration: duration)
         view.bringSubviewToFront(trimPanel)
-        trimPanel.present(asset: videoAsset, start: segment.sourceStart, end: segment.sourceEnd)
+        trimPanel.present(asset: videoAsset, timeline: session.document.timeline)
     }
 
     /// 播放/暂停视频
@@ -519,22 +541,30 @@ extension AlbumEditorViewController: AlbumGeometryPanelViewDelegate {
 }
 
 extension AlbumEditorViewController: AlbumTrimPanelViewDelegate {
-    /// 收尾写入文档并限制播放区间；拖动手柄时 seek 到该端
+    /// 面板打开时只写文档并按源时间 seek，不重建 Composition
     func trimPanel(
         _ panel: AlbumTrimPanelView,
-        didChangeStart start: CMTime,
-        end: CMTime,
+        didChange timeline: AlbumTimelineEdit,
         previewTime: CMTime
     ) {
-        guard let videoAsset = videoAsset else { return }
-        session.document.timeline = session.document.timeline.applyingSingleTrim(
-            start: start,
-            end: end,
-            sourceDuration: videoAsset.duration
-        )
-        videoPlayer.updateTrim(start: start, end: end)
+        session.document.timeline = timeline
         videoPlayer.pause()
         updatePlayButtonTitle()
         videoPlayer.scrub(to: previewTime)
+    }
+
+    /// 滚动条带只 seek
+    func trimPanel(_ panel: AlbumTrimPanelView, didScrub previewTime: CMTime) {
+        videoPlayer.pause()
+        updatePlayButtonTitle()
+        videoPlayer.scrub(to: previewTime)
+    }
+
+    /// 关掉面板后再按多段拼播放轴
+    func trimPanelDidDismiss(_ panel: AlbumTrimPanelView) {
+        isTrimPanelOpen = false
+        guard !isExporting, videoAsset != nil else { return }
+        configureVideoPlayer()
+        updatePlayButtonTitle()
     }
 }

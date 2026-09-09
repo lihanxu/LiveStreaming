@@ -85,24 +85,49 @@ struct AlbumTimelineSegment: Equatable {
     var speed: Double
 }
 
-/// 时间线；阶段 2 只写单段收尾。空 segments 表示整段保留、speed=1。
+/// 时间线；空 segments 表示整段保留、speed=1。
 struct AlbumTimelineEdit: Equatable {
-    /// 有序不相交的保留段；空 = 整段 1x。阶段 2 最多一条。
+    /// 有序不相交的保留段；空 = 整段 1x
     var segments: [AlbumTimelineSegment] = []
 
     /// 单段最短时长，避免空区间让 Reader / Player 起不来
     static let minimumDuration = CMTime(seconds: 0.1, preferredTimescale: 600)
+    /// 多段上限，条带放不下太多手柄
+    static let maximumSegmentCount = 6
 
-    /// 预览/导出用的单段：空文档视为 `[0, duration]`，speed 强制 1。
+    /// 预览/导出用的全部保留段：空文档视为整段；重叠段按起点排序并截断。
+    /// - Parameter sourceDuration: 源媒体时长
+    /// - Returns: 至少一段，speed=1
+    func resolvedSegments(sourceDuration: CMTime) -> [AlbumTimelineSegment] {
+        let duration = CMTimeMaximum(sourceDuration, Self.minimumDuration)
+        let fallback = [AlbumTimelineSegment(sourceStart: .zero, sourceEnd: duration, speed: 1)]
+        if segments.isEmpty {
+            return fallback
+        }
+        let sorted = segments.sorted { CMTimeCompare($0.sourceStart, $1.sourceStart) < 0 }
+        var result: [AlbumTimelineSegment] = []
+        var cursor = CMTime.zero
+        for raw in sorted {
+            var start = CMTimeMaximum(raw.sourceStart, cursor)
+            start = CMTimeMaximum(start, .zero)
+            var end = CMTimeMinimum(raw.sourceEnd, duration)
+            if CMTimeCompare(CMTimeSubtract(end, start), Self.minimumDuration) < 0 {
+                continue
+            }
+            result.append(AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1))
+            cursor = end
+            if result.count >= Self.maximumSegmentCount {
+                break
+            }
+        }
+        return result.isEmpty ? fallback : result
+    }
+
+    /// 阶段 2 兼容：只取第一段
     /// - Parameter sourceDuration: 源媒体时长
     /// - Returns: 已夹进合法区间的一段
     func resolvedSegment(sourceDuration: CMTime) -> AlbumTimelineSegment {
-        let duration = CMTimeMaximum(sourceDuration, Self.minimumDuration)
-        let fallback = AlbumTimelineSegment(sourceStart: .zero, sourceEnd: duration, speed: 1)
-        guard let first = segments.first else {
-            return fallback
-        }
-        return Self.clamped(first, sourceDuration: duration)
+        return resolvedSegments(sourceDuration: sourceDuration)[0]
     }
 
     /// 写入单段收尾；若几乎是整段则清空，保持「未剪辑」语义。
@@ -112,38 +137,158 @@ struct AlbumTimelineEdit: Equatable {
     ///   - sourceDuration: 源时长
     /// - Returns: 新时间线
     func applyingSingleTrim(start: CMTime, end: CMTime, sourceDuration: CMTime) -> AlbumTimelineEdit {
-        let clamped = Self.clamped(
-            AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1),
+        return applyingSegments(
+            [AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1)],
             sourceDuration: sourceDuration
         )
-        let epsilon = CMTime(seconds: 0.05, preferredTimescale: 600)
-        let startsAtZero = CMTimeCompare(clamped.sourceStart, epsilon) <= 0
-        let endsAtDuration = CMTimeCompare(CMTimeSubtract(sourceDuration, clamped.sourceEnd), epsilon) <= 0
+    }
+
+    /// 写入多段；一段且几乎整段则清空。
+    /// - Parameters:
+    ///   - segments: 原始段，可乱序
+    ///   - sourceDuration: 源时长
+    /// - Returns: 新时间线
+    func applyingSegments(_ segments: [AlbumTimelineSegment], sourceDuration: CMTime) -> AlbumTimelineEdit {
         var copy = self
-        if startsAtZero && endsAtDuration {
-            copy.segments = []
+        copy.segments = segments
+        let resolved = copy.resolvedSegments(sourceDuration: sourceDuration)
+        if resolved.count == 1 {
+            let only = resolved[0]
+            let epsilon = CMTime(seconds: 0.05, preferredTimescale: 600)
+            let startsAtZero = CMTimeCompare(only.sourceStart, epsilon) <= 0
+            let endsAtDuration = CMTimeCompare(CMTimeSubtract(sourceDuration, only.sourceEnd), epsilon) <= 0
+            copy.segments = (startsAtZero && endsAtDuration) ? [] : resolved
         } else {
-            copy.segments = [clamped]
+            copy.segments = resolved
         }
         return copy
     }
 
-    /// 把一段夹进 `[0, duration]`，并保证最短时长。
+    /// 在最大空隙插入一段；空隙不够则返回 nil。
+    /// - Parameter sourceDuration: 源时长
+    /// - Returns: 新时间线；无法添加为 nil
+    func addingSegment(sourceDuration: CMTime) -> AlbumTimelineEdit? {
+        let current = resolvedSegments(sourceDuration: sourceDuration)
+        guard current.count < Self.maximumSegmentCount else { return nil }
+        let duration = CMTimeMaximum(sourceDuration, Self.minimumDuration)
+        var gaps: [(CMTime, CMTime)] = []
+        var cursor = CMTime.zero
+        for segment in current {
+            if CMTimeCompare(CMTimeSubtract(segment.sourceStart, cursor), Self.minimumDuration) > 0 {
+                gaps.append((cursor, segment.sourceStart))
+            }
+            cursor = segment.sourceEnd
+        }
+        if CMTimeCompare(CMTimeSubtract(duration, cursor), Self.minimumDuration) > 0 {
+            gaps.append((cursor, duration))
+        }
+        guard let best = gaps.max(by: { CMTimeCompare(CMTimeSubtract($0.1, $0.0), CMTimeSubtract($1.1, $1.0)) < 0 }) else {
+            return nil
+        }
+        let gap = CMTimeSubtract(best.1, best.0)
+        let want = CMTimeMinimum(CMTime(seconds: 1.0, preferredTimescale: 600), CMTimeMultiplyByRatio(gap, multiplier: 1, divisor: 3))
+        let length = CMTimeMaximum(want, Self.minimumDuration)
+        if CMTimeCompare(gap, length) < 0 {
+            return nil
+        }
+        let extra = CMTimeSubtract(gap, length)
+        let start = CMTimeAdd(best.0, CMTimeMultiplyByRatio(extra, multiplier: 1, divisor: 2))
+        let end = CMTimeAdd(start, length)
+        var next = current
+        next.append(AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1))
+        return applyingSegments(next, sourceDuration: sourceDuration)
+    }
+
+    /// 删掉指定段；删光后变空文档（整段未切）。
     /// - Parameters:
-    ///   - segment: 原始段
+    ///   - index: 已 resolved 数组下标
     ///   - sourceDuration: 源时长
-    /// - Returns: 合法段，speed=1
-    private static func clamped(_ segment: AlbumTimelineSegment, sourceDuration: CMTime) -> AlbumTimelineSegment {
-        let duration = CMTimeMaximum(sourceDuration, minimumDuration)
-        var start = CMTimeMaximum(segment.sourceStart, .zero)
-        var end = CMTimeMinimum(segment.sourceEnd, duration)
-        if CMTimeCompare(CMTimeSubtract(end, start), minimumDuration) < 0 {
-            end = CMTimeMinimum(CMTimeAdd(start, minimumDuration), duration)
-            if CMTimeCompare(CMTimeSubtract(end, start), minimumDuration) < 0 {
-                start = CMTimeMaximum(CMTimeSubtract(end, minimumDuration), .zero)
+    /// - Returns: 新时间线；无法删除则原样
+    func removingSegment(at index: Int, sourceDuration: CMTime) -> AlbumTimelineEdit {
+        var current = resolvedSegments(sourceDuration: sourceDuration)
+        guard index >= 0, index < current.count else { return self }
+        if current.count == 1 {
+            var copy = self
+            copy.segments = []
+            return copy
+        }
+        current.remove(at: index)
+        return applyingSegments(current, sourceDuration: sourceDuration)
+    }
+
+    /// 是否尚未真正多段：只有一段且几乎覆盖整段源。此时多段条带不把整段当成「已分段」。
+    /// - Parameter sourceDuration: 源时长
+    /// - Returns: 仍是整段 1x
+    func isImplicitFullRange(sourceDuration: CMTime) -> Bool {
+        let resolved = resolvedSegments(sourceDuration: sourceDuration)
+        guard resolved.count == 1 else { return false }
+        let only = resolved[0]
+        let epsilon = CMTime(seconds: 0.05, preferredTimescale: 600)
+        let startsAtZero = CMTimeCompare(only.sourceStart, epsilon) <= 0
+        let endsAtDuration = CMTimeCompare(CMTimeSubtract(sourceDuration, only.sourceEnd), epsilon) <= 0
+        return startsAtZero && endsAtDuration
+    }
+
+    /// 空隙里插入一段；若当前是整段单段，则改成该区间作为第一段。
+    /// - Parameters:
+    ///   - start: 入点
+    ///   - end: 出点
+    ///   - sourceDuration: 源时长
+    /// - Returns: 新时间线；重叠、太短或超上限为 nil
+    func insertingSegment(start: CMTime, end: CMTime, sourceDuration: CMTime) -> AlbumTimelineEdit? {
+        let duration = CMTimeMaximum(sourceDuration, Self.minimumDuration)
+        var nextStart = CMTimeMaximum(start, .zero)
+        var nextEnd = CMTimeMinimum(end, duration)
+        if CMTimeCompare(nextStart, nextEnd) > 0 {
+            swap(&nextStart, &nextEnd)
+        }
+        if CMTimeCompare(CMTimeSubtract(nextEnd, nextStart), Self.minimumDuration) < 0 {
+            return nil
+        }
+        if isImplicitFullRange(sourceDuration: duration) {
+            return applyingSingleTrim(start: nextStart, end: nextEnd, sourceDuration: duration)
+        }
+        let current = resolvedSegments(sourceDuration: duration)
+        guard current.count < Self.maximumSegmentCount else { return nil }
+        for segment in current {
+            // 开区间相交即重叠；贴边（end == 邻段 start）允许
+            if CMTimeCompare(nextStart, segment.sourceEnd) < 0
+                && CMTimeCompare(nextEnd, segment.sourceStart) > 0 {
+                return nil
             }
         }
-        return AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1)
+        var next = current
+        next.append(AlbumTimelineSegment(sourceStart: nextStart, sourceEnd: nextEnd, speed: 1))
+        return applyingSegments(next, sourceDuration: duration)
+    }
+
+    /// 在选中段内按源时间一分为二；两边都须达到最短时长。
+    /// - Parameters:
+    ///   - index: 已 resolved 下标
+    ///   - time: 切割点（源时间）
+    ///   - sourceDuration: 源时长
+    /// - Returns: 新时间线；无法切则 nil
+    func splittingSegment(at index: Int, time: CMTime, sourceDuration: CMTime) -> AlbumTimelineEdit? {
+        var current = resolvedSegments(sourceDuration: sourceDuration)
+        guard current.count < Self.maximumSegmentCount else { return nil }
+        guard index >= 0, index < current.count else { return nil }
+        let segment = current[index]
+        if CMTimeCompare(CMTimeSubtract(time, segment.sourceStart), Self.minimumDuration) < 0 {
+            return nil
+        }
+        if CMTimeCompare(CMTimeSubtract(segment.sourceEnd, time), Self.minimumDuration) < 0 {
+            return nil
+        }
+        current.remove(at: index)
+        current.insert(
+            AlbumTimelineSegment(sourceStart: segment.sourceStart, sourceEnd: time, speed: 1),
+            at: index
+        )
+        current.insert(
+            AlbumTimelineSegment(sourceStart: time, sourceEnd: segment.sourceEnd, speed: 1),
+            at: index + 1
+        )
+        return applyingSegments(current, sourceDuration: sourceDuration)
     }
 }
 
@@ -151,6 +296,6 @@ struct AlbumTimelineEdit: Equatable {
 struct AlbumEditDocument: Equatable {
     /// 画幅
     var geometry = AlbumGeometryEdit()
-    /// 时间线；视频阶段 2 写单段收尾
+    /// 时间线；视频阶段 3 可写多段
     var timeline = AlbumTimelineEdit()
 }

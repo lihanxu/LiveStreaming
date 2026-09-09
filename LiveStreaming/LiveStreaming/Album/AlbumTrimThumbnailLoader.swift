@@ -48,10 +48,43 @@ final class AlbumTrimThumbnailLoader {
             times.append(CMTime(seconds: seconds, preferredTimescale: timescale))
         }
         let token = generation
+        loadTimes(times, asset: asset, maxPixel: maxPixel, token: token, onImage: onImage)
+    }
+
+    /// 按给定源时间抽帧（片段列表封面）。
+    /// - Parameters:
+    ///   - asset: 相册视频
+    ///   - times: 源时间，与回调 index 对齐
+    ///   - maxPixel: 单边像素上限
+    ///   - onImage: 主线程
+    func load(
+        asset: AVAsset,
+        times: [CMTime],
+        maxPixel: CGFloat,
+        onImage: @escaping (Int, UIImage) -> Void
+    ) {
+        cancel()
+        guard !times.isEmpty else { return }
+        loadTimes(times, asset: asset, maxPixel: maxPixel, token: generation, onImage: onImage)
+    }
+
+    /// 共用 ImageGenerator
+    /// - Parameters:
+    ///   - times: 请求时间
+    ///   - asset: 源
+    ///   - maxPixel: 尺寸
+    ///   - token: 本轮 generation
+    ///   - onImage: 主线程回调
+    private func loadTimes(
+        _ times: [CMTime],
+        asset: AVAsset,
+        maxPixel: CGFloat,
+        token: UInt,
+        onImage: @escaping (Int, UIImage) -> Void
+    ) {
         let imageGenerator = AVAssetImageGenerator(asset: asset)
         imageGenerator.appliesPreferredTrackTransform = true
         imageGenerator.maximumSize = CGSize(width: maxPixel, height: maxPixel)
-        // 2. 放宽容差，优先附近关键帧，条带只认位置
         let slack = CMTime(seconds: 0.4, preferredTimescale: 600)
         imageGenerator.requestedTimeToleranceBefore = slack
         imageGenerator.requestedTimeToleranceAfter = slack
@@ -59,7 +92,6 @@ final class AlbumTrimThumbnailLoader {
         let values = times.map { NSValue(time: $0) }
         imageGenerator.generateCGImagesAsynchronously(forTimes: values) { requested, cgImage, _, result, _ in
             guard result == .succeeded, let cgImage = cgImage else { return }
-            // requested 的 timescale 可能被 Generator 改过，取最近的一格
             var index = 0
             var best = CMTimeAbsoluteValue(CMTimeSubtract(times[0], requested))
             for cursor in 1..<times.count {

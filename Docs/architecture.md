@@ -163,7 +163,7 @@ AlbumEditSession
 
 剪辑改坐标系和时间轴，滤镜改逐帧着色；二者分开，滤镜 DAG 拓扑不改。`OFAuxiliaryTools` 只吃已经正放且铺满的画面，人脸关键点才与预览/导出一致。没有美摄 `NvsTimeline`：用 `AlbumEditDocument` + TimeMapper + `AlbumGeometryKernel` 表达同一套语义。
 
-**落地进度**：阶段 2 已接入视频画幅（与照片共用几何内核）和单段收尾。多段、变速、截图仍见 8.8。
+**落地进度**：阶段 3 已接入多段裁剪（源轴条带 + 剪刀分割 + 片段列表；预览/导出走 `AlbumTimeMapper` 的 Composition）。变速、截图仍见 8.8。
 
 ### 8.1 两层并行，不是上下游
 
@@ -199,11 +199,11 @@ EditDocument
 | 层 | 职责 | 落点 |
 |----|------|------|
 | Document | 画幅 + 时间线纯数据 | `AlbumEditDocument` |
-| TimeMapper | 播放头 ↔ 源时间、导出 PTS、生成 Composition | 阶段 3 |
+| TimeMapper | 播放头 ↔ 源时间、导出 PTS、生成 Composition | `AlbumTimeMapper` |
 | GeometryKernel | 单帧 BGRA：朝向 + 旋转/翻转/仿射/裁切 | `AlbumGeometryKernel`（CI；后台禁用 UIKit 绘图） |
 | Session | 串行 GPU：几何 → 滤镜；导出独占 | `AlbumEditSession` |
-| PreviewClock | 按播放时间取源帧 | `AlbumVideoPlayer`（单段 `seek` / `forwardPlaybackEndTime`） |
-| Exporter | 按段读源、几何、滤镜、写盘 | `AlbumVideoExporter`（阶段 2：单段 `timeRange`） |
+| PreviewClock | 按播放时间取源帧 | `AlbumVideoPlayer`（单段原片收尾；多段播 Composition） |
+| Exporter | 按段读源、几何、滤镜、写盘 | `AlbumVideoExporter`（单段 `timeRange`；多段读 Composition，PTS 从 0） |
 | Snapshot | 合成结果出静图 / 实况 | 阶段 5 |
 | UI | 画幅 / 剪辑入口与设置卡片并列 | `AlbumEditorViewController` + `AlbumGeometryPanelView` + `AlbumTrimPanelView` |
 
@@ -213,13 +213,13 @@ EditDocument
 
 **照片（阶段 1）**：source buffer → 几何 → 滤镜 → `SCGLView`。改画幅或滤镜都从 source 重跑。几何已产出独立 buffer，不必再拷一次。
 
-**视频（阶段 2+）**：单段收尾 + 整段变速用 `AVPlayer` + `VideoOutput`（`seek` / `forwardPlaybackEndTime` / `rate`）。多段 / 分段变速由 TimeMapper 生成 `AVMutableComposition`，Player 对合成轴线性播放。禁止靠逐帧 seek 跳删除段。剪辑 UI 在 1x 源时间下编辑，进出时卸掉/打回变速。阶段 2 已落地单段收尾循环回入点。
+**视频（阶段 2+）**：单段收尾 + 整段变速用 `AVPlayer` + `VideoOutput`（`seek` / `forwardPlaybackEndTime` / `rate`）。多段由 `AlbumTimeMapper` 生成 `AVMutableComposition`，Player 对合成轴线性播放。禁止靠逐帧 seek 跳删除段。剪辑面板打开时改绑**原片整段**（条带是源轴），关掉后再按 Composition 重建。切到「首尾裁剪」时若已有多段，会把首段入点到末段出点收成一段（空隙并回去）。
 
 ### 8.5 导出
 
 **照片（阶段 1）**：高分辨率 source → 几何 → 滤镜 → `UIImage` 入库；长边上限仍 4096。
 
-**视频（阶段 2+）**：按保留段循环 Reader；PTS 经 mapper 从 0 单调递增；几何后偶数宽高、transform 为 identity。第一期变速同时变调；音频按段重采样。阶段 2 单段用 `reader.timeRange`，Writer 会话从该段首帧 PTS 开始。
+**视频（阶段 2+）**：几何仍按原片 `preferredTransform` 算尺寸。单段 Reader 读原片 `timeRange`；多段 Reader 读 Composition，区间 `[0, playDuration]`，PTS 从 0 单调递增。Writer 会话从该段首帧 PTS 开始，`transform = identity`。第一期变速同时变调。
 
 ### 8.6 截图（阶段 5）
 
@@ -234,7 +234,7 @@ EditDocument
 
 ### 8.7 与设置 UI 的关系
 
-底部「设置」只管滤镜。剪辑入口另开，不进 `OFSettingsController`。阶段 2 照片只显示画幅；视频显示画幅 + 播放 + 剪辑。剪辑条用 `AVAssetImageGenerator` 从源文件按宽度均匀抽帧，入出点是手柄 + 框外遮罩，拖动手柄不重抽。编辑页只绑文档变更 → session 重跑，不在 VC 里算矩阵。
+底部「设置」只管滤镜。剪辑入口另开，不进 `OFSettingsController`。阶段 2 照片只显示画幅；视频显示画幅 + 播放 + 剪辑。剪辑条用 `AVAssetImageGenerator` 从源文件抽帧：首尾模式整段铺满 + 橙色手柄；多段模式源轴可滚动、上方时间尺、剪刀固定居中。空隙里点剪刀进入确认（对勾），左右滑条带定范围后再确认落下一段；播放头落在已有片段内则隐藏剪刀、显示左右拉动条。下方「视频片段」列表可点选/删除。最多 6 段。拖动手柄不重抽。编辑页只绑文档变更 → session 重跑，不在 VC 里算矩阵。
 
 ### 8.8 分期与风险
 
@@ -242,7 +242,7 @@ EditDocument
 |------|------|------|
 | 1 | 文档 + 几何内核 + 照片画幅预览/导出（居中 cover，无拖框） | 已落地 |
 | 2 | 视频并入几何（修朝向分裂）；单段收尾；可补裁切拖框 | 已落地（拖框未做） |
-| 3 | 多段 Composition；导出按段 Reader | 未做 |
+| 3 | 多段 Composition；预览/导出读合成轴 | 已落地 |
 | 4 | 整段变速，再分段变速 | 未做 |
 | 5 | 静图截图，再实况截图 | 未做 |
 

@@ -67,31 +67,38 @@ enum AlbumVideoExporter {
             maxLongEdge: AlbumMediaConverter.videoExportMaxLongEdge
         )
         let (outputWidth, outputHeight) = AlbumMediaConverter.evenSize(width: scaled.0, height: scaled.1)
-        let segment = timeline.resolvedSegment(sourceDuration: asset.duration)
-        var timeRange = CMTimeRange(start: segment.sourceStart, end: segment.sourceEnd)
-        timeRange = timeRange.intersection(CMTimeRange(start: .zero, duration: asset.duration))
+        // 几何仍按原片朝向；多段 Reader 读 Composition（播放轴从 0 无缺口）
+        let mapper = AlbumTimeMapper(timeline: timeline, sourceDuration: asset.duration)
+        let readAsset = mapper.exportSource(from: asset)
+        var timeRange = mapper.exportTimeRange()
+        if !mapper.needsComposition {
+            timeRange = timeRange.intersection(CMTimeRange(start: .zero, duration: asset.duration))
+        }
         if !timeRange.duration.isValid || CMTimeGetSeconds(timeRange.duration) < 0.05 {
-            timeRange = CMTimeRange(start: .zero, duration: asset.duration)
+            timeRange = CMTimeRange(start: .zero, duration: mapper.needsComposition ? mapper.playDuration : asset.duration)
+        }
+        guard let readVideoTrack = readAsset.tracks(withMediaType: .video).first else {
+            throw AlbumExportError.missingVideoTrack
         }
         DDLogInfo(
-            "album export start \(codedWidth)x\(codedHeight) geo=\(geometrySize.0)x\(geometrySize.1) -> \(outputWidth)x\(outputHeight) trim=\(CMTimeGetSeconds(timeRange.start))-\(CMTimeGetSeconds(timeRange.end))"
+            "album export start \(codedWidth)x\(codedHeight) geo=\(geometrySize.0)x\(geometrySize.1) -> \(outputWidth)x\(outputHeight) trim=\(CMTimeGetSeconds(timeRange.start))-\(CMTimeGetSeconds(timeRange.end)) composition=\(mapper.needsComposition)"
         )
 
-        let reader = try AVAssetReader(asset: asset)
+        let reader = try AVAssetReader(asset: readAsset)
         reader.timeRange = timeRange
         let videoReaderSettings: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
             kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any],
         ]
-        let videoReaderOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: videoReaderSettings)
+        let videoReaderOutput = AVAssetReaderTrackOutput(track: readVideoTrack, outputSettings: videoReaderSettings)
         videoReaderOutput.alwaysCopiesSampleData = true
         guard reader.canAdd(videoReaderOutput) else {
             throw AlbumExportError.setupFailed("无法添加视频读取输出")
         }
         reader.add(videoReaderOutput)
 
-        let audioTrack = asset.tracks(withMediaType: .audio).first
+        let audioTrack = readAsset.tracks(withMediaType: .audio).first
         var audioReaderOutput: AVAssetReaderTrackOutput?
         if let audioTrack = audioTrack {
             let pcmSettings: [String: Any] = [

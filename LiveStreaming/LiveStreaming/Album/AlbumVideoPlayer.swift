@@ -18,7 +18,8 @@ protocol AlbumVideoPlayerDelegate: AnyObject {
     func videoPlayer(_ player: AlbumVideoPlayer, didOutput pixelBuffer: CVPixelBuffer, at time: CMTime)
 }
 
-/// 相册视频播放与逐帧出图；音频由 AVPlayer 直接播放。单段收尾用 seek + 出点暂停后循环回入点。
+/// 相册视频播放与逐帧出图；音频由 AVPlayer 直接播放。
+/// 单段：原片 + 入出点循环。多段：Item 绑 `AVMutableComposition`，播放轴无缺口，禁止逐帧跳删除段。
 class AlbumVideoPlayer: NSObject {
     /// 帧回调
     weak var delegate: AlbumVideoPlayerDelegate?
