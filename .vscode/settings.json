@@ -1,0 +1,165 @@
+{
+    // 编辑器字体设置
+    "editor.fontSize": 13,
+    // "editor.fontFamily": "'SF Mono', Menlo, Monaco, 'Courier New', monospace",
+    // "editor.lineHeight": 20,
+    // "editor.fontWeight": "normal",
+    // "editor.letterSpacing": 0,
+  
+    // 代码导航设置
+    "editor.gotoLocation.multipleDefinitions": "goto",
+    "editor.gotoLocation.multipleReferences": "goto",
+    "editor.gotoLocation.multipleImplementations": "goto",
+  
+    // 终端字体设置
+    "terminal.integrated.fontSize": 12,
+    // "terminal.integrated.fontFamily": "'SF Mono', Menlo, Monaco, 'Courier New', monospace",
+    "terminal.integrated.lineHeight": 1.2,
+    // "terminal.integrated.env.osx": {
+    //   "LANG": "zh_CN.UTF-8",
+    //   "LC_ALL": "zh_CN.UTF-8"
+    // },
+  
+    // SweetPad：只显示主工程 scheme
+    "sweetpad.build.schemes.include": [
+      "Momenta",
+      "MomentaTests",
+      "MomentaUITests"
+    ],
+    // 必须用 CocoaPods workspace。宿主 Debug + Flutter Profile，真机可进 Flutter 且原生增量较快。
+    "sweetpad.build.xcodeWorkspacePath": "Momenta.xcworkspace",
+    "sweetpad.build.configuration": "Debug",
+    "sweetpad.build.args": [
+      "FLUTTER_BUILD_MODE=profile"
+    ],
+    "sweetpad.build.env": {
+      "FLUTTER_BUILD_MODE": "profile"
+    },
+    // Swift 文件特定设置
+    "[swift]": {
+      "editor.formatOnSave": false,
+      "editor.semanticHighlighting.enabled": true
+    },
+  
+    "editor.tokenColorCustomizations": {
+      "[Xcode Default (Dark)]": {
+        "textMateRules": [
+          {
+            "scope": "entity.name.function",
+            "settings": {
+              "foreground": "#00D4FF"
+            }
+          },
+          {
+            "scope": "support.function",
+            "settings": {
+              "foreground": "#67B7A4"
+            }
+          },
+          {
+            "scope": "keyword.control.directive",
+            "settings": {
+              "foreground": "#FF8C9B"
+            }
+          },
+          {
+            "scope": "punctuation.definition.directive",
+            "settings": {
+              "foreground": "#FF8C9B"
+            }
+          }
+        ]
+      }
+    },
+  
+    "editor.semanticTokenColorCustomizations": {
+      "[Xcode Default (Dark)]": {
+        "enabled": true,
+        "rules": {
+          "property:swift": "#4EC9B0", //"#00D4FF",
+          "variable:swift": "#FFFFFF",
+          "parameter:swift": "#6BDFFF",
+          "enumMember:swift": "#FFD700",
+          "enumMember.defaultLibrary:swift": "#FFD700",
+          "*.static:swift": "#98C379",
+          "*.static.declaration:swift": "#98C379",
+          "method.static:swift": "#98C379",
+          "method.static.declaration:swift": "#98C379",
+          "function.static:swift": "#98C379",
+          "function.static.declaration:swift": "#98C379",
+          "*.defaultLibrary:swift": "#B281EB",
+          "type.defaultLibrary:swift": "#B281EB",
+          "class.defaultLibrary:swift": "#B281EB",
+          "struct.defaultLibrary:swift": "#B281EB",
+          "enum.defaultLibrary:swift": "#B281EB",
+          "method.defaultLibrary:swift": "#B281EB",
+          "function.defaultLibrary:swift": "#B281EB",
+          "property.defaultLibrary:swift": "#B281EB",
+          // "type:swift": "#00D4FF", //"#4EC9B0",
+          // "class:swift": "#00D4FF", //"#4EC9B0",
+          // "struct:swift": "#00D4FF", //"#4EC9B0",
+          // "enum:swift": "#00D4FF", //"#4EC9B0",
+          "method:swift": "#00D4FF", //"#4EC9B0",
+          // "method.declaration:swift": "#7FD962",
+          "function:swift": "#00D4FF" //"#67B7A4"
+          // "function.declaration:swift": "#7FD962"
+        }
+      }
+    },
+    "files.associations": {
+      "__bit_reference": "cpp",
+      "__locale": "cpp",
+      "__split_buffer": "cpp",
+      "__verbose_abort": "cpp",
+      "array": "cpp",
+      "bitset": "cpp",
+      "cctype": "cpp",
+      "charconv": "cpp",
+      "clocale": "cpp",
+      "cmath": "cpp",
+      "condition_variable": "cpp",
+      "cstdarg": "cpp",
+      "cstddef": "cpp",
+      "cstdint": "cpp",
+      "cstdio": "cpp",
+      "cstdlib": "cpp",
+      "cstring": "cpp",
+      "ctime": "cpp",
+      "cwchar": "cpp",
+      "deque": "cpp",
+      "forward_list": "cpp",
+      "fstream": "cpp",
+      "initializer_list": "cpp",
+      "iomanip": "cpp",
+      "ios": "cpp",
+      "iosfwd": "cpp",
+      "istream": "cpp",
+      "limits": "cpp",
+      "locale": "cpp",
+      "mutex": "cpp",
+      "new": "cpp",
+      "optional": "cpp",
+      "print": "cpp",
+      "queue": "cpp",
+      "ratio": "cpp",
+      "sstream": "cpp",
+      "stack": "cpp",
+      "stdexcept": "cpp",
+      "streambuf": "cpp",
+      "string": "cpp",
+      "string_view": "cpp",
+      "typeinfo": "cpp",
+      "unordered_map": "cpp",
+      "vector": "cpp",
+      "__hash_table": "cpp",
+      "__node_handle": "cpp",
+      "cwctype": "cpp",
+      "execution": "cpp",
+      "variant": "cpp"
+    },
+    "chat.tools.terminal.autoApprove": {
+      "xcodebuild": true
+    },
+    "cmake.sourceDirectory": "/Users/hansen/Workspace/ios/submodule/cpp/src"
+  }
+  

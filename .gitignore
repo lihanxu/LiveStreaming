@@ -57,7 +57,8 @@ playground.xcworkspace
 Pods/
 
 # Cursor / VS Code
-.vscode/
+# .vscode/ 纳入仓库，统一 SweetPad / 编辑器配置
+
 
 # SweetPad
 buildServer.json
