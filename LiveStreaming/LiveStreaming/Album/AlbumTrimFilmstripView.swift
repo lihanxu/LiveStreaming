@@ -348,6 +348,7 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         addSubview(scrollView)
 
         contentView.backgroundColor = .clear
+        contentView.clipsToBounds = false
         scrollView.addSubview(contentView)
 
         rulerView.isHidden = true
@@ -523,14 +524,25 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
             chrome.rightHandle.isHidden = !showHandles
             chrome.border.layer.borderWidth = showHandles ? 2 : 1
             chrome.border.layer.borderColor = UIColor.white.cgColor
+            // 白框只包片段；拉动条在左右外侧，短片段也不会叠在一起
             chrome.border.frame = CGRect(
                 x: startX,
                 y: trackY,
-                width: max(handleWidth * 2, endX - startX),
+                width: max(2, endX - startX),
                 height: trackHeight
             )
-            chrome.leftHandle.frame = CGRect(x: startX, y: trackY, width: handleWidth, height: trackHeight)
-            chrome.rightHandle.frame = CGRect(x: endX - handleWidth, y: trackY, width: handleWidth, height: trackHeight)
+            chrome.leftHandle.frame = CGRect(
+                x: startX - handleWidth,
+                y: trackY,
+                width: handleWidth,
+                height: trackHeight
+            )
+            chrome.rightHandle.frame = CGRect(
+                x: endX,
+                y: trackY,
+                width: handleWidth,
+                height: trackHeight
+            )
         }
         // 3. 确认阶段：锚点到当前中心的待选区，夹在当前空隙里
         if isConfirming, let pending = pendingRange() {
@@ -703,20 +715,40 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         return (minStart, maxEnd)
     }
 
-    /// 把一段夹进邻段空隙并保证最短时长
+    /// 把一段夹进邻段空隙；拖哪一端就钉死另一端，保证最短时长
     /// - Parameters:
     ///   - start: 入点
     ///   - end: 出点
     ///   - index: 段下标
+    ///   - dragging: 正在拖的边；整段平移时保持时长
     /// - Returns: 合法段
-    private func clampedSegment(start: CMTime, end: CMTime, index: Int) -> AlbumTimelineSegment {
+    private func clampedSegment(
+        start: CMTime,
+        end: CMTime,
+        index: Int,
+        dragging: AlbumTrimFilmstripDrag
+    ) -> AlbumTimelineSegment {
         let (minStart, maxEnd) = neighborLimits(for: index)
+        let minDur = AlbumTimelineEdit.minimumDuration
         var nextStart = CMTimeMaximum(start, minStart)
         var nextEnd = CMTimeMinimum(end, maxEnd)
-        if CMTimeCompare(CMTimeSubtract(nextEnd, nextStart), AlbumTimelineEdit.minimumDuration) < 0 {
-            nextEnd = CMTimeMinimum(CMTimeAdd(nextStart, AlbumTimelineEdit.minimumDuration), maxEnd)
-            if CMTimeCompare(CMTimeSubtract(nextEnd, nextStart), AlbumTimelineEdit.minimumDuration) < 0 {
-                nextStart = CMTimeMaximum(CMTimeSubtract(nextEnd, AlbumTimelineEdit.minimumDuration), minStart)
+        switch dragging {
+        case .start:
+            // 出点不动，入点不能越过出点 − 最短时长
+            let latestStart = CMTimeSubtract(nextEnd, minDur)
+            nextStart = CMTimeMinimum(nextStart, latestStart)
+            nextStart = CMTimeMaximum(nextStart, minStart)
+        case .end:
+            // 入点不动，出点不能早于入点 + 最短时长
+            let earliestEnd = CMTimeAdd(nextStart, minDur)
+            nextEnd = CMTimeMaximum(nextEnd, earliestEnd)
+            nextEnd = CMTimeMinimum(nextEnd, maxEnd)
+        case .window, .none:
+            if CMTimeCompare(CMTimeSubtract(nextEnd, nextStart), minDur) < 0 {
+                nextEnd = CMTimeMinimum(CMTimeAdd(nextStart, minDur), maxEnd)
+                if CMTimeCompare(CMTimeSubtract(nextEnd, nextStart), minDur) < 0 {
+                    nextStart = CMTimeMaximum(CMTimeSubtract(nextEnd, minDur), minStart)
+                }
             }
         }
         return AlbumTimelineSegment(sourceStart: nextStart, sourceEnd: nextEnd, speed: 1)
@@ -730,7 +762,12 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
     ///   - emit: 是否回调
     private func applySelected(start: CMTime, end: CMTime, preview: CMTime, emit: Bool) {
         guard selectedIndex >= 0, selectedIndex < segments.count else { return }
-        segments[selectedIndex] = clampedSegment(start: start, end: end, index: selectedIndex)
+        segments[selectedIndex] = clampedSegment(
+            start: start,
+            end: end,
+            index: selectedIndex,
+            dragging: drag
+        )
         let segment = segments[selectedIndex]
         var seek = preview
         if CMTimeCompare(seek, segment.sourceStart) < 0 {
@@ -810,13 +847,13 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
             let startX = contentX(for: segment.sourceStart)
             let endX = contentX(for: segment.sourceEnd)
             let leftHit = CGRect(
-                x: startX - handleSlop,
+                x: startX - handleWidth - handleSlop,
                 y: -handleSlop,
                 width: handleWidth + handleSlop * 2,
                 height: bounds.height + handleSlop * 2
             )
             let rightHit = CGRect(
-                x: endX - handleWidth - handleSlop,
+                x: endX - handleSlop,
                 y: -handleSlop,
                 width: handleWidth + handleSlop * 2,
                 height: bounds.height + handleSlop * 2
