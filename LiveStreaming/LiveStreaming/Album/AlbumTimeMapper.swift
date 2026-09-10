@@ -12,7 +12,7 @@ import CoreMedia
 struct AlbumTimeMapper {
     /// 源媒体时长
     let sourceDuration: CMTime
-    /// 已排序、不相交的保留段，speed 阶段 3 固定 1
+    /// 已排序、不相交的保留段（speed 已夹紧）
     let segments: [AlbumTimelineSegment]
 
     /// 从文档解析保留段
@@ -24,30 +24,46 @@ struct AlbumTimeMapper {
         self.segments = timeline.resolvedSegments(sourceDuration: sourceDuration)
     }
 
-    /// 播放轴总长 = 各段源时长之和（1x）
+    /// 播放轴总长 = Σ(段源时长 / speed)
     var playDuration: CMTime {
         return segments.reduce(CMTime.zero) { partial, segment in
-            CMTimeAdd(partial, CMTimeSubtract(segment.sourceEnd, segment.sourceStart))
+            CMTimeAdd(partial, Self.playDuration(of: segment))
         }
     }
 
-    /// 两段及以上才需要 Composition；单段继续用原片 + 收尾
+    /// 多段或任一非 1x 才需要 Composition；单段 1x 仍用原片 + 收尾
     var needsComposition: Bool {
-        return segments.count >= 2
+        if segments.count >= 2 {
+            return true
+        }
+        return segments.contains { !AlbumTimelineEdit.isUnitySpeed($0.speed) }
     }
 
-    /// 把源 PTS 映射到播放轴；须属于该段。
+    /// 把源 PTS 映射到播放轴；须属于该段。阶段 4 起除以 speed。
     /// - Parameters:
     ///   - sourceTime: 该段内的源时间
     ///   - segment: 当前段
     ///   - playOffset: 该段在播放轴上的起点
     /// - Returns: 从 0 起算的播放时间
     func playTime(sourceTime: CMTime, in segment: AlbumTimelineSegment, playOffset: CMTime) -> CMTime {
-        let local = CMTimeSubtract(sourceTime, segment.sourceStart)
-        return CMTimeAdd(playOffset, CMTimeMaximum(local, .zero))
+        let local = CMTimeMaximum(CMTimeSubtract(sourceTime, segment.sourceStart), .zero)
+        let scaled = CMTimeMultiplyByFloat64(local, multiplier: 1.0 / AlbumTimelineEdit.clampedSpeed(segment.speed))
+        return CMTimeAdd(playOffset, scaled)
     }
 
-    /// 按保留段顺序插入源轨，播放轴无缺口。
+    /// 播放轴逆映射回源时间：`start + (play − offset) × speed`
+    /// - Parameters:
+    ///   - playTime: 播放轴时间
+    ///   - segment: 当前段
+    ///   - playOffset: 该段在播放轴上的起点
+    /// - Returns: 源媒体时间
+    func sourceTime(playTime: CMTime, in segment: AlbumTimelineSegment, playOffset: CMTime) -> CMTime {
+        let localPlay = CMTimeMaximum(CMTimeSubtract(playTime, playOffset), .zero)
+        let sourceLocal = CMTimeMultiplyByFloat64(localPlay, multiplier: AlbumTimelineEdit.clampedSpeed(segment.speed))
+        return CMTimeAdd(segment.sourceStart, sourceLocal)
+    }
+
+    /// 按保留段顺序插入源轨，再按 1/speed 缩放，播放轴无缺口。
     /// - Parameter asset: 相册原片
     /// - Returns: 可交给 AVPlayer 的合成；失败 nil
     func makeComposition(from asset: AVAsset) -> AVMutableComposition? {
@@ -73,15 +89,37 @@ struct AlbumTimeMapper {
             for segment in segments {
                 let range = CMTimeRange(start: segment.sourceStart, end: segment.sourceEnd)
                 guard range.duration.isValid, CMTimeGetSeconds(range.duration) >= 0.05 else { continue }
+                let speed = AlbumTimelineEdit.clampedSpeed(segment.speed)
+                let playDur = Self.playDuration(of: segment)
                 try videoComp.insertTimeRange(range, of: videoTrack, at: cursor)
+                var audioInsertedRange: CMTimeRange?
+                var audioAt = cursor
                 if let audioTrack = audioTrack, let audioComp = audioComp {
                     let audioRange = range.intersection(audioTrack.timeRange)
                     if audioRange.duration.isValid, CMTimeGetSeconds(audioRange.duration) >= 0.05 {
-                        let audioAt = CMTimeAdd(cursor, CMTimeSubtract(audioRange.start, range.start))
+                        audioAt = CMTimeAdd(cursor, CMTimeSubtract(audioRange.start, range.start))
                         try audioComp.insertTimeRange(audioRange, of: audioTrack, at: audioAt)
+                        audioInsertedRange = audioRange
                     }
                 }
-                cursor = CMTimeAdd(cursor, range.duration)
+                // 先 insert 再 scale；音视频同一倍率（第一期变调）
+                if !AlbumTimelineEdit.isUnitySpeed(speed) {
+                    videoComp.scaleTimeRange(
+                        CMTimeRange(start: cursor, duration: range.duration),
+                        toDuration: playDur
+                    )
+                    if let audioComp = audioComp, let audioInsertedRange = audioInsertedRange {
+                        let audioPlay = CMTimeMultiplyByFloat64(
+                            audioInsertedRange.duration,
+                            multiplier: 1.0 / speed
+                        )
+                        audioComp.scaleTimeRange(
+                            CMTimeRange(start: audioAt, duration: audioInsertedRange.duration),
+                            toDuration: audioPlay
+                        )
+                    }
+                }
+                cursor = CMTimeAdd(cursor, playDur)
             }
         } catch {
             return nil
@@ -91,9 +129,9 @@ struct AlbumTimeMapper {
         return composition
     }
 
-    /// 导出读取源：多段用 Composition（播放轴从 0 无缺口），单段用原片。
+    /// 导出读取源：需要合成时用 Composition（播放轴从 0），否则原片。
     /// - Parameter asset: 相册原片
-    /// - Returns: 给 Reader 的资源；多段失败则仍回原片
+    /// - Returns: 给 Reader 的资源；合成失败则仍回原片
     func exportSource(from asset: AVAsset) -> AVAsset {
         if needsComposition, let composition = makeComposition(from: asset) {
             return composition
@@ -101,7 +139,7 @@ struct AlbumTimeMapper {
         return asset
     }
 
-    /// 导出读取区间：多段为整条播放轴，单段为该段源区间。
+    /// 导出读取区间：合成轴为 `[0, playDuration]`，单段 1x 为该段源区间。已读合成轴时调用方不得再乘 speed。
     /// - Returns: Reader.timeRange
     func exportTimeRange() -> CMTimeRange {
         if needsComposition {
@@ -109,5 +147,13 @@ struct AlbumTimeMapper {
         }
         let segment = segments[0]
         return CMTimeRange(start: segment.sourceStart, end: segment.sourceEnd)
+    }
+
+    /// 一段在播放轴上的时长 = 源时长 / speed
+    /// - Parameter segment: 保留段
+    /// - Returns: 播放时长
+    private static func playDuration(of segment: AlbumTimelineSegment) -> CMTime {
+        let source = CMTimeSubtract(segment.sourceEnd, segment.sourceStart)
+        return CMTimeMultiplyByFloat64(source, multiplier: 1.0 / AlbumTimelineEdit.clampedSpeed(segment.speed))
     }
 }

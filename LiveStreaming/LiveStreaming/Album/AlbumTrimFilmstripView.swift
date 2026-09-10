@@ -39,6 +39,16 @@ protocol AlbumTrimFilmstripViewDelegate: AnyObject {
     func filmstrip(_ filmstrip: AlbumTrimFilmstripView, didConfirmRangeFrom start: CMTime, to end: CMTime)
 }
 
+/// 多段条带剪刀行为
+enum AlbumTrimFilmstripCapability {
+    /// 无剪刀（首尾裁剪）
+    case none
+    /// 空隙确认插入（剪辑多段）
+    case gapInsert
+    /// 段内一分为二，禁止插空隙（变速分段）
+    case splitOnly
+}
+
 /// 当前拖动手势落点
 private enum AlbumTrimFilmstripDrag {
     /// 未拖
@@ -120,6 +130,8 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
     private var selectedIndex = 0
     /// 多段：可滚源轴 + 居中剪刀
     private var isMultiMode = false
+    /// 剪刀：插空隙或只切段
+    private var capability: AlbumTrimFilmstripCapability = .none
     /// 当前预览头（多段=视口中心对应的源时间）
     private var previewTime = CMTime.zero
     /// 正在抽帧的资源；换片才重抽
@@ -213,18 +225,21 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
     ///   - selectedIndex: 选中段
     ///   - allowsMultiple: 是否多段互不重叠（与 `showsCutter` 一起表示多段模式）
     ///   - showsCutter: 多段可滚条带
+    ///   - capability: 剪刀行为；剪辑多段与变速分段均为 `.gapInsert`
     func configure(
         asset: AVAsset,
         duration: CMTime,
         segments: [AlbumTimelineSegment],
         selectedIndex: Int,
         allowsMultiple: Bool,
-        showsCutter: Bool
+        showsCutter: Bool,
+        capability: AlbumTrimFilmstripCapability = .none
     ) {
         let assetChanged = self.asset !== asset
         self.asset = asset
         sourceDuration = duration
         isMultiMode = showsCutter && allowsMultiple
+        self.capability = isMultiMode ? capability : .none
         isConfirming = false
         self.segments = segments.isEmpty
             ? [AlbumTimelineSegment(sourceStart: .zero, sourceEnd: duration, speed: 1)]
@@ -587,10 +602,16 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         return contentX(for: previewTime)
     }
 
-    /// 剪刀 / 对勾显隐：空隙里显示；已分段内隐藏；确认中始终显示对勾
+    /// 剪刀 / 对勾显隐：剪辑在空隙；变速在可切开的段内
     private func updateCutterAppearance() {
         guard isMultiMode else {
             cutterButton.isHidden = true
+            return
+        }
+        if capability == .splitOnly {
+            cutterButton.setTitle("✂", for: .normal)
+            cutterButton.isHidden = !canSplitAtPlayhead()
+            cutterButton.alpha = 1
             return
         }
         cutterButton.setTitle(isConfirming ? "✓" : "✂", for: .normal)
@@ -604,6 +625,30 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         let atMax = segments.count >= AlbumTimelineEdit.maximumSegmentCount && !isImplicitFullRange()
         cutterButton.isHidden = insideSegment || atMax
         cutterButton.alpha = 1
+    }
+
+    /// 播放头所在段能否一分为二
+    /// - Returns: 未达段数上限，且切割点两侧都不短于最短时长
+    private func canSplitAtPlayhead() -> Bool {
+        guard capability == .splitOnly else { return false }
+        guard segments.count < AlbumTimelineEdit.maximumSegmentCount else { return false }
+        let index: Int?
+        if let hovered = indexContaining(previewTime) {
+            index = hovered
+        } else if isImplicitFullRange() {
+            index = 0
+        } else {
+            index = nil
+        }
+        guard let index = index, segments.indices.contains(index) else { return false }
+        let segment = segments[index]
+        if CMTimeCompare(CMTimeSubtract(previewTime, segment.sourceStart), AlbumTimelineEdit.minimumDuration) < 0 {
+            return false
+        }
+        if CMTimeCompare(CMTimeSubtract(segment.sourceEnd, previewTime), AlbumTimelineEdit.minimumDuration) < 0 {
+            return false
+        }
+        return true
     }
 
     /// 源时间 → 内容 x
@@ -638,22 +683,22 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         return CMTimeMinimum(CMTimeMaximum(time, .zero), sourceDuration)
     }
 
-    /// 整段尚未切成多段
-    /// - Returns: 只有一段且覆盖片源
+    /// 整段尚未切成多段且仍是 1x；变速分段即使覆盖片源也要能切开
+    /// - Returns: 剪辑条带里的「未切」语义
     private func isImplicitFullRange() -> Bool {
         guard segments.count == 1 else { return false }
         let only = segments[0]
         let epsilon = CMTime(seconds: 0.05, preferredTimescale: 600)
         let startsAtZero = CMTimeCompare(only.sourceStart, epsilon) <= 0
         let endsAtDuration = CMTimeCompare(CMTimeSubtract(sourceDuration, only.sourceEnd), epsilon) <= 0
-        return startsAtZero && endsAtDuration
+        return startsAtZero && endsAtDuration && AlbumTimelineEdit.isUnitySpeed(only.speed)
     }
 
-    /// 播放头落在哪一段里（不含未切整段）
+    /// 播放头落在哪一段里（剪辑未切整段不算；变速分段算）
     /// - Parameter time: 源时间
     /// - Returns: 段下标
     private func indexContaining(_ time: CMTime) -> Int? {
-        if isImplicitFullRange() && isMultiMode { return nil }
+        if isImplicitFullRange() && isMultiMode && capability != .splitOnly { return nil }
         for (index, segment) in segments.enumerated() {
             if CMTimeCompare(time, segment.sourceStart) >= 0 && CMTimeCompare(time, segment.sourceEnd) <= 0 {
                 return index
@@ -751,7 +796,10 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
                 }
             }
         }
-        return AlbumTimelineSegment(sourceStart: nextStart, sourceEnd: nextEnd, speed: 1)
+        let inherited = index >= 0 && index < segments.count
+            ? AlbumTimelineEdit.clampedSpeed(segments[index].speed)
+            : 1
+        return AlbumTimelineSegment(sourceStart: nextStart, sourceEnd: nextEnd, speed: inherited)
     }
 
     /// 写入选中段并回调
@@ -892,9 +940,13 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         delegate?.filmstrip(self, didChange: segments, selectedIndex: selectedIndex, previewTime: previewTime)
     }
 
-    /// 点居中剪刀进入确认；对勾确认或因太短取消
+    /// 点居中剪刀：剪辑进入确认；变速则当场切开
     @objc private func handleCutterTap() {
         guard isMultiMode else { return }
+        if capability == .splitOnly {
+            splitAtPlayhead()
+            return
+        }
         if isConfirming {
             if let pending = pendingRange(), rangeValid(pending.0, pending.1) {
                 delegate?.filmstrip(self, didConfirmRangeFrom: pending.0, to: pending.1)
@@ -955,6 +1007,30 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         default:
             drag = .none
         }
+    }
+
+    /// 在播放头把当前段一分为二，两侧继承 speed
+    private func splitAtPlayhead() {
+        guard canSplitAtPlayhead() else { return }
+        let index = indexContaining(previewTime) ?? 0
+        let segment = segments[index]
+        let inherited = AlbumTimelineEdit.clampedSpeed(segment.speed)
+        var next = segments
+        next.remove(at: index)
+        next.insert(
+            AlbumTimelineSegment(sourceStart: segment.sourceStart, sourceEnd: previewTime, speed: inherited),
+            at: index
+        )
+        next.insert(
+            AlbumTimelineSegment(sourceStart: previewTime, sourceEnd: segment.sourceEnd, speed: inherited),
+            at: index + 1
+        )
+        segments = next
+        selectedIndex = index
+        rebuildChromeIfNeeded()
+        layoutSelection()
+        updateCutterAppearance()
+        delegate?.filmstrip(self, didChange: segments, selectedIndex: selectedIndex, previewTime: previewTime)
     }
 
     /// 多段：拖某一端拉动条改入出点

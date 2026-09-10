@@ -49,14 +49,18 @@ class AlbumEditorViewController: UIViewController {
     private let geometryButton = UIButton(type: .system)
     /// 视频剪辑入口（首尾 / 多段）；照片隐藏
     private let trimButton = UIButton(type: .system)
-    /// 剪辑面板打开时播放器走原片源时间，关掉后再按 Composition 重建
-    private var isTrimPanelOpen = false
-    /// 底部工具条：照片仅画幅，视频为画幅 / 播放 / 剪辑
+    /// 视频变速入口；照片隐藏
+    private let speedButton = UIButton(type: .system)
+    /// 剪辑/变速面板打开时播放器走原片源时间，关掉后再按 Composition 重建
+    private var isTimelinePanelOpen = false
+    /// 底部工具条：照片仅画幅，视频为画幅 / 播放 / 剪辑 / 变速
     private let bottomBar = UIStackView()
     /// 画幅底部面板
     private let geometryPanel = AlbumGeometryPanelView()
     /// 视频收尾底部面板
     private let trimPanel = AlbumTrimPanelView()
+    /// 视频变速底部面板
+    private let speedPanel = AlbumSpeedPanelView()
     /// 加载中
     private let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .whiteLarge)
@@ -152,6 +156,14 @@ class AlbumEditorViewController: UIViewController {
         trimButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
         trimButton.addTarget(self, action: #selector(handleTrimTap), for: .touchUpInside)
 
+        speedButton.setTitle("变速", for: .normal)
+        speedButton.setTitleColor(.white, for: .normal)
+        speedButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        speedButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
+        speedButton.layer.cornerRadius = 18
+        speedButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+        speedButton.addTarget(self, action: #selector(handleSpeedTap), for: .touchUpInside)
+
         bottomBar.axis = .horizontal
         bottomBar.alignment = .center
         bottomBar.spacing = 12
@@ -160,6 +172,7 @@ class AlbumEditorViewController: UIViewController {
         if asset.mediaType == .video {
             bottomBar.addArrangedSubview(playButton)
             bottomBar.addArrangedSubview(trimButton)
+            bottomBar.addArrangedSubview(speedButton)
         }
         view.addSubview(bottomBar)
 
@@ -170,6 +183,10 @@ class AlbumEditorViewController: UIViewController {
         trimPanel.delegate = self
         trimPanel.isHidden = true
         view.addSubview(trimPanel)
+
+        speedPanel.delegate = self
+        speedPanel.isHidden = true
+        view.addSubview(speedPanel)
 
         activityIndicator.color = .white
         activityIndicator.hidesWhenStopped = true
@@ -189,6 +206,7 @@ class AlbumEditorViewController: UIViewController {
         view.addSubview(settingsSheet)
         view.bringSubviewToFront(geometryPanel)
         view.bringSubviewToFront(trimPanel)
+        view.bringSubviewToFront(speedPanel)
     }
 
     /// 统一顶部按钮样式
@@ -201,7 +219,7 @@ class AlbumEditorViewController: UIViewController {
         button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
     }
 
-    /// 预览铺满；底部工具条贴安全区；设置/画幅/剪辑面板盖住全屏做蒙层
+    /// 预览铺满；底部工具条贴安全区；设置/画幅/剪辑/变速面板盖住全屏做蒙层
     private func initLayout() {
         previewView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -224,6 +242,9 @@ class AlbumEditorViewController: UIViewController {
             make.edges.equalToSuperview()
         }
         trimPanel.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        speedPanel.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         activityIndicator.snp.makeConstraints { make in
@@ -298,9 +319,9 @@ class AlbumEditorViewController: UIViewController {
         }
     }
 
-    /// 按文档重建播放器：多段播 Composition（无缺口），单段仍用原片 + 入出点
+    /// 按文档重建播放器：多段或非 1x 播 Composition，单段 1x 仍用原片 + 入出点
     private func configureVideoPlayer() {
-        guard let videoAsset = videoAsset, !isTrimPanelOpen else { return }
+        guard let videoAsset = videoAsset, !isTimelinePanelOpen else { return }
         let mapper = AlbumTimeMapper(timeline: session.document.timeline, sourceDuration: videoAsset.duration)
         if mapper.needsComposition, let composition = mapper.makeComposition(from: videoAsset) {
             videoPlayer.configure(
@@ -318,9 +339,9 @@ class AlbumEditorViewController: UIViewController {
         )
     }
 
-    /// 剪辑面板期间改绑原片整段，条带按源时间 scrub
+    /// 剪辑/变速面板期间改绑原片整段，条带按源时间 scrub
     /// - Parameter asset: 相册原片
-    private func configureVideoPlayerForTrimEditing(asset: AVAsset) {
+    private func configureVideoPlayerForTimelineEditing(asset: AVAsset) {
         videoPlayer.configure(
             with: asset,
             trimStart: .zero,
@@ -333,8 +354,9 @@ class AlbumEditorViewController: UIViewController {
     /// - Parameter work: 主线程；在 session 标记 isExporting 后执行
     private func enterExportMode(work: @escaping () -> Void) {
         geometryPanel.dismiss()
-        isTrimPanelOpen = false
+        isTimelinePanelOpen = false
         trimPanel.dismiss(notify: false)
+        speedPanel.dismiss(notify: false)
         videoPlayer.teardown()
         updatePlayButtonTitle()
         previewView.stop()
@@ -362,6 +384,7 @@ class AlbumEditorViewController: UIViewController {
     @objc private func handleSettingsTap() {
         geometryPanel.dismiss()
         trimPanel.dismiss()
+        speedPanel.dismiss()
         view.bringSubviewToFront(settingsSheet)
         settingsSheet.present()
     }
@@ -370,6 +393,7 @@ class AlbumEditorViewController: UIViewController {
     @objc private func handleGeometryTap() {
         guard !isExporting else { return }
         trimPanel.dismiss()
+        speedPanel.dismiss()
         geometryPanel.geometry = session.document.geometry
         view.bringSubviewToFront(geometryPanel)
         geometryPanel.present()
@@ -379,11 +403,24 @@ class AlbumEditorViewController: UIViewController {
     @objc private func handleTrimTap() {
         guard !isExporting, let videoAsset = videoAsset else { return }
         geometryPanel.dismiss()
-        isTrimPanelOpen = true
-        configureVideoPlayerForTrimEditing(asset: videoAsset)
+        speedPanel.dismiss(notify: false)
+        isTimelinePanelOpen = true
+        configureVideoPlayerForTimelineEditing(asset: videoAsset)
         updatePlayButtonTitle()
         view.bringSubviewToFront(trimPanel)
         trimPanel.present(asset: videoAsset, timeline: session.document.timeline)
+    }
+
+    /// 弹出变速面板；条带是源轴 1x，先卸掉 Composition
+    @objc private func handleSpeedTap() {
+        guard !isExporting, let videoAsset = videoAsset else { return }
+        geometryPanel.dismiss()
+        trimPanel.dismiss(notify: false)
+        isTimelinePanelOpen = true
+        configureVideoPlayerForTimelineEditing(asset: videoAsset)
+        updatePlayButtonTitle()
+        view.bringSubviewToFront(speedPanel)
+        speedPanel.present(asset: videoAsset, timeline: session.document.timeline)
     }
 
     /// 播放/暂停视频
@@ -458,6 +495,7 @@ class AlbumEditorViewController: UIViewController {
         playButton.isEnabled = false
         geometryButton.isEnabled = false
         trimButton.isEnabled = false
+        speedButton.isEnabled = false
 
         enterExportMode { [weak self] in
             guard let self = self else { return }
@@ -505,6 +543,7 @@ class AlbumEditorViewController: UIViewController {
             self.playButton.isEnabled = true
             self.geometryButton.isEnabled = true
             self.trimButton.isEnabled = true
+            self.speedButton.isEnabled = true
             self.setExportUI(visible: false, progress: 0, text: "")
             self.showAlert(title: success ? "导出成功" : "导出失败", message: message)
         }
@@ -562,7 +601,41 @@ extension AlbumEditorViewController: AlbumTrimPanelViewDelegate {
 
     /// 关掉面板后再按多段拼播放轴
     func trimPanelDidDismiss(_ panel: AlbumTrimPanelView) {
-        isTrimPanelOpen = false
+        isTimelinePanelOpen = false
+        guard !isExporting, videoAsset != nil else { return }
+        configureVideoPlayer()
+        updatePlayButtonTitle()
+    }
+}
+
+extension AlbumEditorViewController: AlbumSpeedPanelViewDelegate {
+    /// 面板打开时只写文档并按源时间 seek，不重建 Composition
+    func speedPanel(
+        _ panel: AlbumSpeedPanelView,
+        didChange timeline: AlbumTimelineEdit,
+        previewTime: CMTime
+    ) {
+        session.document.timeline = timeline
+        videoPlayer.pause()
+        updatePlayButtonTitle()
+        videoPlayer.scrub(to: previewTime)
+    }
+
+    /// 滚动条带只 seek
+    func speedPanel(_ panel: AlbumSpeedPanelView, didScrub previewTime: CMTime) {
+        videoPlayer.pause()
+        updatePlayButtonTitle()
+        videoPlayer.scrub(to: previewTime)
+    }
+
+    /// 整段页用 AVPlayer.rate 试听；关掉面板后走 Mapper
+    func speedPanel(_ panel: AlbumSpeedPanelView, didChangePreviewRate rate: Float) {
+        videoPlayer.setPreviewRate(rate)
+    }
+
+    /// 关掉面板后再按 needsComposition 拼播放轴
+    func speedPanelDidDismiss(_ panel: AlbumSpeedPanelView) {
+        isTimelinePanelOpen = false
         guard !isExporting, videoAsset != nil else { return }
         configureVideoPlayer()
         updatePlayButtonTitle()

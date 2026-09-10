@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "剪辑时钟：AlbumTimeMapper",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [960, 400],
+    "views": [
+      {
+        "id": "resolve",
+        "label": "resolvedSegments",
+        "focus": ["timeline", "mapper"],
+        "note": "裁切与变速共用 AlbumTimelineEdit.resolvedSegments；产出有序不相交 Segment 并保留 speed。"
+      },
+      {
+        "id": "compose",
+        "label": "makeComposition",
+        "focus": ["mapper", "composition"],
+        "note": "insertTimeRange 后按 1/speed scaleTimeRange；exportTimeRange 为 [0, playDuration] 或单段源区间。"
+      }
+    ]
+  },
+  "stages": [
+    { "label": "AlbumTimelineEdit" },
+    { "label": "AlbumTimeMapper" },
+    { "label": "AVMutableComposition" },
+    { "label": "客户端" }
+  ],
+  "nodes": [
+    { "id": "timeline", "type": "database", "label": "TimelineEdit", "sublabel": "segments[0…6]", "stage": 0, "row": 0 },
+    { "id": "mapper", "type": "backend", "label": "TimeMapper", "sublabel": "init(timeline:duration:)", "stage": 1, "row": 0 },
+    { "id": "composition", "type": "backend", "label": "Composition", "sublabel": "scaleTimeRange", "stage": 2, "row": 0 },
+    { "id": "clients", "type": "frontend", "label": "Player / Exporter", "sublabel": "playDuration", "stage": 3, "row": 0 }
+  ],
+  "flows": [
+    { "from": "timeline", "to": "mapper", "label": "resolvedSegments", "variant": "emphasis", "route": "straight" },
+    { "from": "mapper", "to": "composition", "label": "makeComposition", "variant": "emphasis", "route": "straight" },
+    { "from": "composition", "to": "clients", "label": "Item / Reader", "variant": "emphasis", "route": "straight" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Segment 字段",
+      "items": [
+        "sourceStart/sourceEnd: CMTime（源媒体时间轴）；speed: Double > 0；playDuration_i = (end−start)/speed"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "映射",
+      "items": [
+        "playDuration = Σ playDuration_i；source(t) = start + (t − playOffset) × speed"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "needsComposition",
+      "items": [
+        "裁切多段或任一 speed≠1 才 Composition；单段 1x 仍走原片 CMTimeRange"
+      ]
+    }
+  ]
+}

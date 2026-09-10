@@ -81,7 +81,7 @@ struct AlbumTimelineSegment: Equatable {
     var sourceStart: CMTime
     /// 源终点，须大于起点
     var sourceEnd: CMTime
-    /// 播放倍速，必须 > 0；阶段 2 固定 1
+    /// 播放倍速，必须 > 0；写入时由时间线夹紧到 `[minimumSpeed, maximumSpeed]`
     var speed: Double
 }
 
@@ -94,10 +94,31 @@ struct AlbumTimelineEdit: Equatable {
     static let minimumDuration = CMTime(seconds: 0.1, preferredTimescale: 600)
     /// 多段上限，条带放不下太多手柄
     static let maximumSegmentCount = 6
+    /// 最慢倍速
+    static let minimumSpeed = 0.25
+    /// 最快倍速
+    static let maximumSpeed = 4.0
+    /// 视为 1x 的误差；整段 1x 才允许清空文档
+    static let speedEpsilon = 0.001
 
-    /// 预览/导出用的全部保留段：空文档视为整段；重叠段按起点排序并截断。
+    /// 把倍速夹进合法区间；非正或非有限当作 1
+    /// - Parameter speed: 原始倍速
+    /// - Returns: `[minimumSpeed, maximumSpeed]`
+    static func clampedSpeed(_ speed: Double) -> Double {
+        guard speed.isFinite, speed > 0 else { return 1 }
+        return min(max(speed, minimumSpeed), maximumSpeed)
+    }
+
+    /// 是否按 1x 处理（可清空为未剪辑）
+    /// - Parameter speed: 原始倍速
+    /// - Returns: 夹紧后与 1 的差不超过 `speedEpsilon`
+    static func isUnitySpeed(_ speed: Double) -> Bool {
+        return abs(clampedSpeed(speed) - 1) <= speedEpsilon
+    }
+
+    /// 预览/导出用的全部保留段：空文档视为整段 1x；重叠段按起点排序并截断，保留并夹紧 speed。
     /// - Parameter sourceDuration: 源媒体时长
-    /// - Returns: 至少一段，speed=1
+    /// - Returns: 至少一段
     func resolvedSegments(sourceDuration: CMTime) -> [AlbumTimelineSegment] {
         let duration = CMTimeMaximum(sourceDuration, Self.minimumDuration)
         let fallback = [AlbumTimelineSegment(sourceStart: .zero, sourceEnd: duration, speed: 1)]
@@ -110,11 +131,17 @@ struct AlbumTimelineEdit: Equatable {
         for raw in sorted {
             var start = CMTimeMaximum(raw.sourceStart, cursor)
             start = CMTimeMaximum(start, .zero)
-            var end = CMTimeMinimum(raw.sourceEnd, duration)
+            let end = CMTimeMinimum(raw.sourceEnd, duration)
             if CMTimeCompare(CMTimeSubtract(end, start), Self.minimumDuration) < 0 {
                 continue
             }
-            result.append(AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1))
+            result.append(
+                AlbumTimelineSegment(
+                    sourceStart: start,
+                    sourceEnd: end,
+                    speed: Self.clampedSpeed(raw.speed)
+                )
+            )
             cursor = end
             if result.count >= Self.maximumSegmentCount {
                 break
@@ -137,8 +164,11 @@ struct AlbumTimelineEdit: Equatable {
     ///   - sourceDuration: 源时长
     /// - Returns: 新时间线
     func applyingSingleTrim(start: CMTime, end: CMTime, sourceDuration: CMTime) -> AlbumTimelineEdit {
+        let current = resolvedSegments(sourceDuration: sourceDuration)
+        let first = current.first.map { Self.clampedSpeed($0.speed) } ?? 1
+        let sameSpeed = current.allSatisfy { abs(Self.clampedSpeed($0.speed) - first) <= Self.speedEpsilon }
         return applyingSegments(
-            [AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: 1)],
+            [AlbumTimelineSegment(sourceStart: start, sourceEnd: end, speed: sameSpeed ? first : 1)],
             sourceDuration: sourceDuration
         )
     }
@@ -157,7 +187,9 @@ struct AlbumTimelineEdit: Equatable {
             let epsilon = CMTime(seconds: 0.05, preferredTimescale: 600)
             let startsAtZero = CMTimeCompare(only.sourceStart, epsilon) <= 0
             let endsAtDuration = CMTimeCompare(CMTimeSubtract(sourceDuration, only.sourceEnd), epsilon) <= 0
-            copy.segments = (startsAtZero && endsAtDuration) ? [] : resolved
+            // 整段且 1x 才清空；整段 2x 必须留下，否则变速会被当成未剪辑丢掉
+            let uncut = startsAtZero && endsAtDuration && Self.isUnitySpeed(only.speed)
+            copy.segments = uncut ? [] : resolved
         } else {
             copy.segments = resolved
         }
@@ -216,7 +248,7 @@ struct AlbumTimelineEdit: Equatable {
         return applyingSegments(current, sourceDuration: sourceDuration)
     }
 
-    /// 是否尚未真正多段：只有一段且几乎覆盖整段源。此时多段条带不把整段当成「已分段」。
+    /// 是否尚未真正剪辑：只有一段、几乎覆盖整段源、且 speed≈1。
     /// - Parameter sourceDuration: 源时长
     /// - Returns: 仍是整段 1x
     func isImplicitFullRange(sourceDuration: CMTime) -> Bool {
@@ -226,7 +258,27 @@ struct AlbumTimelineEdit: Equatable {
         let epsilon = CMTime(seconds: 0.05, preferredTimescale: 600)
         let startsAtZero = CMTimeCompare(only.sourceStart, epsilon) <= 0
         let endsAtDuration = CMTimeCompare(CMTimeSubtract(sourceDuration, only.sourceEnd), epsilon) <= 0
-        return startsAtZero && endsAtDuration
+        return startsAtZero && endsAtDuration && Self.isUnitySpeed(only.speed)
+    }
+
+    /// 写入倍速：`index == nil` 时当前所有保留段同一 speed（整段变速）。
+    /// - Parameters:
+    ///   - speed: 目标倍速，内部夹紧
+    ///   - index: 已 resolved 下标；nil 表示全部
+    ///   - sourceDuration: 源时长
+    /// - Returns: 新时间线
+    func applyingSpeed(_ speed: Double, at index: Int?, sourceDuration: CMTime) -> AlbumTimelineEdit {
+        let clamped = Self.clampedSpeed(speed)
+        var current = resolvedSegments(sourceDuration: sourceDuration)
+        if let index = index {
+            guard current.indices.contains(index) else { return self }
+            current[index].speed = clamped
+        } else {
+            for i in current.indices {
+                current[i].speed = clamped
+            }
+        }
+        return applyingSegments(current, sourceDuration: sourceDuration)
     }
 
     /// 空隙里插入一段；若当前是整段单段，则改成该区间作为第一段。
@@ -280,12 +332,13 @@ struct AlbumTimelineEdit: Equatable {
             return nil
         }
         current.remove(at: index)
+        let inherited = Self.clampedSpeed(segment.speed)
         current.insert(
-            AlbumTimelineSegment(sourceStart: segment.sourceStart, sourceEnd: time, speed: 1),
+            AlbumTimelineSegment(sourceStart: segment.sourceStart, sourceEnd: time, speed: inherited),
             at: index
         )
         current.insert(
-            AlbumTimelineSegment(sourceStart: time, sourceEnd: segment.sourceEnd, speed: 1),
+            AlbumTimelineSegment(sourceStart: time, sourceEnd: segment.sourceEnd, speed: inherited),
             at: index + 1
         )
         return applyingSegments(current, sourceDuration: sourceDuration)

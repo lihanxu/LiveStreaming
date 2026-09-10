@@ -69,7 +69,7 @@ Main.storyboard
 
 ## 5. 滤镜在 OFFilterKit
 
-内核是仓库根目录开发源 Pod [`OFFilterKit/`](../OFFilterKit/)，不发 spec。App 只负责采集、预览、相册和设置 UI。专文见 [`OFAuxiliaryTools.md`](OFAuxiliaryTools.md)。
+内核是仓库根目录开发源 Pod [`OFFilterKit/`](../OFFilterKit/)，不发 spec。App 只负责采集、预览、相册和设置 UI。专文见 [`FilterKit/OFAuxiliaryTools.md`](FilterKit/OFAuxiliaryTools.md)。
 
 - 门面：`OFFilterKit/Sources/Metal/OFAuxiliaryTools.swift`
 - 调度：`OFProcessGraph`（拓扑序缓存，未启用的节点透传）
@@ -159,96 +159,11 @@ AlbumEditSession
 
 设置：`OFSettingsController(context: .album)`，隐藏摄像头与转场；`onPipelineChanged` 驱动照片从 source 重算、视频刷新当前帧。
 
-## 8. 相册剪辑层
+## 8. 相册编辑模块
 
-剪辑改坐标系和时间轴，滤镜改逐帧着色；二者分开，滤镜 DAG 拓扑不改。`OFAuxiliaryTools` 只吃已经正放且铺满的画面，人脸关键点才与预览/导出一致。没有美摄 `NvsTimeline`：用 `AlbumEditDocument` + TimeMapper + `AlbumGeometryKernel` 表达同一套语义。
+剪辑改坐标系与时间轴，滤镜改逐帧着色；几何必须在滤镜之前，二者都不是 `OFProcessGraph` 节点。专文与剪辑架构图见 [`Album/album-edit.md`](Album/album-edit.md)。
 
-**落地进度**：阶段 3 已接入多段裁剪（源轴条带 + 剪刀分割 + 片段列表；预览/导出走 `AlbumTimeMapper` 的 Composition）。变速、截图仍见 8.8。
-
-### 8.1 两层并行，不是上下游
-
-时间线不处理像素，只决定解哪一帧。几何挂在每一帧像素上。
-
-```
-EditDocument
-  ├─ Geometry ──► GeometryKernel ──► AlbumEditSession → OFAuxiliaryTools
-  └─ Timeline ──► TimeMapper（仅视频）
-时钟 / Reader ──► TimeMapper ──► 源帧 ──► GeometryKernel
-                                                      ├─ SCGLView
-                                                      ├─ Exporter
-                                                      └─ Snapshot
-```
-
-几何必须在滤镜之前。不把旋转、裁切、变速做成 `OFProcessGraph` 节点。
-
-`GeometryKernel` 第一次变换是片源 `preferredTransform`（照片加载时已 bake，等价 identity），再叠用户 90° / 翻转 / 自由角 / 比例，**一次** CI render。cover 铺满裁切框，黑边不得进 MediaPipe。确认后的输出尺寸即会话画布；视频导出 `writer.transform = identity`。`SCGLView` 只对屏幕 letterbox，不再裁一次。
-
-### 8.2 能力边界
-
-| 资源 | 画幅 | 剪辑 | 变速 | 截图 |
-|------|------|------|------|------|
-| 照片 | 阶段 1：90° / 翻转 / 角度 / 比例（居中 cover） | 无 | 无 | 阶段 5：画幅 + 滤镜后静图 |
-| 视频 | 阶段 2：与照片相同的 90° / 翻转 / 角度 / 比例 | 收尾（阶段 2）/ 多段（阶段 3） | 整段再分段（阶段 4） | 静图；实况为播放头 ±1.5s 播放时间 + 封面（阶段 5） |
-
-滤镜参数只存在于 `OFAuxiliaryTools`。预览 / 导出 / 截图只读同一份 `AlbumEditDocument`。
-
-时间一律用源媒体时间。段播放时长 = 段源时长 / speed；播放头落在某段时，源时间 = 段起点 + (播放时间 − 段播放起点) × speed。收尾改单段起止；多段按序拼接、播放轴无缺口；整段变速即各段同一 speed；speed > 0。
-
-### 8.3 运行时分层
-
-| 层 | 职责 | 落点 |
-|----|------|------|
-| Document | 画幅 + 时间线纯数据 | `AlbumEditDocument` |
-| TimeMapper | 播放头 ↔ 源时间、导出 PTS、生成 Composition | `AlbumTimeMapper` |
-| GeometryKernel | 单帧 BGRA：朝向 + 旋转/翻转/仿射/裁切 | `AlbumGeometryKernel`（CI；后台禁用 UIKit 绘图） |
-| Session | 串行 GPU：几何 → 滤镜；导出独占 | `AlbumEditSession` |
-| PreviewClock | 按播放时间取源帧 | `AlbumVideoPlayer`（单段原片收尾；多段播 Composition） |
-| Exporter | 按段读源、几何、滤镜、写盘 | `AlbumVideoExporter`（单段 `timeRange`；多段读 Composition，PTS 从 0） |
-| Snapshot | 合成结果出静图 / 实况 | 阶段 5 |
-| UI | 画幅 / 剪辑入口与设置卡片并列 | `AlbumEditorViewController` + `AlbumGeometryPanelView` + `AlbumTrimPanelView` |
-
-几何参数分解存储、内核按固定顺序合成：片源朝向 → 正交旋转 + 翻转 → 自由角（cover 放大）→ 按比例居中裁切。
-
-### 8.4 预览
-
-**照片（阶段 1）**：source buffer → 几何 → 滤镜 → `SCGLView`。改画幅或滤镜都从 source 重跑。几何已产出独立 buffer，不必再拷一次。
-
-**视频（阶段 2+）**：单段收尾 + 整段变速用 `AVPlayer` + `VideoOutput`（`seek` / `forwardPlaybackEndTime` / `rate`）。多段由 `AlbumTimeMapper` 生成 `AVMutableComposition`，Player 对合成轴线性播放。禁止靠逐帧 seek 跳删除段。剪辑面板打开时改绑**原片整段**（条带是源轴），关掉后再按 Composition 重建。切到「首尾裁剪」时若已有多段，会把首段入点到末段出点收成一段（空隙并回去）。
-
-### 8.5 导出
-
-**照片（阶段 1）**：高分辨率 source → 几何 → 滤镜 → `UIImage` 入库；长边上限仍 4096。
-
-**视频（阶段 2+）**：几何仍按原片 `preferredTransform` 算尺寸。单段 Reader 读原片 `timeRange`；多段 Reader 读 Composition，区间 `[0, playDuration]`，PTS 从 0 单调递增。Writer 会话从该段首帧 PTS 开始，`transform = identity`。第一期变速同时变调。
-
-### 8.6 截图（阶段 5）
-
-吃合成结果，不抓预览 View。与导出共用 GPU 独占队列。
-
-| 类型 | 做法 |
-|------|------|
-| 静图 | 导出分辨率从 source / 该时刻源帧重跑几何 + 滤镜 |
-| 实况 | 封面 = 该静图；视频 = 播放头 ±1.5s **播放时间**，夹在 `[0, playDuration]` |
-
-播放轴上删除段已不存在，短片可跨保留段但观感连续。Live Photo 写入需 JPEG/MOV 配对 content identifier；失败则降级为静图 + 短视频两条资源。
-
-### 8.7 与设置 UI 的关系
-
-底部「设置」只管滤镜。剪辑入口另开，不进 `OFSettingsController`。阶段 2 照片只显示画幅；视频显示画幅 + 播放 + 剪辑。剪辑条用 `AVAssetImageGenerator` 从源文件抽帧：首尾模式整段铺满 + 橙色手柄；多段模式源轴可滚动、上方时间尺、剪刀固定居中。空隙里点剪刀进入确认（对勾），左右滑条带定范围后再确认落下一段；播放头落在已有片段内则隐藏剪刀、显示左右拉动条。下方「视频片段」列表可点选/删除。最多 6 段。拖动手柄不重抽。编辑页只绑文档变更 → session 重跑，不在 VC 里算矩阵。
-
-### 8.8 分期与风险
-
-| 阶段 | 内容 | 状态 |
-|------|------|------|
-| 1 | 文档 + 几何内核 + 照片画幅预览/导出（居中 cover，无拖框） | 已落地 |
-| 2 | 视频并入几何（修朝向分裂）；单段收尾；可补裁切拖框 | 已落地（拖框未做） |
-| 3 | 多段 Composition；预览/导出读合成轴 | 已落地 |
-| 4 | 整段变速，再分段变速 | 未做 |
-| 5 | 静图截图，再实况截图 | 未做 |
-
-风险：自由角必须 cover，否则黑边进人脸检测；分段变速 + AAC 时间戳累积误差；iOS 12 实况写入必须有降级路径。
-
-美摄对照（Momenta）：学「草稿为真相、几何在滤镜前、多段播放轴无缺口、截图吃合成时间线」。不抄 `NvsTimeline` / `compileTimeline`。
+要点：`AlbumEditSession.document` 为草稿真相；面板只提交值拷贝，由 `AlbumEditorViewController` 赋值；`AlbumTimeMapper` 无状态，预览/导出按需构造。阶段 1–3 已落地，变速（阶段 4）与截图（阶段 5）见该文档 §7 / §8。
 
 ## 9. 设置 UI
 

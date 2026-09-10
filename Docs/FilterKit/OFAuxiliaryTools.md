@@ -1,10 +1,10 @@
 # OFAuxiliaryTools 架构
 
-本文只讲滤镜门面 [`OFAuxiliaryTools`](../OFFilterKit/Sources/Metal/OFAuxiliaryTools.swift) 及其调度图。App 级模块划分见 [`architecture.md`](architecture.md)。
+本文只讲滤镜门面 [`OFAuxiliaryTools`](../../OFFilterKit/Sources/Metal/OFAuxiliaryTools.swift) 及其调度图。App 级模块划分见 [`architecture.md`](../architecture.md)。
 
 ## 0. 模块边界与 Pod
 
-滤镜内核是仓库根目录的开发源 Pod [`OFFilterKit/`](../OFFilterKit/)，不发 spec 仓库。App [`LiveStreaming/Podfile`](../LiveStreaming/Podfile) 用：
+滤镜内核是仓库根目录的开发源 Pod [`OFFilterKit/`](../../OFFilterKit/)，不发 spec 仓库。App [`LiveStreaming/Podfile`](../../LiveStreaming/Podfile) 用：
 
 ```ruby
 pod 'OFFilterKit', :path => '../OFFilterKit'
@@ -22,7 +22,7 @@ pod 'OFFilterKit', :path => '../OFFilterKit'
 
 对外产品 API 保持：`OFAuxiliaryTools` + `inputFrame` + 参数 DTO。Swift 调用处 `import OFFilterKit`。
 
-**资源 Bundle**：`s.resource_bundles` → App 内 `OFFilterKit.bundle`。LUT / `face_landmarker.task` / 编译后的 `mlmodelc` / `default.metallib` 都从这里读（[`OFFilterResources`](../OFFilterKit/Sources/Metal/OFFilterResources.swift)）。静态库不会把 metallib 带进 App，Pod 在编译后把它拷进该 bundle。
+**资源 Bundle**：`s.resource_bundles` → App 内 `OFFilterKit.bundle`。LUT / `face_landmarker.task` / 编译后的 `mlmodelc` / `default.metallib` 都从这里读（[`OFFilterResources`](../../OFFilterKit/Sources/Metal/OFFilterResources.swift)）。静态库不会把 metallib 带进 App，Pod 在编译后把它拷进该 bundle。
 
 **`OFFilterContext` 生命周期**：每个 `OFAuxiliaryTools` 构造时新建一份 Metal 设备封装 + `OFPixelBufferTool`，再注入各 `*Computer`。直播与相册各持一门面，像素池按实例隔离；仍不要同时对同一 GPU 设备 `inputFrame`。
 
@@ -297,6 +297,6 @@ LUT 换四面体插值、Beauty 加亮眼，只要守协议。设置页只加格
 
 ## 9. 和主文档的关系
 
-- App 导航、相册会话、导出：[`architecture.md`](architecture.md)
+- App 导航、相册会话、导出：[`architecture.md`](../architecture.md)
 - 滤镜在 OFFilterKit：主文档第 5 节；拓扑与节点表与本文第 3 节一致
 - 相册剪辑规划：主文档第 8 节；剪辑层在本门面之外

@@ -81,7 +81,7 @@ enum AlbumVideoExporter {
             throw AlbumExportError.missingVideoTrack
         }
         DDLogInfo(
-            "album export start \(codedWidth)x\(codedHeight) geo=\(geometrySize.0)x\(geometrySize.1) -> \(outputWidth)x\(outputHeight) trim=\(CMTimeGetSeconds(timeRange.start))-\(CMTimeGetSeconds(timeRange.end)) composition=\(mapper.needsComposition)"
+            "album export start \(codedWidth)x\(codedHeight) geo=\(geometrySize.0)x\(geometrySize.1) -> \(outputWidth)x\(outputHeight) range=\(CMTimeGetSeconds(timeRange.start))-\(CMTimeGetSeconds(timeRange.end)) composition=\(mapper.needsComposition) play=\(CMTimeGetSeconds(mapper.playDuration))"
         )
 
         let reader = try AVAssetReader(asset: readAsset)

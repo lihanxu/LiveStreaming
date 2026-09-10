@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "相册剪辑架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/lihanxu/LiveStreaming.git",
+      "provider": "github",
+      "revision": "9873699d29e8a7c5ae6ae78035098b473703c339"
+    },
+    "views": [
+      {
+        "id": "write-path",
+        "label": "写入草稿",
+        "focus": ["geo", "trim", "speed", "editor", "session", "document"],
+        "note": "画幅 / 裁切 / 变速面板只持有值拷贝；VC 唯一写入 session.document。不直连 TimelineEdit。"
+      },
+      {
+        "id": "timeline-model",
+        "label": "时间线模型",
+        "focus": ["document", "timeline", "segment", "mapper"],
+        "note": "Document 1:1 嵌入 TimelineEdit；segments 0…6 条 Segment（源 CMTime + speed）。裁切改区间，变速改 speed。"
+      },
+      {
+        "id": "clock-export",
+        "label": "时钟与导出",
+        "focus": ["timeline", "mapper", "player", "exporter"],
+        "note": "Mapper 从 document.timeline 构造快照；Player 只吃 Composition/入出点；Exporter 走 exportSource。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "geo",
+      "type": "frontend",
+      "label": "AlbumGeometryPanelView",
+      "sublabel": "画幅交互；提交 GeometryEdit 副本",
+      "pos": [32, 48],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumGeometryPanelView.swift", "line": 11, "end_line": 16, "label": "didChange geometry" }
+      ]
+    },
+    {
+      "id": "editor",
+      "type": "frontend",
+      "label": "AlbumEditorViewController",
+      "sublabel": "唯一写入 session.document",
+      "tag": "门面",
+      "pos": [280, 48],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditorViewController.swift", "line": 531, "end_line": 550, "label": "赋值 geometry/timeline" }
+      ]
+    },
+    {
+      "id": "trim",
+      "type": "frontend",
+      "label": "AlbumTrimPanelView",
+      "sublabel": "首尾/多段裁切；提交副本",
+      "pos": [540, 48],
+      "size": [190, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumTrimPanelView.swift", "line": 22, "end_line": 32, "label": "didChange timeline" }
+      ]
+    },
+    {
+      "id": "speed",
+      "type": "frontend",
+      "label": "AlbumSpeedPanelView",
+      "sublabel": "整段/分段倍速；委托对齐 Trim",
+      "pos": [760, 48],
+      "size": [200, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumTrimPanelView.swift", "line": 13, "end_line": 32, "label": "拟新增" }
+      ]
+    },
+    {
+      "id": "session",
+      "type": "backend",
+      "label": "AlbumEditSession",
+      "sublabel": "持有草稿；串行 GPU / 导出独占",
+      "tag": "processingQueue",
+      "pos": [32, 210],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift", "line": 13, "end_line": 21, "label": "var document" }
+      ]
+    },
+    {
+      "id": "document",
+      "type": "database",
+      "label": "AlbumEditDocument",
+      "sublabel": "geometry + timeline 值嵌入",
+      "tag": "草稿",
+      "pos": [280, 210],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditDocument.swift", "line": 295, "end_line": 301, "label": "struct 草稿" }
+      ]
+    },
+    {
+      "id": "timeline",
+      "type": "database",
+      "label": "AlbumTimelineEdit",
+      "sublabel": "保留段集合；裁切与变速突变",
+      "pos": [540, 210],
+      "size": [190, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditDocument.swift", "line": 88, "end_line": 96, "label": "segments[]" }
+      ]
+    },
+    {
+      "id": "segment",
+      "type": "database",
+      "label": "AlbumTimelineSegment",
+      "sublabel": "源 CMTime 区间与 speed",
+      "pos": [760, 210],
+      "size": [200, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditDocument.swift", "line": 78, "end_line": 86, "label": "CMTime + Double" }
+      ]
+    },
+    {
+      "id": "kernel",
+      "type": "backend",
+      "label": "AlbumGeometryKernel",
+      "sublabel": "CI：朝向 + 用户画幅",
+      "pos": [32, 370],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumGeometryKernel.swift", "line": 14, "end_line": 30, "label": "apply" }
+      ]
+    },
+    {
+      "id": "player",
+      "type": "backend",
+      "label": "AlbumVideoPlayer",
+      "sublabel": "绑 Item 出帧；不读 TimelineEdit",
+      "pos": [280, 370],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumVideoPlayer.swift", "line": 21, "end_line": 54, "label": "configure(asset:)" }
+      ]
+    },
+    {
+      "id": "mapper",
+      "type": "backend",
+      "label": "AlbumTimeMapper",
+      "sublabel": "源轴↔播放轴；Composition",
+      "pos": [540, 370],
+      "size": [190, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumTimeMapper.swift", "line": 12, "end_line": 37, "label": "init(timeline:)" }
+      ]
+    },
+    {
+      "id": "exporter",
+      "type": "backend",
+      "label": "AlbumVideoExporter",
+      "sublabel": "按播放轴解码写 mp4",
+      "pos": [760, 370],
+      "size": [200, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumVideoExporter.swift", "line": 70, "end_line": 84, "label": "exportSource" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "UIKit 委托",
+      "wraps": ["geo", "editor", "trim", "speed"]
+    },
+    {
+      "kind": "region",
+      "label": "草稿时间线",
+      "wraps": ["session", "document", "timeline", "segment"]
+    },
+    {
+      "kind": "region",
+      "label": "几何与时钟",
+      "wraps": ["kernel", "player", "mapper", "exporter"]
+    }
+  ],
+  "connections": [
+    { "id": "editor-geo", "from": "editor", "to": "geo", "label": "持有 / 委托", "variant": "emphasis", "labelDy": -28 },
+    { "id": "editor-trim", "from": "editor", "to": "trim", "label": "持有 / 委托", "variant": "emphasis", "labelDy": -28 },
+    { "id": "editor-speed", "from": "editor", "to": "speed", "label": "持有 / 委托", "fromSide": "top", "toSide": "top", "variant": "emphasis", "labelDy": -28 },
+    { "id": "editor-session", "from": "editor", "to": "session", "label": "写入 document", "fromSide": "left", "toSide": "top", "variant": "emphasis" },
+    { "id": "session-document", "from": "session", "to": "document", "label": "持有", "variant": "emphasis" },
+    { "id": "document-timeline", "from": "document", "to": "timeline", "label": "1:1 嵌入", "variant": "emphasis", "labelDy": -28 },
+    { "id": "timeline-segment", "from": "timeline", "to": "segment", "label": "0…6", "variant": "emphasis", "labelDy": -28 },
+    { "id": "session-kernel", "from": "session", "to": "kernel", "label": "geometry apply", "fromSide": "bottom", "toSide": "top", "variant": "emphasis", "labelDy": 24 },
+    { "id": "mapper-timeline", "from": "mapper", "to": "timeline", "label": "只读快照", "fromSide": "top", "toSide": "bottom", "variant": "dashed" },
+    { "id": "exporter-mapper", "from": "exporter", "to": "mapper", "label": "exportSource", "variant": "dashed", "labelDy": 52 }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "写入契约",
+      "items": [
+        "Geometry / Trim / Speed 面板不引用 session.document，经 VC 赋值",
+        "裁切改 Segment 源区间；变速改同一 Segment.speed，不另建速度层"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "AlbumTimelineEdit",
+      "items": [
+        "空 segments = 整段 1x；最多 6 段；时间一律为源媒体 CMTime",
+        "Mapper.init(timeline:sourceDuration:) 无状态；Player 只接收 Composition 或入出点"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "needsComposition",
+      "items": [
+        "阶段 3：段数 ≥ 2；阶段 4：或任一 speed≠1，insert 后再 scaleTimeRange",
+        "单段且 1x 仍走原片 CMTimeRange；导出不得再乘一次 speed"
+      ]
+    }
+  ]
+}

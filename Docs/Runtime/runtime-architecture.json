@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiveStreaming 运行时架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1220, 580],
+    "repository": {
+      "url": "https://github.com/lihanxu/LiveStreaming",
+      "revision": "9873699d29e8a7c5ae6ae78035098b473703c339"
+    },
+    "views": [
+      {
+        "id": "live-path",
+        "label": "直播主路径",
+        "focus": ["cameraMic", "captureDev", "filterKit", "previewGL"],
+        "note": "摄像头帧经处理图后交给 GLES 预览。"
+      },
+      {
+        "id": "album-path",
+        "label": "相册旁路",
+        "focus": ["photosLib", "albumSess", "filterKit", "previewGL"],
+        "note": "独立 OFAuxiliaryTools 实例，导出写回 Photos。"
+      },
+      {
+        "id": "trust-edge",
+        "label": "信任边界",
+        "focus": ["cameraMic", "captureDev", "photosLib", "albumSess", "mlModels"],
+        "note": "TCC 权限与 Bundle 内模型；编码结果不出网。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "cameraMic",
+      "type": "external",
+      "label": "相机 / 麦克风",
+      "sublabel": "AVFoundation",
+      "tag": "TCC",
+      "pos": [40, 250],
+      "size": [150, 64],
+      "sources": [
+        {
+          "path": "LiveStreaming/LiveStreaming/Capture/OFiPhoneInputDevice.swift",
+          "line": 17,
+          "label": "AVCaptureSession"
+        }
+      ]
+    },
+    {
+      "id": "photosLib",
+      "type": "external",
+      "label": "系统相册",
+      "sublabel": "Photos",
+      "tag": "TCC",
+      "pos": [40, 72],
+      "size": [150, 64],
+      "sources": [
+        {
+          "path": "LiveStreaming/LiveStreaming/Album/AlbumViewController.swift",
+          "line": 12,
+          "end_line": 16,
+          "label": "PHAsset 网格"
+        }
+      ]
+    },
+    {
+      "id": "mlModels",
+      "type": "external",
+      "label": "MediaPipe / Core ML",
+      "sublabel": "Pod bundle 模型",
+      "pos": [880, 72],
+      "size": [180, 64],
+      "sources": [
+        {
+          "path": "OFFilterKit/Sources/Face/OFFaceLandmarkerComputer.swift",
+          "line": 16,
+          "end_line": 28,
+          "label": "Face Landmarker"
+        },
+        {
+          "path": "OFFilterKit/Sources/Cartoon/OFCartoonComputer.swift",
+          "line": 18,
+          "end_line": 28,
+          "label": "AnimeGANv3"
+        }
+      ]
+    },
+    {
+      "id": "captureDev",
+      "type": "backend",
+      "label": "OFiPhoneInputDevice",
+      "sublabel": "32BGRA + PCM",
+      "pos": [270, 250],
+      "size": [170, 64],
+      "sources": [
+        {
+          "path": "LiveStreaming/LiveStreaming/Capture/OFInputDevice.swift",
+          "line": 13,
+          "end_line": 24,
+          "label": "采样回调"
+        }
+      ]
+    },
+    {
+      "id": "albumSess",
+      "type": "backend",
+      "label": "AlbumEditSession",
+      "sublabel": "串行 GPU 队列",
+      "pos": [270, 72],
+      "size": [170, 64],
+      "sources": [
+        {
+          "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift",
+          "line": 12,
+          "end_line": 26,
+          "label": "独立 tools"
+        }
+      ]
+    },
+    {
+      "id": "filterKit",
+      "type": "backend",
+      "label": "OFFilterKit",
+      "sublabel": "OFAuxiliaryTools",
+      "tag": "Metal DAG",
+      "pos": [560, 238],
+      "size": [190, 80],
+      "sources": [
+        {
+          "path": "OFFilterKit/Sources/Metal/OFAuxiliaryTools.swift",
+          "line": 14,
+          "end_line": 19,
+          "label": "门面"
+        },
+        {
+          "path": "OFFilterKit/Sources/Process/OFProcessGraph.swift",
+          "line": 14,
+          "end_line": 61,
+          "label": "拓扑调度"
+        }
+      ]
+    },
+    {
+      "id": "previewGL",
+      "type": "frontend",
+      "label": "SCGLView",
+      "sublabel": "OpenGL ES 3",
+      "pos": [870, 250],
+      "size": [180, 64],
+      "sources": [
+        {
+          "path": "LiveStreaming/LiveStreaming/Preview/SCGLView.swift",
+          "line": 7,
+          "end_line": 20,
+          "label": "IOSurface 预览"
+        }
+      ]
+    },
+    {
+      "id": "encoderVT",
+      "type": "backend",
+      "label": "VideoEncoder",
+      "sublabel": "VideoToolbox H.264",
+      "tag": "未推流",
+      "pos": [270, 430],
+      "size": [170, 64],
+      "sources": [
+        {
+          "path": "LiveStreaming/LiveStreaming/Video/VideoEncoder.swift",
+          "line": 7,
+          "end_line": 16,
+          "label": "temp.h264"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "LiveStreaming 进程（App 沙盒）",
+      "wraps": ["captureDev", "albumSess", "filterKit", "previewGL", "encoderVT"]
+    },
+    {
+      "kind": "security-group",
+      "label": "TCC 相机 / 麦克风",
+      "wraps": ["captureDev"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Photos 读写授权",
+      "wraps": ["albumSess"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "cam-to-capture",
+      "from": "cameraMic",
+      "to": "captureDev",
+      "label": "CMSampleBuffer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "capture-to-filter",
+      "from": "captureDev",
+      "to": "filterKit",
+      "label": "VideoFrame",
+      "variant": "emphasis"
+    },
+    {
+      "id": "filter-to-preview",
+      "from": "filterKit",
+      "to": "previewGL",
+      "label": "pixelBuffer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "capture-to-encoder",
+      "from": "captureDev",
+      "to": "encoderVT",
+      "label": "原始 sample",
+      "variant": "dashed",
+      "labelDy": 52
+    },
+    {
+      "id": "photos-to-album",
+      "from": "photosLib",
+      "to": "albumSess",
+      "label": "PHAsset"
+    },
+    {
+      "id": "album-to-filter",
+      "from": "albumSess",
+      "to": "filterKit",
+      "label": "几何后入图",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "filter-to-ml",
+      "from": "filterKit",
+      "to": "mlModels",
+      "label": "关键点 / 漫画风",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "主路径",
+      "items": [
+        "采集封装 VideoFrame 后入 OFAuxiliaryTools，SCGLView 经 IOSurface 预览",
+        "DAG：Landmarker → Beauty → Reshape → LUT → Cartoon → Peak；未启用则透传"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "相册旁路",
+      "items": [
+        "独立 tools 实例；几何 bake 后再入图，processingQueue 串行且导出独占",
+        "写回 Photos 走 AlbumVideoExporter，不经 VideoEncoder"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "信任边界",
+      "items": [
+        "相机、麦克风、相册走系统 TCC；MediaPipe / Core ML 模型在 Pod bundle 内推理",
+        "H.264 只写沙盒 temp.h264，README 中的 RTMP 尚未接线"
+      ]
+    }
+  ]
+}

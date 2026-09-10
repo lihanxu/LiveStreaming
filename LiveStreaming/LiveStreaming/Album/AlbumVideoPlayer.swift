@@ -39,6 +39,8 @@ class AlbumVideoPlayer: NSObject {
     private var trimEnd = CMTime.invalid
     /// 用户点了播放；撞出点时 rate 会变成 0，靠这个决定是否循环
     private var userWantsPlayback = false
+    /// 整段变速面板打开时的试听倍率；正式预览仍走 Composition
+    private var previewRate: Float = 1
     /// 防止出点循环与 DidPlayToEndTime 叠两次 seek
     private var isHandlingLoop = false
     /// 拖动手柄时尚未发出的目标时间；只保留最新一次
@@ -84,6 +86,7 @@ class AlbumVideoPlayer: NSObject {
         item.forwardPlaybackEndTime = self.trimEnd
         player = AVPlayer(playerItem: item)
         player?.actionAtItemEnd = .pause
+        previewRate = 1
         installEndObserver(item: item)
         seek(to: self.trimStart)
     }
@@ -136,8 +139,19 @@ class AlbumVideoPlayer: NSObject {
     func play() {
         userWantsPlayback = true
         applyPlaybackEndTime()
-        player?.play()
+        applyPreviewRate()
         startDisplayLink()
+    }
+
+    /// 整段变速试听：只改 AVPlayer.rate，不改文档。分段页应传 1。
+    /// - Parameter rate: 倍率，夹紧到时间线允许区间
+    func setPreviewRate(_ rate: Float) {
+        let minRate = Float(AlbumTimelineEdit.minimumSpeed)
+        let maxRate = Float(AlbumTimelineEdit.maximumSpeed)
+        previewRate = min(max(rate, minRate), maxRate)
+        if userWantsPlayback {
+            applyPreviewRate()
+        }
     }
 
     /// 暂停播放与取帧
@@ -175,8 +189,14 @@ class AlbumVideoPlayer: NSObject {
         isHandlingLoop = false
         pendingScrubTime = nil
         isSeeking = false
+        previewRate = 1
         trimStart = .zero
         trimEnd = .invalid
+    }
+
+    /// 按 previewRate 开播（整段试听可能不是 1x）
+    private func applyPreviewRate() {
+        player?.rate = previewRate
     }
 
     /// 播放才限制出点；暂停放开，让拖出点能 seek 到该帧
@@ -238,7 +258,7 @@ class AlbumVideoPlayer: NSObject {
             guard let self = self else { return }
             self.isHandlingLoop = false
             if shouldContinue {
-                self.player?.play()
+                self.applyPreviewRate()
                 self.startDisplayLink()
             }
         }
