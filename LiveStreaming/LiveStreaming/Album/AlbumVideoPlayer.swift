@@ -16,6 +16,9 @@ protocol AlbumVideoPlayerDelegate: AnyObject {
     ///   - pixelBuffer: 32BGRA
     ///   - time: 媒体时间
     func videoPlayer(_ player: AlbumVideoPlayer, didOutput pixelBuffer: CVPixelBuffer, at time: CMTime)
+    /// 撞上出点且未循环时通知宿主切下一段
+    /// - Parameter player: 播放器
+    func videoPlayerDidReachTrimEnd(_ player: AlbumVideoPlayer)
 }
 
 /// 相册视频播放与逐帧出图；音频由 AVPlayer 直接播放。
@@ -33,6 +36,10 @@ class AlbumVideoPlayer: NSObject {
     private var endObserver: NSObjectProtocol?
     /// 当前视频轨朝向；VideoOutput 不出正放像素，几何内核再 bake
     private(set) var preferredTransform = CGAffineTransform.identity
+    /// 出点后是否循环回入点；工程多段预览关掉，改由 VC 切下一段
+    var loopsAtTrimEnd = true
+    /// 为 false 时只推进时钟、不回调帧；副播放器 overlap 期间用
+    var reportsFrames = true
     /// 收尾入点；循环回到这里而不是 0
     private var trimStart = CMTime.zero
     /// 收尾出点；非法则用资源时长
@@ -86,6 +93,7 @@ class AlbumVideoPlayer: NSObject {
         item.forwardPlaybackEndTime = self.trimEnd
         player = AVPlayer(playerItem: item)
         player?.actionAtItemEnd = .pause
+        player?.volume = 1
         previewRate = 1
         installEndObserver(item: item)
         seek(to: self.trimStart)
@@ -135,12 +143,44 @@ class AlbumVideoPlayer: NSObject {
         }
     }
 
+    /// AVPlayer 音量 0…1；overlap 时主路与副路对出
+    /// - Parameter volume: 线性音量
+    func setVolume(_ volume: Float) {
+        player?.volume = max(0, min(1, volume))
+    }
+
+    /// 副路关闭出帧，主路打开；正在播时立刻启停 DisplayLink
+    /// - Parameter enabled: 是否回调 delegate
+    func setReportsFrames(_ enabled: Bool) {
+        reportsFrames = enabled
+        if enabled {
+            if userWantsPlayback {
+                startDisplayLink()
+            }
+        } else {
+            stopDisplayLink()
+        }
+    }
+
+    /// 从 VideoOutput 抠当前头一帧，不走 delegate（副路混叠用）
+    /// - Returns: 32BGRA；尚未就绪为 nil
+    func copyDisplayedPixelBuffer() -> CVPixelBuffer? {
+        guard let output = videoOutput else { return nil }
+        let time = player?.currentItem?.currentTime() ?? .zero
+        if let pixelBuffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: nil) {
+            return pixelBuffer
+        }
+        return nil
+    }
+
     /// 开始播放并启动 DisplayLink
     func play() {
         userWantsPlayback = true
         applyPlaybackEndTime()
         applyPreviewRate()
-        startDisplayLink()
+        if reportsFrames {
+            startDisplayLink()
+        }
     }
 
     /// 整段变速试听：只改 AVPlayer.rate，不改文档。分段页应传 1。
@@ -190,6 +230,7 @@ class AlbumVideoPlayer: NSObject {
         pendingScrubTime = nil
         isSeeking = false
         previewRate = 1
+        reportsFrames = true
         trimStart = .zero
         trimEnd = .invalid
     }
@@ -249,9 +290,16 @@ class AlbumVideoPlayer: NSObject {
         }
     }
 
-    /// 出点或片尾：seek 回入点；用户仍想播则继续
+    /// 出点或片尾：循环或交给宿主
     private func handleReachedTrimEnd() {
         guard !isHandlingLoop else { return }
+        if !loopsAtTrimEnd {
+            userWantsPlayback = false
+            player?.pause()
+            stopDisplayLink()
+            delegate?.videoPlayerDidReachTrimEnd(self)
+            return
+        }
         isHandlingLoop = true
         let shouldContinue = userWantsPlayback
         seek(to: trimStart) { [weak self] _ in
@@ -317,6 +365,7 @@ class AlbumVideoPlayer: NSObject {
 
     /// 每帧向 delegate 投递 pixelBuffer
     @objc private func handleDisplayLink() {
+        guard reportsFrames else { return }
         guard let output = videoOutput, let item = player?.currentItem else { return }
         let time = item.currentTime()
         // 出点不一定发 DidPlayToEndTime，播放中撞上则循环回入点

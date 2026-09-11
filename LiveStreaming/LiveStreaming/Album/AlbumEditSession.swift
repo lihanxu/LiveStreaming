@@ -13,8 +13,13 @@ import OFFilterKit
 class AlbumEditSession {
     /// 滤镜门面；设置页绑定此实例
     let tools: OFAuxiliaryTools
-    /// 画幅 + 时间线；预览/导出只读
-    var document = AlbumEditDocument()
+    /// 多段工程；单资源时 `clips.count == 1`
+    var project = AlbumProject()
+    /// 当前选中 clip 的单片文档；面板与预览只改这一份
+    var document: AlbumEditDocument {
+        get { project.selectedDocument }
+        set { project.selectedDocument = newValue }
+    }
     /// 直方图 / 波形累加；不是处理图节点
     private let scopeAnalyzer: AlbumScopeAnalyzer
     /// 所有 Metal / MediaPipe 处理必须在此串行队列执行
@@ -82,28 +87,92 @@ class AlbumEditSession {
         }
     }
 
-    /// 视频预览帧：几何（含轨朝向）后再过处理图；主线程只负责送 SCGLView
+    /// 视频预览帧：几何后再 cover 到工程画布，再过处理图
     /// - Parameters:
     ///   - pixelBuffer: VideoOutput 当前帧（编码朝向）
-    ///   - preferredTransform: 视频轨 `preferredTransform`
+    ///   - preferredTransform: 当前 clip 视频轨朝向
+    ///   - geometry: 当前 clip 画幅
+    ///   - canvasWidth: 工程画布宽；0 表示不 cover
+    ///   - canvasHeight: 工程画布高
     ///   - completion: 主线程回调；示波器打开时带 snapshot
     func processVideoPreviewFrame(
         _ pixelBuffer: CVPixelBuffer,
         preferredTransform: CGAffineTransform,
+        geometry: AlbumGeometryEdit,
+        canvasWidth: Int,
+        canvasHeight: Int,
         completion: @escaping (VideoFrame, AlbumScopeSnapshot?) -> Void
     ) {
-        let geometry = document.geometry
+        processVideoPreviewFrame(
+            outgoing: pixelBuffer,
+            outgoingTransform: preferredTransform,
+            outgoingGeometry: geometry,
+            incoming: nil,
+            incomingTransform: .identity,
+            incomingGeometry: AlbumGeometryEdit(),
+            transitionKind: .cut,
+            progress: 0,
+            canvasWidth: canvasWidth,
+            canvasHeight: canvasHeight,
+            completion: completion
+        )
+    }
+
+    /// 视频预览：两路几何贴画布后混叠，再进滤镜
+    /// - Parameters:
+    ///   - outgoing: 当前段编码朝向帧
+    ///   - outgoingTransform: 当前段轨朝向
+    ///   - outgoingGeometry: 当前段画幅
+    ///   - incoming: 下一段；硬切为 nil
+    ///   - incomingTransform: 下一段轨朝向
+    ///   - incomingGeometry: 下一段画幅
+    ///   - transitionKind: 接缝
+    ///   - progress: 0…1
+    ///   - canvasWidth: 工程画布宽
+    ///   - canvasHeight: 工程画布高
+    ///   - completion: 主线程
+    func processVideoPreviewFrame(
+        outgoing: CVPixelBuffer,
+        outgoingTransform: CGAffineTransform,
+        outgoingGeometry: AlbumGeometryEdit,
+        incoming: CVPixelBuffer?,
+        incomingTransform: CGAffineTransform,
+        incomingGeometry: AlbumGeometryEdit,
+        transitionKind: AlbumTransitionKind,
+        progress: Float,
+        canvasWidth: Int,
+        canvasHeight: Int,
+        completion: @escaping (VideoFrame, AlbumScopeSnapshot?) -> Void
+    ) {
         processingQueue.async {
             guard !self.isExporting else { return }
-            guard let geometried = AlbumGeometryKernel.apply(
-                source: pixelBuffer,
-                geometry: geometry,
-                preferredTransform: preferredTransform,
-                pool: self.tools.pixelBufferPool
+            guard let outgoingCanvas = self.canvasBuffer(
+                outgoing,
+                geometry: outgoingGeometry,
+                preferredTransform: outgoingTransform,
+                canvasWidth: canvasWidth,
+                canvasHeight: canvasHeight
             ) else {
                 return
             }
-            let frame = AlbumMediaConverter.makeVideoFrame(from: geometried)
+            var working = outgoingCanvas
+            if let incoming = incoming, transitionKind != .cut, progress > 0.0001 {
+                let incomingCanvas = self.canvasBuffer(
+                    incoming,
+                    geometry: incomingGeometry,
+                    preferredTransform: incomingTransform,
+                    canvasWidth: canvasWidth,
+                    canvasHeight: canvasHeight
+                )
+                working = AlbumTransitionKernel.mix(
+                    outgoing: outgoingCanvas,
+                    incoming: incomingCanvas,
+                    progress: progress,
+                    kind: transitionKind,
+                    pool: self.tools.pixelBufferPool
+                )
+            }
+            let frame = AlbumMediaConverter.makeVideoFrame(from: working)
             self.tools.inputFrame(frame)
             let snapshot = self.scopeAnalyzer.analyze(frame: frame, pool: self.tools.pixelBufferPool)
             DispatchQueue.main.async {
@@ -132,25 +201,27 @@ class AlbumEditSession {
         }
     }
 
-    /// 导出视频：整段或单段收尾；几何 bake 进像素后 Writer transform 为 identity
+    /// 导出视频：单片、硬切或多段转场；几何 bake 后 Writer transform 为 identity
     /// - Parameters:
-    ///   - asset: 相册 AVAsset
+    ///   - assets: 与 `documents` 对齐的片源
+    ///   - documents: 各片画幅 + 时间线
+    ///   - transitions: 接缝；硬切可空
     ///   - progress: 主线程进度 0…1
     ///   - completion: 主线程返回临时 mp4 URL
     func exportVideo(
-        asset: AVAsset,
+        assets: [AVAsset],
+        documents: [AlbumEditDocument],
+        transitions: [AlbumTransition] = [],
         progress: @escaping (Float) -> Void,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
-        let geometry = document.geometry
-        let timeline = document.timeline
         processingQueue.async {
             do {
                 let url = try AlbumVideoExporter.exportSynchronously(
-                    asset: asset,
+                    assets: assets,
+                    documents: documents,
+                    transitions: transitions,
                     session: self,
-                    geometry: geometry,
-                    timeline: timeline,
                     progress: { value in
                         DispatchQueue.main.async {
                             progress(value)
@@ -195,16 +266,88 @@ class AlbumEditSession {
         let width = CVPixelBufferGetWidth(working)
         let height = CVPixelBufferGetHeight(working)
         if width != targetWidth || height != targetHeight {
-            working = AlbumMediaConverter.scaledPixelBuffer(
+            working = AlbumMediaConverter.coverFitPixelBuffer(
                 geometried,
-                targetWidth: targetWidth,
-                targetHeight: targetHeight,
+                canvasWidth: targetWidth,
+                canvasHeight: targetHeight,
                 pool: tools.pixelBufferPool
             ) ?? geometried
         }
         let frame = AlbumMediaConverter.makeVideoFrame(from: working)
         tools.inputFrame(frame)
         return frame.pixelBuffer
+    }
+
+    /// 导出一帧只做几何+画布，不过滤镜；转场混叠之后再 `applyFilterSync`。
+    /// - Parameters:
+    ///   - pixelBuffer: Reader 帧
+    ///   - geometry: 该 clip 画幅
+    ///   - preferredTransform: 轨朝向
+    ///   - targetWidth: 画布宽
+    ///   - targetHeight: 画布高
+    /// - Returns: 画布 BGRA
+    func processCanvasFrameSync(
+        _ pixelBuffer: CVPixelBuffer,
+        geometry: AlbumGeometryEdit,
+        preferredTransform: CGAffineTransform,
+        targetWidth: Int,
+        targetHeight: Int
+    ) -> CVPixelBuffer {
+        return canvasBuffer(
+            pixelBuffer,
+            geometry: geometry,
+            preferredTransform: preferredTransform,
+            canvasWidth: targetWidth,
+            canvasHeight: targetHeight
+        ) ?? pixelBuffer
+    }
+
+    /// 滤镜图；必须在 processingQueue 上
+    /// - Parameter pixelBuffer: 已是成片画布
+    /// - Returns: 滤镜后 buffer
+    func applyFilterSync(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer {
+        let frame = AlbumMediaConverter.makeVideoFrame(from: pixelBuffer)
+        tools.inputFrame(frame)
+        return frame.pixelBuffer
+    }
+
+    /// 几何后再按需 cover
+    /// - Parameters:
+    ///   - pixelBuffer: 编码朝向
+    ///   - geometry: 画幅
+    ///   - preferredTransform: 轨朝向
+    ///   - canvasWidth: 0 表示不 cover
+    ///   - canvasHeight: 0 表示不 cover
+    /// - Returns: 画布帧
+    private func canvasBuffer(
+        _ pixelBuffer: CVPixelBuffer,
+        geometry: AlbumGeometryEdit,
+        preferredTransform: CGAffineTransform,
+        canvasWidth: Int,
+        canvasHeight: Int
+    ) -> CVPixelBuffer? {
+        guard let geometried = AlbumGeometryKernel.apply(
+            source: pixelBuffer,
+            geometry: geometry,
+            preferredTransform: preferredTransform,
+            pool: tools.pixelBufferPool
+        ) else {
+            return nil
+        }
+        var working = geometried
+        if canvasWidth > 0, canvasHeight > 0 {
+            let width = CVPixelBufferGetWidth(working)
+            let height = CVPixelBufferGetHeight(working)
+            if width != canvasWidth || height != canvasHeight {
+                working = AlbumMediaConverter.coverFitPixelBuffer(
+                    geometried,
+                    canvasWidth: canvasWidth,
+                    canvasHeight: canvasHeight,
+                    pool: tools.pixelBufferPool
+                ) ?? geometried
+            }
+        }
+        return working
     }
 
     /// 照片：几何产出独立 buffer 再进处理图（滤镜会原地改）

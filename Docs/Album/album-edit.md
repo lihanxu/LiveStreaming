@@ -14,7 +14,7 @@
 | [`scopes-p0.md`](scopes-p0.md) / [`scopes-p0.html`](scopes-p0.html) | 示波器 P0：直方图 / 波形旁路（已落地） |
 | [`multi-clip.md`](multi-clip.md) / [`multi-clip-architecture.html`](multi-clip-architecture.html) | 多视频拼接与转场（规划；不引入美摄时间线） |
 
-对照实现：阶段 1–4 已落地（含整段/分段变速）；阶段 5 截图未做；示波器 P0 已落地；多视频工程未做。
+对照实现：阶段 1–4 已落地（含整段/分段变速）；阶段 5 截图未做；示波器 P0 已落地；多视频硬切（6a）、拼接二级页（6b）、淡入/闪黑/闪白（7）已落地。
 
 ---
 
@@ -199,7 +199,7 @@ AlbumSpeedPanelView 本地 timeline   ──didChange──► VC ──► sess
 - 持有 `session`、`videoPlayer`、`geometryPanel`、`trimPanel`、`speedPanel`
 - 是**唯一**把面板结果写进 `session.document` 的类型
 - `configureVideoPlayer()`：`AlbumTimeMapper(...)` 决定绑 Composition 还是原片入出点；Player **不**接收 `AlbumTimelineEdit`
-- 底部工具条：照片仅「画幅」；视频为「画幅 / 播放 / 剪辑 / 变速」。右上「设置」只绑滤镜
+- 底部工具条：照片仅「画幅」；视频为「画幅 / 播放 / 剪辑」与第二行「变速 / 拼接 / 示波器」。右上「设置」只绑滤镜
 
 画幅 `didChange` 立刻重跑：照片从 `photoSourceBuffer` 走 session；视频 `refreshCurrentFrame`（几何在 GPU 队列上读最新 `document.geometry`）。
 

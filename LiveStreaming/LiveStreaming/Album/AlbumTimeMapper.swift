@@ -129,6 +129,108 @@ struct AlbumTimeMapper {
         return composition
     }
 
+    /// 把本时间线的保留段插到已有合成轴 `at`，供多文件硬切。始终 insert（含单段 1x）。
+    /// - Parameters:
+    ///   - videoComp: 工程视频轨
+    ///   - audioComp: 工程音频轨；源无音则可仍插入空隙
+    ///   - asset: 本 clip 原片
+    ///   - cursor: 插入点（工程播放轴）
+    /// - Returns: 插入后的光标；失败 nil
+    func append(
+        videoComp: AVMutableCompositionTrack,
+        audioComp: AVMutableCompositionTrack?,
+        from asset: AVAsset,
+        at cursor: CMTime
+    ) -> CMTime? {
+        guard let videoTrack = asset.tracks(withMediaType: .video).first else { return nil }
+        let audioTrack = asset.tracks(withMediaType: .audio).first
+        var next = cursor
+        do {
+            for segment in segments {
+                let range = CMTimeRange(start: segment.sourceStart, end: segment.sourceEnd)
+                guard range.duration.isValid, CMTimeGetSeconds(range.duration) >= 0.05 else { continue }
+                let speed = AlbumTimelineEdit.clampedSpeed(segment.speed)
+                let playDur = Self.playDuration(of: segment)
+                try videoComp.insertTimeRange(range, of: videoTrack, at: next)
+                var audioInsertedRange: CMTimeRange?
+                var audioAt = next
+                if let audioTrack = audioTrack, let audioComp = audioComp {
+                    let audioRange = range.intersection(audioTrack.timeRange)
+                    if audioRange.duration.isValid, CMTimeGetSeconds(audioRange.duration) >= 0.05 {
+                        audioAt = CMTimeAdd(next, CMTimeSubtract(audioRange.start, range.start))
+                        try audioComp.insertTimeRange(audioRange, of: audioTrack, at: audioAt)
+                        audioInsertedRange = audioRange
+                    }
+                }
+                if !AlbumTimelineEdit.isUnitySpeed(speed) {
+                    videoComp.scaleTimeRange(
+                        CMTimeRange(start: next, duration: range.duration),
+                        toDuration: playDur
+                    )
+                    if let audioComp = audioComp, let audioInsertedRange = audioInsertedRange {
+                        let audioPlay = CMTimeMultiplyByFloat64(
+                            audioInsertedRange.duration,
+                            multiplier: 1.0 / speed
+                        )
+                        audioComp.scaleTimeRange(
+                            CMTimeRange(start: audioAt, duration: audioInsertedRange.duration),
+                            toDuration: audioPlay
+                        )
+                    }
+                }
+                next = CMTimeAdd(next, playDur)
+            }
+        } catch {
+            return nil
+        }
+        guard CMTimeCompare(next, cursor) > 0 else { return nil }
+        return next
+    }
+
+    /// 只插音频保留段到已有轨，供重叠接缝的双轨 AudioMix。
+    /// - Parameters:
+    ///   - audioComp: 工程音频轨
+    ///   - asset: 本 clip 原片
+    ///   - cursor: 插入点（工程播放轴）
+    /// - Returns: 插入后的光标；无音轨则仍推进播放时长
+    func appendAudio(
+        audioComp: AVMutableCompositionTrack,
+        from asset: AVAsset,
+        at cursor: CMTime
+    ) -> CMTime {
+        let audioTrack = asset.tracks(withMediaType: .audio).first
+        var next = cursor
+        do {
+            for segment in segments {
+                let range = CMTimeRange(start: segment.sourceStart, end: segment.sourceEnd)
+                guard range.duration.isValid, CMTimeGetSeconds(range.duration) >= 0.05 else { continue }
+                let speed = AlbumTimelineEdit.clampedSpeed(segment.speed)
+                let playDur = Self.playDuration(of: segment)
+                if let audioTrack = audioTrack {
+                    let audioRange = range.intersection(audioTrack.timeRange)
+                    if audioRange.duration.isValid, CMTimeGetSeconds(audioRange.duration) >= 0.05 {
+                        let audioAt = CMTimeAdd(next, CMTimeSubtract(audioRange.start, range.start))
+                        try audioComp.insertTimeRange(audioRange, of: audioTrack, at: audioAt)
+                        if !AlbumTimelineEdit.isUnitySpeed(speed) {
+                            let audioPlay = CMTimeMultiplyByFloat64(
+                                audioRange.duration,
+                                multiplier: 1.0 / speed
+                            )
+                            audioComp.scaleTimeRange(
+                                CMTimeRange(start: audioAt, duration: audioRange.duration),
+                                toDuration: audioPlay
+                            )
+                        }
+                    }
+                }
+                next = CMTimeAdd(next, playDur)
+            }
+        } catch {
+            return CMTimeAdd(cursor, playDuration)
+        }
+        return next
+    }
+
     /// 导出读取源：需要合成时用 Composition（播放轴从 0），否则原片。
     /// - Parameter asset: 相册原片
     /// - Returns: 给 Reader 的资源；合成失败则仍回原片

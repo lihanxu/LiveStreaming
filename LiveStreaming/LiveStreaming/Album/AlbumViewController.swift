@@ -9,8 +9,13 @@ import UIKit
 import SnapKit
 import Photos
 
-/// 相册网格页：申请 Photos 权限后拉取 PHAsset 缩略图。
+/// 相册网格页：浏览或挑选视频片段。
 class AlbumViewController: UIViewController {
+
+    /// 为 true 时只列出视频，供编辑页追加片段
+    private let videoOnly: Bool
+    /// 非空则点选后回调并 pop，不进入编辑页
+    private let pickHandler: ((PHAsset) -> Void)?
 
     /// 按拍摄时间倒序的资源结果；未授权或为空时为 nil
     private var fetchResult: PHFetchResult<PHAsset>?
@@ -35,10 +40,32 @@ class AlbumViewController: UIViewController {
         return view
     }()
 
+    /// 浏览系统相册
+    init() {
+        videoOnly = false
+        pickHandler = nil
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    /// 挑选一段视频追加到工程
+    /// - Parameters:
+    ///   - videoOnly: 是否只显示视频
+    ///   - pickHandler: 选中后回调
+    init(videoOnly: Bool, pickHandler: @escaping (PHAsset) -> Void) {
+        self.videoOnly = videoOnly
+        self.pickHandler = pickHandler
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    /// 不支持 Storyboard
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     /// 搭 UI，注册相册变更，再按权限拉资源
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "相册"
+        title = pickHandler == nil ? "相册" : "选择视频"
         view.backgroundColor = .white
         PHPhotoLibrary.shared().register(self)
         initUI()
@@ -140,7 +167,12 @@ class AlbumViewController: UIViewController {
     private func reloadAssets() {
         let options = PHFetchOptions()
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        let result = PHAsset.fetchAssets(with: options)
+        let result: PHFetchResult<PHAsset>
+        if videoOnly {
+            result = PHAsset.fetchAssets(with: .video, options: options)
+        } else {
+            result = PHAsset.fetchAssets(with: options)
+        }
         fetchResult = result
         if result.count == 0 {
             let limited: Bool
@@ -239,6 +271,12 @@ extension AlbumViewController: UICollectionViewDataSource, UICollectionViewDeleg
     ///   - indexPath: 点中的格子
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let asset = fetchResult?.object(at: indexPath.item) else { return }
+        if let pickHandler = pickHandler {
+            guard asset.mediaType == .video else { return }
+            pickHandler(asset)
+            navigationController?.popViewController(animated: true)
+            return
+        }
         let editor = AlbumEditorViewController(asset: asset)
         navigationController?.pushViewController(editor, animated: true)
     }

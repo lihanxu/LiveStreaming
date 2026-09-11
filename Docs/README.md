@@ -10,6 +10,7 @@
 - [剪辑架构图](Album/clip-architecture.html)
 - [剪辑时钟（TimeMapper）](Album/clip-dataflow.html)
 - [类图](Album/class-diagram.html)
+- [多视频拼接与转场](Album/multi-clip.md) / [架构图](Album/multi-clip-architecture.html) — 硬切与淡入/闪黑/闪白已落地；不引入 `NvsTimeline`
 
 ## 滤镜内核
 - [OFAuxiliaryTools](FilterKit/OFAuxiliaryTools.md)

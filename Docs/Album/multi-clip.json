@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "多视频工程与转场",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/lihanxu/LiveStreaming.git",
+      "provider": "github",
+      "revision": "8f697ad086a2b6d8f455c8dc11c413f8ba5d6003"
+    },
+    "views": [
+      {
+        "id": "draft-path",
+        "label": "工程草稿",
+        "focus": ["picker", "editor", "session", "project", "clip", "transition"],
+        "note": "网格进入编辑；VC 写入 session.project。每 clip 仍是现有 AlbumEditDocument。"
+      },
+      {
+        "id": "pixel-path",
+        "label": "像素混叠",
+        "focus": ["mapper", "decoder", "kernel"],
+        "note": "工程轴上 1 或 2 路解码；各自几何贴合 canvas 后在 Kernel 混叠，再进 OFAuxiliaryTools。"
+      },
+      {
+        "id": "clock-path",
+        "label": "工程时钟",
+        "focus": ["project", "clip", "mapper", "decoder"],
+        "note": "clip 源轴经 TimeMapper 到 clip 播放轴；ProjectMapper 减去 overlap 得到工程轴。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "picker",
+      "type": "frontend",
+      "label": "AlbumViewController",
+      "sublabel": "添加片段 / 多选 PHAsset",
+      "pos": [40, 48],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumViewController.swift", "line": 240, "end_line": 244, "label": "push 单资源编辑页" }
+      ]
+    },
+    {
+      "id": "editor",
+      "type": "frontend",
+      "label": "AlbumEditorViewController",
+      "sublabel": "唯一写入 session.project",
+      "tag": "门面",
+      "pos": [300, 48],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditorViewController.swift", "line": 16, "end_line": 83, "label": "init(asset:)" }
+      ]
+    },
+    {
+      "id": "session",
+      "type": "backend",
+      "label": "AlbumEditSession",
+      "sublabel": "持有工程；串行 GPU",
+      "tag": "processingQueue",
+      "pos": [570, 48],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift", "line": 13, "end_line": 21, "label": "var document" }
+      ]
+    },
+    {
+      "id": "project",
+      "type": "database",
+      "label": "AlbumProject",
+      "sublabel": "canvas + clips + 接缝",
+      "tag": "草稿",
+      "pos": [570, 188],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditDocument.swift", "line": 349, "end_line": 354, "label": "单资源文档将嵌套" }
+      ]
+    },
+    {
+      "id": "clip",
+      "type": "database",
+      "label": "AlbumProjectClip",
+      "sublabel": "PHAsset + EditDocument",
+      "pos": [300, 188],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditDocument.swift", "line": 349, "end_line": 354, "label": "geometry + timeline" }
+      ]
+    },
+    {
+      "id": "transition",
+      "type": "database",
+      "label": "AlbumTransition",
+      "sublabel": "kind + duration；cut 为 0",
+      "pos": [40, 188],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditDocument.swift", "line": 88, "end_line": 96, "label": "单片时间线不表达接缝" }
+      ]
+    },
+    {
+      "id": "mapper",
+      "type": "backend",
+      "label": "AlbumProjectMapper",
+      "sublabel": "工程轴；复用 TimeMapper",
+      "pos": [570, 352],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumTimeMapper.swift", "line": 12, "end_line": 40, "label": "单 AVAsset 快照" }
+      ]
+    },
+    {
+      "id": "decoder",
+      "type": "backend",
+      "label": "Player / Reader",
+      "sublabel": "硬切一路；overlap 双路",
+      "pos": [300, 352],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumVideoPlayer.swift", "line": 21, "end_line": 54, "label": "单 Item 出帧" }
+      ]
+    },
+    {
+      "id": "kernel",
+      "type": "backend",
+      "label": "几何 + 转场混叠",
+      "sublabel": "每路几何后 mix，再进滤镜",
+      "pos": [40, 352],
+      "size": [210, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumGeometryKernel.swift", "line": 14, "end_line": 30, "label": "apply" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "UIKit",
+      "wraps": ["picker", "editor", "session"]
+    },
+    {
+      "kind": "region",
+      "label": "工程草稿",
+      "wraps": ["project", "clip", "transition"]
+    },
+    {
+      "kind": "region",
+      "label": "工程轴像素",
+      "wraps": ["mapper", "decoder", "kernel"]
+    }
+  ],
+  "connections": [
+    { "id": "picker-editor", "from": "picker", "to": "editor", "label": "assets[]", "variant": "emphasis", "labelDy": -28 },
+    { "id": "editor-session", "from": "editor", "to": "session", "label": "写入 project", "variant": "emphasis", "labelDy": -28 },
+    { "id": "session-project", "from": "session", "to": "project", "label": "持有", "variant": "dashed", "labelDy": 24 },
+    { "id": "project-clip", "from": "project", "to": "clip", "label": "1…6", "variant": "emphasis", "labelDy": -28 },
+    { "id": "clip-transition", "from": "clip", "to": "transition", "label": "接缝", "variant": "emphasis", "labelDy": -28 },
+    { "id": "project-mapper", "from": "project", "to": "mapper", "label": "只读快照", "variant": "dashed", "labelDy": 24 },
+    { "id": "mapper-decoder", "from": "mapper", "to": "decoder", "label": "贡献 clip", "variant": "emphasis", "labelDy": -28 },
+    { "id": "decoder-kernel", "from": "decoder", "to": "kernel", "label": "每路 BGRA", "variant": "emphasis", "labelDy": -28 }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "决策",
+      "items": [
+        "美摄有 appendClip 与内置转场；本仓库不引入 NvsTimeline，滤镜在混叠之后"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "时钟",
+      "items": [
+        "clip 播放轴经 ProjectMapper 相接并减去 overlap；硬切一路，转场双路"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "分期",
+      "items": [
+        "6a 硬切 → 7 fade/dip → 8 push；不做画中画与素材包"
+      ]
+    }
+  ]
+}

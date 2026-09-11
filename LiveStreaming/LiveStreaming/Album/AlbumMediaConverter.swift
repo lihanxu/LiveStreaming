@@ -298,6 +298,61 @@ enum AlbumMediaConverter {
         return buffer
     }
 
+    /// 等比放大铺满目标画布并居中裁切；比例相同则等同缩放。多 clip 贴合工程画布用这个，禁止 stretch。
+    /// - Parameters:
+    ///   - source: 已几何、已正放的 BGRA
+    ///   - canvasWidth: 画布宽
+    ///   - canvasHeight: 画布高
+    ///   - pool: 输出池
+    /// - Returns: 画布尺寸的新 buffer
+    static func coverFitPixelBuffer(
+        _ source: CVPixelBuffer,
+        canvasWidth: Int,
+        canvasHeight: Int,
+        pool: OFPixelBufferTool
+    ) -> CVPixelBuffer? {
+        let dstW = max(1, canvasWidth)
+        let dstH = max(1, canvasHeight)
+        let srcW = CVPixelBufferGetWidth(source)
+        let srcH = CVPixelBufferGetHeight(source)
+        if srcW == dstW && srcH == dstH {
+            return copyPixelBuffer(source, pool: pool)
+        }
+        guard srcW > 0, srcH > 0, let cgImage = cgImage(from: source) else {
+            return nil
+        }
+        pool.update(
+            width: UInt32(dstW),
+            height: UInt32(dstH),
+            pixelFormat: kCVPixelFormatType_32BGRA
+        )
+        guard let buffer = pool.createPixelBuffer() else {
+            return nil
+        }
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        guard let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(buffer),
+            width: dstW,
+            height: dstH,
+            bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else {
+            return nil
+        }
+        context.interpolationQuality = .medium
+        let scale = max(CGFloat(dstW) / CGFloat(srcW), CGFloat(dstH) / CGFloat(srcH))
+        let drawW = CGFloat(srcW) * scale
+        let drawH = CGFloat(srcH) * scale
+        let originX = (CGFloat(dstW) - drawW) / 2
+        let originY = (CGFloat(dstH) - drawH) / 2
+        context.clear(CGRect(x: 0, y: 0, width: dstW, height: dstH))
+        context.draw(cgImage, in: CGRect(x: originX, y: originY, width: drawW, height: drawH))
+        return buffer
+    }
+
     /// PixelBuffer 转 CGImage，不走 UIKit
     /// - Parameter pixelBuffer: BGRA
     /// - Returns: CGImage
