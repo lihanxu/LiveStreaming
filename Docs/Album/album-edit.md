@@ -12,8 +12,9 @@
 | [`clip-dataflow.html`](clip-dataflow.html) | `AlbumTimeMapper` 时钟契约（裁切与变速共用） |
 | [`class-diagram.html`](class-diagram.html) | 类型关系 |
 | [`scopes-p0.md`](scopes-p0.md) / [`scopes-p0.html`](scopes-p0.html) | 示波器 P0：直方图 / 波形旁路（已落地） |
+| [`multi-clip.md`](multi-clip.md) / [`multi-clip-architecture.html`](multi-clip-architecture.html) | 多视频拼接与转场（规划；不引入美摄时间线） |
 
-对照实现：阶段 1–4 已落地（含整段/分段变速）；阶段 5 截图未做；示波器 P0 已落地。
+对照实现：阶段 1–4 已落地（含整段/分段变速）；阶段 5 截图未做；示波器 P0 已落地；多视频工程未做。
 
 ---
 
@@ -41,7 +42,7 @@
 
 1. **草稿为真相。** 预览、导出、（规划中的）截图只读 `AlbumEditSession.document`（`AlbumEditDocument`）。滤镜参数不在文档内，只在 `OFAuxiliaryTools`。这样改 LUT 不必碰时间线；改入出点不必重跑整张滤镜图的参数对象。
 2. **几何与时间线正交。** `AlbumGeometryEdit` 改坐标系；`AlbumTimelineEdit` 决定解哪一段源时间、倍速多少。二者都不是 `OFProcessGraph` 节点。处理图保持「对正放 BGRA 着色」，直播/相册滤镜实现仍是一份。
-3. **几何在滤镜之前。** `AlbumGeometryKernel` 一次 CI 合成片源朝向与用户画幅，再 `inputFrame`。人脸检测、美颜、漫画风都假设画面正放、无大块黑边。
+3. **几何在滤镜之前。** `AlbumGeometryKernel` 一次 CI 合成片源朝向与用户画幅，再 `inputFrame`。人脸检测、美颜都假设画面正放、无大块黑边。
 4. **UI 不持有草稿引用。** 面板只持有值类型**本地副本**；经委托把新值交给 `AlbumEditorViewController`，由 VC 赋值 `session.document`。值类型保证 `present` 进去的是拷贝，改完必须交回，避免面板与会话各改一半。
 5. **TimeMapper 无状态。** `AlbumTimeMapper` 是 `struct` 快照：`init(timeline:sourceDuration:)`。Player / Exporter 按需构造，不反向持有文档，也不缓存过期 Composition。
 6. **不引入美摄时间线。** 不抄 `NvsTimeline` / `compileTimeline`。`AVMutableComposition` 只表达「播放轴无缺口」。单段且 1x 仍用原片 + 入出点，少一次合成、少一份时间戳误差。
@@ -364,4 +365,3 @@ AVPlayerItemVideoOutput  32BGRA（编码朝向，尺寸按 naturalSize 缩放）
 - 自由角必须 cover，否则黑边进人脸检测
 - 分段变速 + AAC 时间戳累积（合成轴缩放后音画对齐要靠同一 `scaleTimeRange`）
 - iOS 12 实况写入需 JPEG/MOV 配对 identifier，失败应降级为静图+短视频（截图阶段）
-- 漫画风 + 人脸在接近屏像素时较重；导出长视频会逐帧跑检测，耗时属预期

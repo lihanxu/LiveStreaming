@@ -16,7 +16,6 @@ Pod::Spec.new do |s|
   s.resource_bundles = {
     'OFFilterKit' => [
       'Resources/LUT/*.png',
-      'Resources/Cartoon/*.mlmodel',
       'Resources/FaceLandmarker/*.task'
     ]
   }

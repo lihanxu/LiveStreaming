@@ -13,7 +13,7 @@ App 启动后进入首页，两个入口：
 | 入口 | 页面 | 职责 |
 |------|------|------|
 | 实时流预览 | `LivePreviewViewController`（Storyboard id 同名） | 摄像头采集 → 滤镜处理图 → OpenGL 预览；顺带 H.264 编码与耳返 |
-| 相册 | `AlbumViewController` → `AlbumEditorViewController` | 浏览系统相册；对照片/视频套同一套 LUT/美颜，预览并可导出回相册 |
+| 相册 | `AlbumViewController` → `AlbumEditorViewController` | 浏览系统相册；LUT/美颜照片与视频共用；预览并可导出回相册 |
 
 滤镜实现只维护一份，在开发源 Pod **OFFilterKit**（`OFAuxiliaryTools` + `OFProcessGraph`）。直播与相册各自持有独立门面实例，参数互不串扰。
 
@@ -24,7 +24,6 @@ App 启动后进入首页，两个入口：
 - 采集：AVFoundation `AVCaptureSession`（32BGRA + PCM）
 - GPU：滤镜走 Metal Compute（OFFilterKit）；预览走 OpenGL ES 3（`SCGLView`），通过 IOSurface / `CVPixelBuffer` 共享像素
 - 人脸：MediaPipe Tasks Vision（由 OFFilterKit 引入；`face_landmarker.task` 在 Pod resource bundle）
-- 漫画风：Core ML `AnimeGANv3_*.mlmodel`（同样在 Pod bundle，编成 `mlmodelc`）
 - 日志：CocoaLumberjack（TTY stderr + os_log + 按天文件）
 - 最低系统：iOS 12.0。App `Podfile` 依赖 `OFFilterKit`（`:path => '../OFFilterKit'`）与 Lumberjack；MediaPipe 由内核 Pod 带入。
 
@@ -79,7 +78,7 @@ Main.storyboard
 - 调度：`OFProcessGraph`（拓扑序缓存，未启用的节点透传）
 - 节点协议：`OFProcessNode`（`isEnabled` + 原地改 `pixelBuffer` / `texture`）
 - GPU 资源：每门面一份 `OFFilterContext`（`OFDefalutMetal` + `OFPixelBufferTool`）
-- 资源：`OFFilterKit.bundle`（LUT PNG、`face_landmarker.task`、`mlmodelc`、`default.metallib`）
+- 资源：`OFFilterKit.bundle`（LUT PNG、`face_landmarker.task`、`default.metallib`）
 - App 引用：`import OFFilterKit`；`FrameBuffer.h` 使用 `#import <OFFilterKit/Frame.h>`
 
 默认链路（与代码注释一致）：
@@ -91,7 +90,6 @@ Source
   → FaceReshape
   → ColorAdjust
   → LUT
-  → Cartoon
   → SingleColor
   → GaussianBlur
   → Peak
@@ -101,12 +99,11 @@ Source
 
 | 节点 | 类型 | 说明 |
 |------|------|------|
-| FaceLandmarker | MediaPipe | 关键点；美颜/重塑/漫画风共用 |
+| FaceLandmarker | MediaPipe | 关键点；美颜/重塑共用 |
 | Beauty | Metal | 磨皮、美肤 LUT、亮眼、白牙 |
 | FaceReshape | Metal | 瘦脸、大眼、瘦鼻等 |
 | ColorAdjust | Metal | 曝光、对比、色温等 |
 | LUT | Metal | 3D LUT 预设 + 混合强度 |
-| Cartoon | Core ML | 宫崎骏 / 新海诚风 |
 | SingleColor / GaussianBlur / Peak | Metal | 单色、模糊、描边 |
 | Transition | Metal | 切镜冻结帧混合；**仅直播设置页露出** |
 
@@ -214,10 +211,10 @@ OFFilterKit/                          滤镜内核开发源 Pod
   OFFilterKit.podspec
   Sources/
     Metal/                            门面、Context、像素池、部分滤镜、AuxiliaryTool.metal
-    Process/ Face/ LUT/ ColorAdjust/ Cartoon/ Transition/
+    Process/ Face/ LUT/ ColorAdjust/ Transition/
     Frame/                            VideoFrame（public header）
     Graph/                            SCListGraph / SCQueue
-  Resources/                          LUT PNG、mlmodel、face_landmarker.task
+  Resources/                          LUT PNG、face_landmarker.task
 
 LiveStreaming/LiveStreaming/          App
   AppDelegate.swift / HomeViewController.swift / OFLogger.swift
@@ -244,7 +241,6 @@ App 工程用 Xcode 文件夹自动同步（`PBXFileSystemSynchronizedRootGroup`
 ## 13. 已知边界
 
 - `VideoEncoder` 只写裸 H.264，不能直接存相册；相册视频必须走 `AlbumVideoExporter`。
-- 漫画风 + 人脸在接近屏像素时较重；导出长视频会逐帧跑检测，耗时属预期。
 - 像素池按门面实例隔离；直播与相册仍不要同时 `inputFrame` 抢同一 GPU，相册内部靠串行队列。
 - 视频预览与导出都经 `AlbumGeometryKernel` bake `preferredTransform` 与用户画幅；Writer 置 identity。不再用编码尺寸 + `writer.transform` 分裂朝向。
 - 相册草稿不持久化；退出编辑页即丢。多段/变速预览绑 Composition，剪辑面板打开时改绑原片源轴。
@@ -254,3 +250,4 @@ App 工程用 Xcode 文件夹自动同步（`PBXFileSystemSynchronizedRootGroup`
 - 新滤镜：在 OFFilterKit 实现 `OFProcessNode`，在 `OFAuxiliaryTools.setupProcessGraph` 加顶点与边，并在 App 设置页加项。
 - 新采集源：继承 `OFInputDevice`，输出 32BGRA `CMSampleBuffer`。
 - 推流：在直播 `LivePreviewViewController` 编码出口接封装/网络，不必改处理图。
+- 多视频拼接与转场：见 [`Album/multi-clip.md`](Album/multi-clip.md)。美摄 SDK 有轨道 `appendClip` 与内置转场，本仓库仍不引入 `NvsTimeline`，在现有草稿上叠加 `AlbumProject`。

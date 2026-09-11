@@ -5,7 +5,7 @@
 //  Created by Hansen on 2021/12/6.
 //
 //  滤镜入口：组装默认处理图，并把 UI 开关转给对应节点。
-//  默认链路：Source → FaceLandmarker → Beauty → FaceReshape → ColorAdjust → LUT → Cartoon → SingleColor → GaussianBlur → Peak → Transition → Sink
+//  默认链路：Source → FaceLandmarker → Beauty → FaceReshape → ColorAdjust → LUT → SingleColor → GaussianBlur → Peak → Transition → Sink
 //
 
 import Foundation
@@ -21,13 +21,6 @@ public class OFAuxiliaryTools: NSObject {
     /// LUT 调色节点
     private lazy var lut: OFLUTComputer = {
         return OFLUTComputer(context: context)
-    }()
-    
-    /// 整帧漫画风（AnimeGANv3 Core ML）
-    private lazy var cartoon: OFCartoonComputer = {
-        let node = OFCartoonComputer(context: context)
-        node.landmarker = faceLandmarker
-        return node
     }()
     
     /// 单通道 / 灰度节点
@@ -93,7 +86,6 @@ public class OFAuxiliaryTools: NSObject {
         processGraph.addNode(.faceReshape, processor: faceReshape)
         processGraph.addNode(.colorAdjust, processor: colorAdjust)
         processGraph.addNode(.lut, processor: lut)
-        processGraph.addNode(.cartoon, processor: cartoon)
         processGraph.addNode(.singleColor, processor: singleColor)
         processGraph.addNode(.gaussianBlur, processor: gaussianBlur)
         processGraph.addNode(.peak, processor: peak)
@@ -105,8 +97,7 @@ public class OFAuxiliaryTools: NSObject {
         processGraph.addEdge(from: .beauty, to: .faceReshape)
         processGraph.addEdge(from: .faceReshape, to: .colorAdjust)
         processGraph.addEdge(from: .colorAdjust, to: .lut)
-        processGraph.addEdge(from: .lut, to: .cartoon)
-        processGraph.addEdge(from: .cartoon, to: .singleColor)
+        processGraph.addEdge(from: .lut, to: .singleColor)
         processGraph.addEdge(from: .singleColor, to: .gaussianBlur)
         processGraph.addEdge(from: .gaussianBlur, to: .peak)
         processGraph.addEdge(from: .peak, to: .transition)
@@ -136,23 +127,6 @@ public class OFAuxiliaryTools: NSObject {
     /// 当前 LUT 预设下标
     public var currentLUTIndex: Int {
         return lut.currentPresetIndex
-    }
-    
-    /// 设置页漫画风当前值
-    public var cartoonValueText: String {
-        return cartoon.currentPreset.displayName
-    }
-    
-    /// 当前漫画风预设下标
-    public var currentCartoonIndex: Int {
-        return cartoon.currentPresetIndex
-    }
-    
-    /// 选中指定漫画风预设
-    /// - Parameter index: `OFCartoonPreset.all` 下标
-    public func applyCartoon(at index: Int) {
-        cartoon.applyPreset(at: index)
-        updateFaceLandmarkerFlags()
     }
     
     /// 设置页单色当前值
@@ -248,10 +222,10 @@ public class OFAuxiliaryTools: NSObject {
         return faceLandmarker.copyLatestFaces()
     }
     
-    /// 美颜、网格或漫画风任一打开就推理，漫画风要用脸遮罩减轻结块
+    /// 美颜或网格打开才推理
     private func updateFaceLandmarkerFlags() {
         faceLandmarker.overlayEnabled = faceMeshOverlayEnabled
-        faceLandmarker.inferenceEnabled = beautyEnabled || faceMeshOverlayEnabled || cartoon.isEnabled
+        faceLandmarker.inferenceEnabled = beautyEnabled || faceMeshOverlayEnabled
     }
     
     /// 根页调色格子摘要

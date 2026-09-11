@@ -377,7 +377,7 @@ class OFSettingsSheetView: UIView {
         switch pageStack.last ?? .root {
         case .beauty, .whiteningStyle, .faceReshape, .colorAdjust, .lut:
             return true
-        case .root, .cartoon, .transition:
+        case .root, .transition:
             return false
         }
     }
@@ -401,7 +401,7 @@ class OFSettingsSheetView: UIView {
             controller.setColorAdjustCompareHolding(true)
         case .lut:
             controller.setLUTBypassed(true)
-        case .root, .cartoon, .transition:
+        case .root, .transition:
             break
         }
     }

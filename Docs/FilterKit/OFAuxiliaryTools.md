@@ -17,12 +17,12 @@ pod 'OFFilterKit', :path => '../OFFilterKit'
 | 门面 `OFAuxiliaryTools`、`OFProcessGraph`、全部滤镜节点 | 采集、编码、音频 |
 | `OFFilterContext`（Metal + 像素池） | `SCGLView`、`FrameBuffer`（`#import <OFFilterKit/Frame.h>`） |
 | `VideoFrame`（`Frame.h` / `Frame.m`） | Settings UI（摄像头切换只属于直播设置页） |
-| LUT PNG、`*.mlmodel`、`face_landmarker.task`、`AuxiliaryTool.metal` | `Album/*`（只调 `inputFrame` 与 `session.tools.pixelBufferPool`） |
+| LUT PNG、`face_landmarker.task`、`AuxiliaryTool.metal` | `Album/*`（只调 `inputFrame` 与 `session.tools.pixelBufferPool`） |
 | `OFBeautySettings` / `OFWhiteningStyle` / `OFColorAdjustParams` | `OFColorAdjustEditorView` 等编辑器视图 |
 
 对外产品 API 保持：`OFAuxiliaryTools` + `inputFrame` + 参数 DTO。Swift 调用处 `import OFFilterKit`。
 
-**资源 Bundle**：`s.resource_bundles` → App 内 `OFFilterKit.bundle`。LUT / `face_landmarker.task` / 编译后的 `mlmodelc` / `default.metallib` 都从这里读（[`OFFilterResources`](../../OFFilterKit/Sources/Metal/OFFilterResources.swift)）。静态库不会把 metallib 带进 App，Pod 在编译后把它拷进该 bundle。
+**资源 Bundle**：`s.resource_bundles` → App 内 `OFFilterKit.bundle`。LUT / `face_landmarker.task` / `default.metallib` 都从这里读（[`OFFilterResources`](../../OFFilterKit/Sources/Metal/OFFilterResources.swift)）。静态库不会把 metallib 带进 App，Pod 在编译后把它拷进该 bundle。
 
 **`OFFilterContext` 生命周期**：每个 `OFAuxiliaryTools` 构造时新建一份 Metal 设备封装 + `OFPixelBufferTool`，再注入各 `*Computer`。直播与相册各持一门面，像素池按实例隔离；仍不要同时对同一 GPU 设备 `inputFrame`。
 
@@ -60,12 +60,12 @@ pod 'OFFilterKit', :path => '../OFFilterKit'
         OFProcessGraph            ← ID 图 + processor 表 + 拓扑序缓存
               │
               ▼
-     OFProcessNode 实现           ← LUT / Beauty / Cartoon / …
+     OFProcessNode 实现           ← LUT / Beauty / …
               │
-    ┌─────────┼──────────┐
-    ▼         ▼          ▼
-  Metal    MediaPipe   Core ML
- Compute   Landmarker  AnimeGANv3
+    ┌─────────┴──────────┐
+    ▼                    ▼
+  Metal              MediaPipe
+ Compute             Landmarker
 ```
 
 | 层 | 文件（均在 `OFFilterKit/Sources/`） | 做什么 |
@@ -74,7 +74,7 @@ pod 'OFFilterKit', :path => '../OFFilterKit'
 | 调度 | `Process/OFProcessGraph.swift` | `SCListGraph<OFProcessNodeID>`，按拓扑序调用 `process` |
 | 约定 | `Process/OFProcessNode.swift` | `isEnabled` + 原地改 `VideoFrame` |
 | 图结构 | `Graph/SCListGraph.swift` | 邻接表有向图 + Kahn 拓扑排序 |
-| 节点 | `Face/` `LUT/` `ColorAdjust/` `Cartoon/` `Transition/` `Metal/` | 各自编译 pipeline、读写参数 |
+| 节点 | `Face/` `LUT/` `ColorAdjust/` `Transition/` `Metal/` | 各自编译 pipeline、读写参数 |
 | 实例资源 | `OFFilterContext` → `OFDefalutMetal` + `OFPixelBufferTool` | 每门面一份设备/队列与输出池 |
 
 图结构只存 **ID 与边**。真正做 GPU 的对象挂在 `processors` 字典里。`source` / `sink` 是占位顶点，没有 processor。
@@ -90,7 +90,6 @@ Source
   → FaceReshape
   → ColorAdjust
   → LUT
-  → Cartoon
   → SingleColor
   → GaussianBlur
   → Peak
@@ -100,10 +99,9 @@ Source
 
 顺序约束是产品语义，不是随意排列：
 
-- **Landmarker 最先**：美颜、重塑、漫画风共用同一组点；必须先有（或沿用上一帧的）结果。
+- **Landmarker 最先**：美颜、重塑共用同一组点；必须先有（或沿用上一帧的）结果。
 - **Beauty 在 Reshape 前**：先磨皮着色，再几何形变，避免形变后面部区域和关键点错位。
 - **ColorAdjust / LUT 在脸部处理之后**：全局调色不要干扰关键点所在像素语义。
-- **Cartoon 在 LUT 后**：风格化覆盖写实调色。
 - **Transition 最后**：切镜混合的是「已经滤好」的画面。
 
 加贴纸、分割等后续节点：新 `OFProcessNodeID` + `addNode` + `addEdge`，不必改调度器。
@@ -129,7 +127,7 @@ faceLandmarker.applyDebugOverlayIfNeeded   ← 网格调试画在处理后的帧
 宿主：SCGLView.inputFrame 或导出 Writer
 ```
 
-**透传**是架构关键：关闭的 LUT/模糊/漫画风不跑 GPU，也不拷贝一帧。代价是节点必须能在「没人改过 buffer」时安全跳过。
+**透传**是架构关键：关闭的 LUT/模糊不跑 GPU，也不拷贝一帧。代价是节点必须能在「没人改过 buffer」时安全跳过。
 
 **原地改帧**让预览路径零额外 blit，但相册照片必须从 `sourceBuffer` 拷贝后再进图，否则第二次滤镜叠在已处理结果上。
 
@@ -146,10 +144,9 @@ protocol OFProcessNode: AnyObject {
 
 | 节点 | 开启条件（摘要） |
 |------|------------------|
-| FaceLandmarker | 美颜开、网格开、或漫画风开（要脸遮罩） |
+| FaceLandmarker | 美颜开或网格开 |
 | Beauty / FaceReshape | 总开关 + 档位非零，且未 bypass |
 | LUT / ColorAdjust | 选了预设/滑杆非零，且未 bypass |
-| Cartoon | 选了风格预设 |
 | GaussianBlur / Peak / SingleColor | 对应开关 |
 | Transition | 已武装且正在播放时段 |
 
@@ -159,8 +156,7 @@ protocol OFProcessNode: AnyObject {
 
 ```
 faceLandmarker ──► beauty.landmarker
-               ├──► faceReshape.landmarker
-               └──► cartoon.landmarker
+               └──► faceReshape.landmarker
 ```
 
 `updateFaceLandmarkerFlags()` 把「谁需要点」收成一次 `inferenceEnabled`。Landmarker 用 MediaPipe live stream，推理异步、不阻塞采集；忙时丢帧，美颜继续用上一帧点。
@@ -173,7 +169,7 @@ faceLandmarker ──► beauty.landmarker
 直播采集、相册 Reader、设置页只认门面。换像素源不必改节点；换节点不必改 VC。相册复用同一套 LUT/美颜，没有第二份实现。
 
 **2. 开关即调度**  
-`isEnabled` 把产品开关、bypass、资源是否就绪合成「跑或不跑」。实时路径上关闭的重节点（Core ML 漫画风、高斯）直接 continue，比先渲染再丢结果更省。
+`isEnabled` 把产品开关、bypass、资源是否就绪合成「跑或不跑」。关闭的重节点（高斯）直接 continue，比先渲染再丢结果更省。
 
 **3. 构图与执行分离**  
 图用 ID 描述依赖，拓扑序缓存。默认虽是链，调度器已按 DAG 写：以后要分支（例如人脸遮罩走旁路再复合）只需加边，不必重写 `process`。
@@ -228,7 +224,7 @@ LUT 换四面体插值、Beauty 加亮眼，只要守协议。设置页只加格
 | 缺点 | 自定义检测+形变不好塞进 CI 图；实时 1080p 多级 CI 有中间图开销；iOS 版本能力差 | 要自己管池、格式、线程 |
 | 适用 | 相册调色、系统滤镜 | 直播级自研美颜 + 第三方推理 |
 
-本项目相册导出若只做 LUT，CI 足够；但要和直播同一套瘦脸/漫画风，继续走 `OFProcessNode` 更一致。几何裁切（规划中的剪辑层）用 CI 做、滤镜仍走本图，是合理的混合，不要把旋转做成 DAG 节点。
+本项目相册导出若只做 LUT，CI 足够；瘦脸与直播共用 `OFProcessNode`。几何裁切用 CI 做、滤镜仍走本图，是合理的混合，不要把旋转做成 DAG 节点。
 
 ### 7.4 AVVideoComposition / 自定义 Compositor
 
@@ -288,7 +284,7 @@ LUT 换四面体插值、Beauty 加亮眼，只要守协议。设置页只加格
 
 这些不是实现细节，是架构取舍：
 
-1. **执行模型是线性原地写**。要做「LUT 与漫画风并行再混合」，必须引入按边传递的中间纹理，不能只加一条边。
+1. **执行模型是线性原地写**。要做「LUT 与其它节点并行再混合」，必须引入按边传递的中间纹理，不能只加一条边。
 2. **像素池按门面实例隔离**。两套门面不再抢同一 `CVPixelBufferPool`，但仍不要同时 `inputFrame` 抢同一 GPU。相册用串行队列；直播与相册页面互斥。
 3. **线程安全在图外**。图本身无锁。直播约定采集线程；相册约定 `processingQueue`。设置页改参数与 `process` 并发时，节点需自保（多数只写几个标量）。
 4. **门面会变胖**。长期应避免把每个滑杆都变成 `tools.setXxx`。可按域拆成 `BeautyFacade` / `ColorFacade`，仍由 `OFAuxiliaryTools` 持有并构图。

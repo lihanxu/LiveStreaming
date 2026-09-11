@@ -14,8 +14,6 @@ enum OFSettingsPageID: Equatable {
     case root
     /// LUT 预设列表
     case lut
-    /// 漫画风预设列表
-    case cartoon
     /// 美颜参数；人脸网格已接入 Face Landmarker
     case beauty
     /// 美肤滤镜：冷白 / 暖白 / 粉嫩
@@ -36,10 +34,6 @@ enum OFSettingID: Equatable {
     case lut
     /// 二级页里选中某个 LUT 预设
     case lutPreset(Int)
-    /// 主页上的漫画风入口
-    case cartoon
-    /// 二级页里选中某个漫画风预设
-    case cartoonPreset(Int)
     /// 单通道 / 灰度
     case singleColor
     /// 高斯模糊开关

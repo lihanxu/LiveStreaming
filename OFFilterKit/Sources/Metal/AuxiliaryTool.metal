@@ -664,63 +664,6 @@ kernel void faceReshape(texture2d<float, access::sample> videoTexture [[texture(
     destTexture.write(videoTexture.sample(linearSampler, uv), gid);
 }
 
-/// Rec.709 亮度，给漫画风在脸上按原图亮度压色块。
-static inline float cartoonLuma(float3 c) {
-    return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-}
-
-/// 漫画风合成：背景保留较多风格，脸部少风格 + 补高频，避免皮肤结块。
-/// params: x=背景风格  y=脸部风格  z=细节回加  w=脸上亮度贴回
-kernel void cartoonComposite(texture2d<float, access::sample> originalTexture [[texture(0)]],
-                             texture2d<float, access::sample> cartoonTexture [[texture(1)]],
-                             texture2d<float, access::sample> maskTexture [[texture(2)]],
-                             texture2d<float, access::write> destTexture [[texture(3)]],
-                             constant uint *size [[buffer(0)]],
-                             constant float *params [[buffer(1)]],
-                             const uint2 gid [[thread_position_in_grid]])
-{
-    if (gid.x >= size[0] || gid.y >= size[1]) {
-        return;
-    }
-    constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
-    float2 uv = float2((float(gid.x) + 0.5) / float(size[0]),
-                       (float(gid.y) + 0.5) / float(size[1]));
-    float3 orig = originalTexture.sample(linearSampler, uv).rgb;
-    float3 toon = cartoonTexture.sample(linearSampler, uv).rgb;
-    float4 mask = maskTexture.sample(linearSampler, uv);
-    float face = mask.r;
-    float eye = mask.g;
-
-    // 1. 3×3 高斯取低频，原图减低频得到五官边缘
-    float2 texel = float2(1.0 / float(size[0]), 1.0 / float(size[1]));
-    float3 blur = orig * 4.0;
-    blur += originalTexture.sample(linearSampler, uv + float2(-texel.x, 0.0)).rgb * 2.0;
-    blur += originalTexture.sample(linearSampler, uv + float2(texel.x, 0.0)).rgb * 2.0;
-    blur += originalTexture.sample(linearSampler, uv + float2(0.0, -texel.y)).rgb * 2.0;
-    blur += originalTexture.sample(linearSampler, uv + float2(0.0, texel.y)).rgb * 2.0;
-    blur += originalTexture.sample(linearSampler, uv + float2(-texel.x, -texel.y)).rgb;
-    blur += originalTexture.sample(linearSampler, uv + float2(texel.x, -texel.y)).rgb;
-    blur += originalTexture.sample(linearSampler, uv + float2(-texel.x, texel.y)).rgb;
-    blur += originalTexture.sample(linearSampler, uv + float2(texel.x, texel.y)).rgb;
-    blur *= (1.0 / 16.0);
-    float3 detail = orig - blur;
-
-    // 2. 脸比背景更少用 GAN，眼睛再少一点，避免瞳孔被涂成色块
-    float mixAmt = mix(params[0], params[1], face);
-    mixAmt = mix(mixAmt, params[1] * 0.55, eye);
-    float3 color = mix(orig, toon, mixAmt);
-
-    // 3. 脸上用原图亮度去压 AnimeGAN 的平涂色阶
-    float yOrig = cartoonLuma(orig);
-    float yColor = max(cartoonLuma(color), 1e-4);
-    float lumaBlend = face * params[3];
-    color *= mix(1.0, yOrig / yColor, lumaBlend);
-
-    // 4. 细节回加：全图轻度，脸上更强
-    color += detail * params[2] * (0.28 + 0.72 * face);
-    destTexture.write(float4(saturate(color), 1.0), gid);
-}
-
 /// 把源纹理逐像素拷到目标，用于冻结转场「从」画面。
 kernel void copyTexture2D(texture2d<float, access::read> src [[texture(0)]],
                           texture2d<float, access::write> dst [[texture(1)]],

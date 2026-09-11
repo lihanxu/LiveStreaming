@@ -30,7 +30,7 @@ SPEC CHECKSUMS:
   CocoaLumberjack: 6a459bc897d6d80bd1b8c78482ec7ad05dffc3f0
   MediaPipeTasksCommon: 6cfa29170d4900f04d250ad95ec058f14a741f38
   MediaPipeTasksVision: 7b1c0f5a5820e87e9d96926f5e65d8cd3744fac2
-  OFFilterKit: c41ef7f2dffbd521d9b6de74cea669e7a5288aae
+  OFFilterKit: 7a5762637a9327d8bdabecadf6296c14d7775494
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
 
 PODFILE CHECKSUM: 2bfc1b9bfb607038e621fbbaebe4b3607b804a41

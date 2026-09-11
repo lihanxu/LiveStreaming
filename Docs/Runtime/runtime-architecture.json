@@ -78,12 +78,6 @@
           "line": 16,
           "end_line": 28,
           "label": "Face Landmarker"
-        },
-        {
-          "path": "OFFilterKit/Sources/Cartoon/OFCartoonComputer.swift",
-          "line": 18,
-          "end_line": 28,
-          "label": "AnimeGANv3"
         }
       ]
     },
@@ -241,7 +235,7 @@
       "id": "filter-to-ml",
       "from": "filterKit",
       "to": "mlModels",
-      "label": "关键点 / 漫画风",
+      "label": "关键点",
       "variant": "dashed",
       "fromSide": "top",
       "toSide": "bottom"
@@ -253,7 +247,7 @@
       "title": "主路径",
       "items": [
         "采集封装 VideoFrame 后入 OFAuxiliaryTools，SCGLView 经 IOSurface 预览",
-        "DAG：Landmarker → Beauty → Reshape → LUT → Cartoon → Peak；未启用则透传"
+        "DAG：Landmarker → Beauty → Reshape → LUT → Peak；未启用则透传"
       ]
     },
     {
