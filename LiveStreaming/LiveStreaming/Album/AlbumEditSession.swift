@@ -15,14 +15,29 @@ class AlbumEditSession {
     let tools: OFAuxiliaryTools
     /// 画幅 + 时间线；预览/导出只读
     var document = AlbumEditDocument()
+    /// 直方图 / 波形累加；不是处理图节点
+    private let scopeAnalyzer: AlbumScopeAnalyzer
     /// 所有 Metal / MediaPipe 处理必须在此串行队列执行
     private let processingQueue = DispatchQueue(label: "com.oldface.LiveStreaming.album.gpu", qos: .userInitiated)
     /// 导出中为 true 时丢弃预览帧
     private var isExporting = false
 
+    /// 示波器面板打开时为 true；关闭则预览路径不跑 kernel
+    var scopesEnabled: Bool {
+        get { scopeAnalyzer.isEnabled }
+        set { scopeAnalyzer.isEnabled = newValue }
+    }
+
+    /// 波形 Colorize；只影响 Analyzer 是否写 RGB 累加
+    var scopeColorize: Bool {
+        get { scopeAnalyzer.colorize }
+        set { scopeAnalyzer.colorize = newValue }
+    }
+
     /// 创建独立处理图实例，与直播页参数隔离
     init() {
         tools = OFAuxiliaryTools()
+        scopeAnalyzer = AlbumScopeAnalyzer(context: tools.context)
     }
 
     /// 进入导出独占：排空队列中旧任务后再回调主线程
@@ -50,15 +65,19 @@ class AlbumEditSession {
     /// 照片：几何后再跑处理图，结果回主线程送预览
     /// - Parameters:
     ///   - source: 预览用原始 BGRA（已 bake 朝向）
-    ///   - completion: 主线程回调处理后的 VideoFrame
-    func reprocessPhotoPreview(source: CVPixelBuffer, completion: @escaping (VideoFrame) -> Void) {
+    ///   - completion: 主线程回调处理后的 VideoFrame；示波器打开时带 snapshot
+    func reprocessPhotoPreview(
+        source: CVPixelBuffer,
+        completion: @escaping (VideoFrame, AlbumScopeSnapshot?) -> Void
+    ) {
         let geometry = document.geometry
         processingQueue.async {
             guard !self.isExporting else { return }
             guard let processed = self.processPhotoBuffer(source, geometry: geometry) else { return }
             let frame = AlbumMediaConverter.makeVideoFrame(from: processed)
+            let snapshot = self.scopeAnalyzer.analyze(frame: frame, pool: self.tools.pixelBufferPool)
             DispatchQueue.main.async {
-                completion(frame)
+                completion(frame, snapshot)
             }
         }
     }
@@ -67,11 +86,11 @@ class AlbumEditSession {
     /// - Parameters:
     ///   - pixelBuffer: VideoOutput 当前帧（编码朝向）
     ///   - preferredTransform: 视频轨 `preferredTransform`
-    ///   - completion: 主线程回调
+    ///   - completion: 主线程回调；示波器打开时带 snapshot
     func processVideoPreviewFrame(
         _ pixelBuffer: CVPixelBuffer,
         preferredTransform: CGAffineTransform,
-        completion: @escaping (VideoFrame) -> Void
+        completion: @escaping (VideoFrame, AlbumScopeSnapshot?) -> Void
     ) {
         let geometry = document.geometry
         processingQueue.async {
@@ -86,8 +105,9 @@ class AlbumEditSession {
             }
             let frame = AlbumMediaConverter.makeVideoFrame(from: geometried)
             self.tools.inputFrame(frame)
+            let snapshot = self.scopeAnalyzer.analyze(frame: frame, pool: self.tools.pixelBufferPool)
             DispatchQueue.main.async {
-                completion(frame)
+                completion(frame, snapshot)
             }
         }
     }

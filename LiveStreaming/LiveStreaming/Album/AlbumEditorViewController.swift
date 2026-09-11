@@ -51,16 +51,24 @@ class AlbumEditorViewController: UIViewController {
     private let trimButton = UIButton(type: .system)
     /// 视频变速入口；照片隐藏
     private let speedButton = UIButton(type: .system)
+    /// 示波器入口；照片与视频都显示
+    private let scopeButton = UIButton(type: .system)
     /// 剪辑/变速面板打开时播放器走原片源时间，关掉后再按 Composition 重建
     private var isTimelinePanelOpen = false
-    /// 底部工具条：照片仅画幅，视频为画幅 / 播放 / 剪辑 / 变速
+    /// 底部工具条容器；视频选项多时分两行，避免示波器被压扁
     private let bottomBar = UIStackView()
+    /// 工具条第一行
+    private let bottomRow1 = UIStackView()
+    /// 工具条第二行（视频：变速 + 示波器）
+    private let bottomRow2 = UIStackView()
     /// 画幅底部面板
     private let geometryPanel = AlbumGeometryPanelView()
     /// 视频收尾底部面板
     private let trimPanel = AlbumTrimPanelView()
     /// 视频变速底部面板
     private let speedPanel = AlbumSpeedPanelView()
+    /// 预览浮层示波器
+    private let scopePanel = AlbumScopePanelView()
     /// 加载中
     private let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .whiteLarge)
@@ -111,6 +119,7 @@ class AlbumEditorViewController: UIViewController {
         super.viewWillDisappear(animated)
         previewView.stop()
         videoPlayer.pause()
+        scopePanel.dismiss()
     }
 
     /// 释放视频资源
@@ -133,46 +142,43 @@ class AlbumEditorViewController: UIViewController {
         view.addSubview(exportButton)
 
         playButton.setTitle("播放", for: .normal)
-        playButton.setTitleColor(.white, for: .normal)
-        playButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        playButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
-        playButton.layer.cornerRadius = 18
-        playButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
+        configureToolButton(playButton)
         playButton.addTarget(self, action: #selector(handlePlayTap), for: .touchUpInside)
 
         geometryButton.setTitle("画幅", for: .normal)
-        geometryButton.setTitleColor(.white, for: .normal)
-        geometryButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        geometryButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
-        geometryButton.layer.cornerRadius = 18
-        geometryButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
+        configureToolButton(geometryButton)
         geometryButton.addTarget(self, action: #selector(handleGeometryTap), for: .touchUpInside)
 
         trimButton.setTitle("剪辑", for: .normal)
-        trimButton.setTitleColor(.white, for: .normal)
-        trimButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        trimButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
-        trimButton.layer.cornerRadius = 18
-        trimButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
+        configureToolButton(trimButton)
         trimButton.addTarget(self, action: #selector(handleTrimTap), for: .touchUpInside)
 
         speedButton.setTitle("变速", for: .normal)
-        speedButton.setTitleColor(.white, for: .normal)
-        speedButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        speedButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
-        speedButton.layer.cornerRadius = 18
-        speedButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+        configureToolButton(speedButton)
         speedButton.addTarget(self, action: #selector(handleSpeedTap), for: .touchUpInside)
 
-        bottomBar.axis = .horizontal
-        bottomBar.alignment = .center
-        bottomBar.spacing = 12
-        bottomBar.distribution = .fill
-        bottomBar.addArrangedSubview(geometryButton)
+        scopeButton.setTitle("示波器", for: .normal)
+        configureToolButton(scopeButton)
+        scopeButton.addTarget(self, action: #selector(handleScopeTap), for: .touchUpInside)
+
+        configureToolRow(bottomRow1)
+        configureToolRow(bottomRow2)
+        bottomRow1.addArrangedSubview(geometryButton)
         if asset.mediaType == .video {
-            bottomBar.addArrangedSubview(playButton)
-            bottomBar.addArrangedSubview(trimButton)
-            bottomBar.addArrangedSubview(speedButton)
+            bottomRow1.addArrangedSubview(playButton)
+            bottomRow1.addArrangedSubview(trimButton)
+            bottomRow2.addArrangedSubview(speedButton)
+            bottomRow2.addArrangedSubview(scopeButton)
+        } else {
+            bottomRow1.addArrangedSubview(scopeButton)
+        }
+
+        bottomBar.axis = .vertical
+        bottomBar.alignment = .center
+        bottomBar.spacing = 8
+        bottomBar.addArrangedSubview(bottomRow1)
+        if asset.mediaType == .video {
+            bottomBar.addArrangedSubview(bottomRow2)
         }
         view.addSubview(bottomBar)
 
@@ -187,6 +193,9 @@ class AlbumEditorViewController: UIViewController {
         speedPanel.delegate = self
         speedPanel.isHidden = true
         view.addSubview(speedPanel)
+
+        scopePanel.delegate = self
+        view.addSubview(scopePanel)
 
         activityIndicator.color = .white
         activityIndicator.hidesWhenStopped = true
@@ -207,6 +216,28 @@ class AlbumEditorViewController: UIViewController {
         view.bringSubviewToFront(geometryPanel)
         view.bringSubviewToFront(trimPanel)
         view.bringSubviewToFront(speedPanel)
+        view.bringSubviewToFront(scopePanel)
+    }
+
+    /// 统一底部工具按钮：不允许被压缩到点不到
+    /// - Parameter button: 画幅 / 播放 / 剪辑 / 变速 / 示波器
+    private func configureToolButton(_ button: UIButton) {
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        button.backgroundColor = UIColor(white: 0, alpha: 0.45)
+        button.layer.cornerRadius = 16
+        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.setContentHuggingPriority(.required, for: .horizontal)
+    }
+
+    /// 工具条一行：水平居中，间距固定
+    /// - Parameter row: 第一行或第二行
+    private func configureToolRow(_ row: UIStackView) {
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 10
+        row.distribution = .fill
     }
 
     /// 统一顶部按钮样式
@@ -247,6 +278,7 @@ class AlbumEditorViewController: UIViewController {
         speedPanel.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
+        scopePanel.pin(in: view)
         activityIndicator.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
@@ -314,8 +346,9 @@ class AlbumEditorViewController: UIViewController {
     /// 经 session GPU 队列重跑照片预览
     private func reprocessPhotoPreview() {
         guard let source = photoSourceBuffer else { return }
-        session.reprocessPhotoPreview(source: source) { [weak self] frame in
+        session.reprocessPhotoPreview(source: source) { [weak self] frame, snapshot in
             self?.previewView.inputFrame(frame)
+            self?.scopePanel.apply(snapshot: snapshot)
         }
     }
 
@@ -357,6 +390,7 @@ class AlbumEditorViewController: UIViewController {
         isTimelinePanelOpen = false
         trimPanel.dismiss(notify: false)
         speedPanel.dismiss(notify: false)
+        scopePanel.dismiss()
         videoPlayer.teardown()
         updatePlayButtonTitle()
         previewView.stop()
@@ -387,6 +421,7 @@ class AlbumEditorViewController: UIViewController {
         speedPanel.dismiss()
         view.bringSubviewToFront(settingsSheet)
         settingsSheet.present()
+        bringScopePanelToFrontIfNeeded()
     }
 
     /// 弹出画幅面板
@@ -397,6 +432,7 @@ class AlbumEditorViewController: UIViewController {
         geometryPanel.geometry = session.document.geometry
         view.bringSubviewToFront(geometryPanel)
         geometryPanel.present()
+        bringScopePanelToFrontIfNeeded()
     }
 
     /// 弹出剪辑面板；条带是源轴，先卸掉 Composition
@@ -409,6 +445,7 @@ class AlbumEditorViewController: UIViewController {
         updatePlayButtonTitle()
         view.bringSubviewToFront(trimPanel)
         trimPanel.present(asset: videoAsset, timeline: session.document.timeline)
+        bringScopePanelToFrontIfNeeded()
     }
 
     /// 弹出变速面板；条带是源轴 1x，先卸掉 Composition
@@ -421,6 +458,34 @@ class AlbumEditorViewController: UIViewController {
         updatePlayButtonTitle()
         view.bringSubviewToFront(speedPanel)
         speedPanel.present(asset: videoAsset, timeline: session.document.timeline)
+        bringScopePanelToFrontIfNeeded()
+    }
+
+    /// 打开或关闭示波器浮层；不关闭画幅/剪辑
+    @objc private func handleScopeTap() {
+        guard !isExporting else { return }
+        if scopePanel.isHidden {
+            view.bringSubviewToFront(scopePanel)
+            scopePanel.present()
+        } else {
+            scopePanel.dismiss()
+        }
+        updateScopeButtonAppearance()
+    }
+
+    /// 示波器开着时压在画幅/设置之上，才能对照画面读数
+    private func bringScopePanelToFrontIfNeeded() {
+        if !scopePanel.isHidden {
+            view.bringSubviewToFront(scopePanel)
+        }
+    }
+
+    /// 入口按钮高亮与浮层一致
+    private func updateScopeButtonAppearance() {
+        let on = !scopePanel.isHidden
+        scopeButton.backgroundColor = on
+            ? UIColor(red: 0.2, green: 0.5, blue: 1, alpha: 0.85)
+            : UIColor(white: 0, alpha: 0.45)
     }
 
     /// 播放/暂停视频
@@ -451,6 +516,7 @@ class AlbumEditorViewController: UIViewController {
         setExportUI(visible: true, progress: 0, text: "准备导出…")
         exportButton.isEnabled = false
         geometryButton.isEnabled = false
+        scopeButton.isEnabled = false
 
         enterExportMode { [weak self] in
             guard let self = self else { return }
@@ -496,6 +562,7 @@ class AlbumEditorViewController: UIViewController {
         geometryButton.isEnabled = false
         trimButton.isEnabled = false
         speedButton.isEnabled = false
+        scopeButton.isEnabled = false
 
         enterExportMode { [weak self] in
             guard let self = self else { return }
@@ -544,6 +611,7 @@ class AlbumEditorViewController: UIViewController {
             self.geometryButton.isEnabled = true
             self.trimButton.isEnabled = true
             self.speedButton.isEnabled = true
+            self.scopeButton.isEnabled = true
             self.setExportUI(visible: false, progress: 0, text: "")
             self.showAlert(title: success ? "导出成功" : "导出失败", message: message)
         }
@@ -561,8 +629,9 @@ extension AlbumEditorViewController: AlbumVideoPlayerDelegate {
     /// DisplayLink 在主线程触发，处理交给 session GPU 队列
     func videoPlayer(_ player: AlbumVideoPlayer, didOutput pixelBuffer: CVPixelBuffer, at time: CMTime) {
         guard !isExporting else { return }
-        session.processVideoPreviewFrame(pixelBuffer, preferredTransform: player.preferredTransform) { [weak self] frame in
+        session.processVideoPreviewFrame(pixelBuffer, preferredTransform: player.preferredTransform) { [weak self] frame, snapshot in
             self?.previewView.inputFrame(frame)
+            self?.scopePanel.apply(snapshot: snapshot)
         }
     }
 }
@@ -639,5 +708,30 @@ extension AlbumEditorViewController: AlbumSpeedPanelViewDelegate {
         guard !isExporting, videoAsset != nil else { return }
         configureVideoPlayer()
         updatePlayButtonTitle()
+    }
+}
+
+extension AlbumEditorViewController: AlbumScopePanelViewDelegate {
+    /// 打开时开 GPU 旁路；静图立刻重跑一帧
+    func scopePanel(_ panel: AlbumScopePanelView, didChangeEnabled enabled: Bool) {
+        session.scopesEnabled = enabled
+        updateScopeButtonAppearance()
+        if enabled {
+            if asset.mediaType == .image {
+                reprocessPhotoPreview()
+            } else {
+                videoPlayer.refreshCurrentFrame()
+            }
+        }
+    }
+
+    /// Colorize 只影响波形累加；需要重跑当前预览帧
+    func scopePanel(_ panel: AlbumScopePanelView, didChangeColorize colorize: Bool) {
+        session.scopeColorize = colorize
+        if asset.mediaType == .image {
+            reprocessPhotoPreview()
+        } else {
+            videoPlayer.refreshCurrentFrame()
+        }
     }
 }

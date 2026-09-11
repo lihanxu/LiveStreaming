@@ -4,7 +4,7 @@
 //
 //  Created by Hansen on 2021/11/8.
 //
-//  启动时配置 CocoaLumberjack 与 AVAudioSession（播放+录音，允许蓝牙 A2DP）。
+//  启动时配置 CocoaLumberjack、AVAudioSession（播放+录音，允许蓝牙 A2DP），并禁止系统息屏。
 //
 
 import UIKit
@@ -19,9 +19,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
 
-    /// 启动：先装日志，再激活音频会话
+    /// 启动：先装日志，再激活音频会话，并关闭空闲定时器以防息屏
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         OFLogger.setup()
+        // 直播/预览长时间停留时系统仍会按空闲策略息屏，全程禁用 idle timer
+        application.isIdleTimerDisabled = true
         
         do {
             let audioSession = AVAudioSession.sharedInstance()

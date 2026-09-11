@@ -4,7 +4,7 @@
 //
 //  Created by Hansen on 2021/11/8.
 //
-//  实时流预览协调器：采集 → 处理图 → OpenGL 预览 / H.264 编码，音频走耳返。
+//  实时流预览协调器：采集 → 处理图 → OpenGL 预览 / H.264 编码，音频走耳返；示波器为滤镜后旁路。
 //  从首页 push 进入；左上返回、右上设置。
 //
 
@@ -40,6 +40,14 @@ class LivePreviewViewController: UIViewController {
     private let settingsButton = UIButton(type: .system)
     /// 底部设置卡片
     private var settingsSheet: OFSettingsSheetView!
+    /// 示波器入口
+    private let scopeButton = UIButton(type: .system)
+    /// 预览浮层示波器
+    private let scopePanel = AlbumScopePanelView()
+    /// 滤镜后测量旁路；与相册共用实现
+    private lazy var scopeAnalyzer: AlbumScopeAnalyzer = {
+        return AlbumScopeAnalyzer(context: auxiliaryTools.context)
+    }()
     
     /// 组装 UI；采集放到 appear，避免首页未进入就占摄像头
     override func viewDidLoad() {
@@ -75,6 +83,7 @@ class LivePreviewViewController: UIViewController {
             inputDevice?.stopSession()
             previewView.stop()
             audioMng?.stopPlayAudio()
+            scopePanel.dismiss()
         }
     }
     
@@ -100,9 +109,22 @@ class LivePreviewViewController: UIViewController {
         settingsButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 14, bottom: 6, right: 14)
         settingsButton.addTarget(self, action: #selector(handleSettingsTap), for: .touchUpInside)
         view.addSubview(settingsButton)
-        
+
+        scopeButton.setTitle("示波器", for: .normal)
+        scopeButton.setTitleColor(.white, for: .normal)
+        scopeButton.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        scopeButton.backgroundColor = UIColor(white: 0, alpha: 0.45)
+        scopeButton.layer.cornerRadius = 16
+        scopeButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        scopeButton.addTarget(self, action: #selector(handleScopeTap), for: .touchUpInside)
+        view.addSubview(scopeButton)
+
+        scopePanel.delegate = self
+        view.addSubview(scopePanel)
+
         settingsSheet = OFSettingsSheetView(controller: settingsController)
         view.addSubview(settingsSheet)
+        view.bringSubviewToFront(scopePanel)
     }
     
     /// 返回/设置贴安全区两侧，卡片铺满全屏做蒙层
@@ -115,6 +137,11 @@ class LivePreviewViewController: UIViewController {
             make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
             make.trailing.equalTo(view.safeAreaLayoutGuide).offset(-12)
         }
+        scopeButton.snp.makeConstraints { make in
+            make.leading.equalTo(view.safeAreaLayoutGuide).offset(12)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-16)
+        }
+        scopePanel.pin(in: view)
         settingsSheet.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
@@ -129,6 +156,28 @@ class LivePreviewViewController: UIViewController {
     @objc private func handleSettingsTap() {
         view.bringSubviewToFront(settingsSheet)
         settingsSheet.present()
+        if !scopePanel.isHidden {
+            view.bringSubviewToFront(scopePanel)
+        }
+    }
+
+    /// 打开或关闭示波器
+    @objc private func handleScopeTap() {
+        if scopePanel.isHidden {
+            view.bringSubviewToFront(scopePanel)
+            scopePanel.present()
+        } else {
+            scopePanel.dismiss()
+        }
+        updateScopeButtonAppearance()
+    }
+
+    /// 入口高亮与浮层一致
+    private func updateScopeButtonAppearance() {
+        let on = !scopePanel.isHidden
+        scopeButton.backgroundColor = on
+            ? UIColor(red: 0.2, green: 0.5, blue: 1, alpha: 0.85)
+            : UIColor(white: 0, alpha: 0.45)
     }
 }
 
@@ -148,6 +197,11 @@ extension LivePreviewViewController: OFInputDeviceDelegate {
         frame.pixelBuffer = pixelBuffer
         auxiliaryTools.inputFrame(frame)
         previewView.inputFrame(frame)
+        if let snapshot = scopeAnalyzer.analyze(frame: frame, pool: auxiliaryTools.pixelBufferPool) {
+            DispatchQueue.main.async { [weak self] in
+                self?.scopePanel.apply(snapshot: snapshot)
+            }
+        }
     
         if videoEncoder == nil {
             videoEncoder = VideoEncoder(width: frame.frameWidth, height: frame.frameHeight, bitRate: Float(width * height * 2 * 32), frameRate: 25)
@@ -158,5 +212,18 @@ extension LivePreviewViewController: OFInputDeviceDelegate {
     /// 音频采集回调：耳返播放
     func device(_ device: OFInputDevice, onReceiveAudio sampleBuffer: CMSampleBuffer) {
         audioMng?.inputAudio(sampleBuffer: sampleBuffer, from: device)
+    }
+}
+
+extension LivePreviewViewController: AlbumScopePanelViewDelegate {
+    /// 打开时在采集回调里跑 Analyzer
+    func scopePanel(_ panel: AlbumScopePanelView, didChangeEnabled enabled: Bool) {
+        scopeAnalyzer.isEnabled = enabled
+        updateScopeButtonAppearance()
+    }
+
+    /// Colorize 只改累加；下一帧预览会带上新快照
+    func scopePanel(_ panel: AlbumScopePanelView, didChangeColorize colorize: Bool) {
+        scopeAnalyzer.colorize = colorize
     }
 }

@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "相册示波器 P0",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/lihanxu/LiveStreaming.git",
+      "provider": "github",
+      "revision": "ad75223588cc6a279abc5114f23685f6ae57f196"
+    },
+    "views": [
+      {
+        "id": "preview-tap",
+        "label": "预览取样",
+        "focus": ["editor", "session", "kernel", "tools", "analyzer", "preview"],
+        "note": "几何与滤镜之后才进 Analyzer；SCGLView 仍只收着色后的 VideoFrame。"
+      },
+      {
+        "id": "measure-bypass",
+        "label": "测量旁路",
+        "focus": ["tools", "analyzer", "snapshot", "panel"],
+        "note": "Analyzer 不是 OFProcessGraph 节点。关闭 isEnabled 则跳过 kernel。"
+      },
+      {
+        "id": "export-skip",
+        "label": "导出跳过",
+        "focus": ["session", "exporter", "tools"],
+        "note": "processVideoFrameSync / exportPhoto 不调用 Analyzer，离线编码不付测量成本。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "editor",
+      "type": "frontend",
+      "label": "AlbumEditorViewController",
+      "sublabel": "示波器入口；开关 Analyzer",
+      "tag": "门面",
+      "pos": [48, 56],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditorViewController.swift", "line": 318, "end_line": 320, "label": "预览 completion" }
+      ]
+    },
+    {
+      "id": "preview",
+      "type": "frontend",
+      "label": "SCGLView",
+      "sublabel": "只显示素；letterbox 不进统计",
+      "pos": [400, 56],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditorViewController.swift", "line": 32, "end_line": 32, "label": "previewView" }
+      ]
+    },
+    {
+      "id": "panel",
+      "type": "frontend",
+      "label": "AlbumScopePanelView",
+      "sublabel": "直方图 RGB+Y / 波形 Y+Colorize",
+      "pos": [980, 56],
+      "size": [250, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumGeometryPanelView.swift", "line": 11, "end_line": 16, "label": "面板委托范式" }
+      ]
+    },
+    {
+      "id": "session",
+      "type": "backend",
+      "label": "AlbumEditSession",
+      "sublabel": "inputFrame 后按需 analyze",
+      "tag": "processingQueue",
+      "pos": [48, 300],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift", "line": 71, "end_line": 92, "label": "processVideoPreviewFrame" }
+      ]
+    },
+    {
+      "id": "kernel",
+      "type": "backend",
+      "label": "AlbumGeometryKernel",
+      "sublabel": "画幅后再着色",
+      "pos": [400, 300],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumGeometryKernel.swift", "line": 14, "end_line": 30, "label": "apply" }
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "OFAuxiliaryTools",
+      "sublabel": "DAG 原地改像素；无示波器节点",
+      "pos": [720, 300],
+      "size": [250, 56],
+      "sources": [
+        { "path": "OFFilterKit/Sources/Metal/OFAuxiliaryTools.swift", "line": 121, "end_line": 126, "label": "inputFrame" }
+      ]
+    },
+    {
+      "id": "exporter",
+      "type": "backend",
+      "label": "导出路径",
+      "sublabel": "Sync 帧处理；不调用 Analyzer",
+      "pos": [48, 540],
+      "size": [220, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift", "line": 159, "end_line": 187, "label": "processVideoFrameSync" }
+      ]
+    },
+    {
+      "id": "analyzer",
+      "type": "backend",
+      "label": "AlbumScopeAnalyzer",
+      "sublabel": "长边≤512；hist + 波形 kernel",
+      "tag": "旁路",
+      "pos": [400, 540],
+      "size": [250, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift", "line": 87, "end_line": 91, "label": "inputFrame 后插入" }
+      ]
+    },
+    {
+      "id": "snapshot",
+      "type": "database",
+      "label": "AlbumScopeSnapshot",
+      "sublabel": "4×256 计数 + 256×256 波形",
+      "pos": [980, 540],
+      "size": [250, 56],
+      "sources": [
+        { "path": "LiveStreaming/LiveStreaming/Album/AlbumEditSession.swift", "line": 50, "end_line": 64, "label": "预览 completion" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "主线程 UI",
+      "wraps": ["editor", "preview", "panel"]
+    },
+    {
+      "kind": "region",
+      "label": "processingQueue 像素路径",
+      "wraps": ["session", "kernel", "tools"]
+    },
+    {
+      "kind": "region",
+      "label": "测量旁路（非 DAG）",
+      "wraps": ["analyzer", "snapshot"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "editor-preview",
+      "from": "editor",
+      "to": "preview",
+      "label": "送预览帧",
+      "variant": "emphasis"
+    },
+    {
+      "id": "editor-panel",
+      "from": "editor",
+      "to": "panel",
+      "label": "开关 / Colorize",
+      "fromSide": "top",
+      "toSide": "top",
+      "variant": "dashed"
+    },
+    {
+      "id": "editor-session",
+      "from": "editor",
+      "to": "session",
+      "label": "预览处理",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "session-kernel",
+      "from": "session",
+      "to": "kernel",
+      "label": "geometry apply",
+      "variant": "emphasis",
+      "labelDy": 52
+    },
+    {
+      "id": "kernel-tools",
+      "from": "kernel",
+      "to": "tools",
+      "label": "inputFrame",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tools-analyzer",
+      "from": "tools",
+      "to": "analyzer",
+      "label": "着色后取样",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "emphasis"
+    },
+    {
+      "id": "analyzer-snapshot",
+      "from": "analyzer",
+      "to": "snapshot",
+      "label": "读回累加缓冲",
+      "variant": "emphasis"
+    },
+    {
+      "id": "snapshot-panel",
+      "from": "snapshot",
+      "to": "panel",
+      "label": "主线程绘制",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "variant": "dashed"
+    },
+    {
+      "id": "session-exporter",
+      "from": "session",
+      "to": "exporter",
+      "label": "导出不 analyze",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "P0 测量",
+      "items": [
+        "直方图 RGB 叠画，Y 仅显示开关（kernel 仍累加）",
+        "波形仅 Y；Colorize 用列×电平上的平均像素色"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "取样契约",
+      "items": [
+        "与达芬奇相同：读 Viewer 信号，即几何 + 滤镜输出",
+        "长边 ≤ 512 再 atomic，避免 waitUntilCompleted 拖垮预览"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "非目标",
+      "items": [
+        "不是 OFProcessGraph 节点，直播与导出不跑",
+        "P0 不做 Parade / YCbCr / 矢量 / CIE"
+      ]
+    }
+  ]
+}

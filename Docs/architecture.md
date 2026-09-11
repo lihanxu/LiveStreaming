@@ -2,6 +2,10 @@
 
 本文描述当前 App 的模块划分、数据流与关键约束，对应仓库 `LiveStreaming/` 工程（iOS 12+，UIKit）。
 
+**怎么读：** 先看 §1–4 建立「两种像素源、一份滤镜图」；直播看 §6；相册会话与分辨率看 §7；画幅/剪辑/变速的类型与时钟看 [`Album/album-edit.md`](Album/album-edit.md)。滤镜节点细节看 [`FilterKit/OFAuxiliaryTools.md`](FilterKit/OFAuxiliaryTools.md)。
+
+一句话：App 只做采集、预览、相册编辑和设置 UI；着色逻辑只维护在开发源 Pod **OFFilterKit**。相册剪辑是「草稿 + 时间映射 + 几何内核」，**不是**美摄式 `NvsTimeline`。
+
 ## 1. 产品形态
 
 App 启动后进入首页，两个入口：
@@ -125,45 +129,66 @@ Source
 
 目录：`LiveStreaming/LiveStreaming/Album/`
 
-设计目标（方案 B）：**不复制滤镜**，补像素源、预览循环、导出，并用会话串行化 GPU。
+**方案 B：** 不复制滤镜实现。相册补三件事——像素从哪来、预览怎么循环、导出怎么写文件——并用会话把 GPU 串行化。直播页与编辑页各持一份 `OFAuxiliaryTools`，参数互不串扰。
+
+心智模型：
 
 ```
-AlbumEditorViewController（UI）
+相册网格（AlbumViewController）
+        │ 点选 PHAsset
+        ▼
+AlbumEditorViewController          唯一写 session.document 的门面
         │
         ▼
 AlbumEditSession
-  ├─ OFAuxiliaryTools（独立实例）
-  ├─ processingQueue（所有 inputFrame）
-  ├─ 预览：照片重跑 source / 视频逐帧
-  └─ 导出独占：isExporting，停 SCGLView 与 AVPlayer
+  ├─ document                      画幅 + 时间线（滤镜参数不在此）
+  ├─ OFAuxiliaryTools              独立滤镜图
+  ├─ processingQueue               所有 inputFrame / 导出同步处理
+  └─ isExporting                   独占时丢弃预览帧
         │
-        ├─ AlbumMediaConverter（方向烘焙、尺寸、拷贝）
-        ├─ AlbumVideoPlayer（AVPlayer + VideoOutput）
-        └─ AlbumVideoExporter（Reader/Writer → mp4 → 相册）
+        ├─ AlbumMediaConverter     方向、尺寸、拷贝、UIImage
+        ├─ AlbumGeometryKernel     单帧 CI：朝向 + 用户画幅（滤镜之前）
+        ├─ AlbumTimeMapper         源时间 ↔ 播放轴；按需拼 Composition
+        ├─ AlbumVideoPlayer        AVPlayer + VideoOutput 出 BGRA
+        └─ AlbumVideoExporter      Reader → 几何 → 滤镜 → Writer → 相册
 ```
 
-分辨率约定：
+照片与视频共用几何 + 滤镜；时间线只对视频有意义。照片必须保留一份未滤镜的 `photoSourceBuffer`：处理图会**原地**替换 `CVPixelBuffer`，改 LUT 时要从 source 重跑，不能在已滤镜结果上叠第二次。
 
-- 预览长边：屏幕 `nativeBounds` 长边（避免 3x 屏发糊）
-- 照片导出长边上限：4096
-- 视频导出长边上限：1920，且宽高收成偶数（H.264）
+分辨率约定（`AlbumMediaConverter`）：
 
-预览：`SCGLView.holdsLastFrame` + `isAspectFitEnabled`（静图不被 DisplayLink 弹出后变黑；按比例 letterbox）。
+| 用途 | 长边 | 备注 |
+|------|------|------|
+| 预览 | 屏 `nativeBounds` 长边 | 避免 3x 屏被放大发糊 |
+| 照片导出 | 4096 | 从相册重新 decode，不复用预览 buffer |
+| 视频导出 | 1920 | 几何后再 `evenSize`，H.264 要求偶数宽高 |
 
-导出视频注意：
+预览：`SCGLView.holdsLastFrame` + `isAspectFitEnabled`。静图若无 holdsLastFrame，DisplayLink 弹出队列后会变黑；相册按比例 letterbox，直播铺满。
 
-- 几何（含片源朝向）bake 进像素后 `writer.transform = identity`；输出尺寸是几何后偶数宽高，长边仍 1920
-- Reader `timeRange` 限在单段收尾区间；导出前 `videoPlayer.teardown()`，避免与 `AVAssetReader` 争用同一 `AVAsset`
-- 缩放用 CoreGraphics，不在后台调 UIKit 绘图
-- 音频：PCM 读出再编 AAC
+导出视频要点：
 
-设置：`OFSettingsController(context: .album)`，隐藏摄像头与转场；`onPipelineChanged` 驱动照片从 source 重算、视频刷新当前帧。
+- 几何（含轨 `preferredTransform`）bake 进像素后 `writer.transform = identity`。不要再用「编码尺寸 + Writer 旋转」分裂朝向。
+- `AlbumTimeMapper.exportSource` / `exportTimeRange`：单段 1x 读原片入出点；多段或非 1x 读 Composition，区间是播放轴 `[0, playDuration]`。已读合成轴时**不要再乘 speed**。
+- 导出前 `videoPlayer.teardown()`，避免 `AVPlayer` 与 `AVAssetReader` 争用同一 `AVAsset`。
+- 缩放走 CoreGraphics，后台不要调 UIKit 绘图。
+- 音频：PCM 读出再编 AAC；Composition 里音视频同一 `scaleTimeRange`（第一期变调）。
 
-## 8. 相册编辑模块
+设置：`OFSettingsController(context: .album)`，隐藏摄像头与转场。`onPipelineChanged`：照片从 source 重算，视频 `refreshCurrentFrame`。画幅 / 剪辑 / 变速在编辑页底部工具条，**不进**设置导航栈。
 
-剪辑改坐标系与时间轴，滤镜改逐帧着色；几何必须在滤镜之前，二者都不是 `OFProcessGraph` 节点。专文与剪辑架构图见 [`Album/album-edit.md`](Album/album-edit.md)。
+## 8. 相册编辑模块（画幅 / 剪辑 / 变速）
 
-要点：`AlbumEditSession.document` 为草稿真相；面板只提交值拷贝，由 `AlbumEditorViewController` 赋值；`AlbumTimeMapper` 无状态，预览/导出按需构造。阶段 1–3 已落地，变速（阶段 4）与截图（阶段 5）见该文档 §7 / §8。
+滤镜改「这一帧怎么着色」；剪辑改「这一帧从哪来、坐标系是什么」。几何与时间线都**不是** `OFProcessGraph` 节点。完整类型、两套时钟、面板写入路径见 [`Album/album-edit.md`](Album/album-edit.md)；交互图见同目录 `clip-architecture.html` / `clip-dataflow.html`。
+
+新人只需先记住六条：
+
+1. **草稿为真相。** `AlbumEditSession.document`（`AlbumEditDocument`）是预览/导出唯一输入。滤镜滑杆写 `session.tools`，不写 document。
+2. **几何 ⊥ 时间线。** `AlbumGeometryEdit` 改坐标系；`AlbumTimelineEdit` 是源时间上的保留段 + 每段 `speed`。空 `segments` = 整段 1x、未剪辑。
+3. **几何在滤镜之前。** `AlbumGeometryKernel` 一次 CI 合成朝向与用户画幅，输出正放铺满，再 `inputFrame`。自由角必须 cover，否则黑边进 MediaPipe。
+4. **UI 交回值拷贝。** 面板 `present` 时拷贝 document；`didChange` 交给 VC 赋值。面板不持有 `session.document` 引用。
+5. **Mapper 无状态。** `AlbumTimeMapper(timeline:sourceDuration:)` 按需构造。Player 只吃 `AVAsset` + 入出点，不吃 `AlbumTimelineEdit`。
+6. **不引入美摄时间线。** Composition 只表达「播放轴无缺口」。单段 1x 仍用原片 + `forwardPlaybackEndTime`。
+
+已落地：照片/视频画幅、单段与多段裁切、整段与分段变速。未做：截图（阶段 5）。约束：最短段 0.1s，最多 6 段，speed 夹紧 `[0.25, 4]`。
 
 ## 9. 设置 UI
 
@@ -199,7 +224,7 @@ LiveStreaming/LiveStreaming/          App
   Live/                     LivePreviewViewController
   Capture/                  OFInputDevice / OFiPhoneInputDevice
   Preview/                  SCGLView、FrameBuffer、GLES shader
-  Album/                    网格、编辑会话、画幅/时间线文档、几何内核、转换、播放、收尾面板、导出
+  Album/                    网格、会话、文档、几何内核、TimeMapper、转换、播放、画幅/剪辑/变速面板、导出
   Settings/                 设置数据、底部面板、各 EditorView
   Audio/ Video/             耳返、H.264 编码
 ```
@@ -222,6 +247,7 @@ App 工程用 Xcode 文件夹自动同步（`PBXFileSystemSynchronizedRootGroup`
 - 漫画风 + 人脸在接近屏像素时较重；导出长视频会逐帧跑检测，耗时属预期。
 - 像素池按门面实例隔离；直播与相册仍不要同时 `inputFrame` 抢同一 GPU，相册内部靠串行队列。
 - 视频预览与导出都经 `AlbumGeometryKernel` bake `preferredTransform` 与用户画幅；Writer 置 identity。不再用编码尺寸 + `writer.transform` 分裂朝向。
+- 相册草稿不持久化；退出编辑页即丢。多段/变速预览绑 Composition，剪辑面板打开时改绑原片源轴。
 
 ## 14. 扩展建议
 
