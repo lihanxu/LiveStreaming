@@ -490,14 +490,23 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
             let window = min(visibleSeconds, durationSeconds)
             pointsPerSecond = width / max(window, 0.001)
         } else {
-            pointsPerSecond = width / durationSeconds
+            // 首尾：缩略图左右各留手柄宽，外侧拉动条仍落在 clipsToBounds 内
+            let trackWidth = max(1, width - handleWidth * 2)
+            pointsPerSecond = trackWidth / durationSeconds
         }
         let contentWidth = durationSeconds * pointsPerSecond
         let trackY = rulerHeight
-        contentView.frame = CGRect(x: 0, y: 0, width: contentWidth, height: height)
-        scrollView.contentSize = CGSize(width: contentWidth, height: height)
-        let inset = isMultiMode ? width / 2 : 0
-        scrollView.contentInset = UIEdgeInsets(top: 0, left: inset, bottom: 0, right: inset)
+        if isMultiMode {
+            contentView.frame = CGRect(x: 0, y: 0, width: contentWidth, height: height)
+            scrollView.contentSize = CGSize(width: contentWidth, height: height)
+            let inset = width / 2
+            scrollView.contentInset = UIEdgeInsets(top: 0, left: inset, bottom: 0, right: inset)
+        } else {
+            contentView.frame = CGRect(x: handleWidth, y: 0, width: contentWidth, height: height)
+            scrollView.contentSize = CGSize(width: width, height: height)
+            scrollView.contentInset = .zero
+            scrollView.contentOffset = .zero
+        }
         rulerView.frame = CGRect(x: 0, y: 0, width: contentWidth, height: rulerHeight)
         thumbsStack.frame = CGRect(x: 0, y: trackY, width: contentWidth, height: max(0, height - trackY))
         if isMultiMode, rulerHeight > 0, abs(laidOutPointsPerSecond - pointsPerSecond) > 0.01 {
@@ -593,13 +602,13 @@ class AlbumTrimFilmstripView: UIView, UIScrollViewDelegate {
         updateCutterAppearance()
     }
 
-    /// 播放头在条带坐标系中的 x；多段闲时等于视口中心
+    /// 播放头在条带坐标系的 x；多段闲时为视口中心，首尾要加上左侧手柄占位
     /// - Returns: 点坐标
     private func playheadViewX() -> CGFloat {
         if isMultiMode {
             return contentX(for: previewTime) - scrollView.contentOffset.x
         }
-        return contentX(for: previewTime)
+        return handleWidth + contentX(for: previewTime)
     }
 
     /// 剪刀 / 对勾显隐：剪辑在空隙；变速在可切开的段内

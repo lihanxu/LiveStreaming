@@ -12,7 +12,7 @@
         <!--Navigation Controller-->
         <scene sceneID="nav-home-scene">
             <objects>
-                <navigationController id="NAV-01-home" sceneMemberID="viewController">
+                <navigationController id="NAV-01-home" customClass="NavigationController" customModule="LiveStreaming" customModuleProvider="target" sceneMemberID="viewController">
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="NAV-BAR-01">
                         <rect key="frame" x="0.0" y="44" width="414" height="44"/>
                         <autoresizingMask key="autoresizingMask"/>
